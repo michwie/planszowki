@@ -202,3 +202,5 @@
 .foot p{margin:0 0 4px}
 .foot .motto{color:var(--ink);font-size:13px}
 .foot .by{margin-top:8px;font-size:11px;letter-spacing:.5px}
+.testnote{border:1px dashed var(--amber);border-radius:var(--radius);padding:10px 12px;margin:6px 0 4px;font-size:14px;line-height:1.55}
+.helpfoot{margin-top:22px;padding-top:14px;border-top:1px solid var(--line)}
