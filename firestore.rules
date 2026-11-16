@@ -84,6 +84,27 @@ service cloud.firestore {
           && request.resource.data.createdBy == resource.data.createdBy;
         allow delete: if member() && (resource.data.createdBy == me() || power());
       }
+
+      // Change Log grupy: członkowie czytają i dopisują (tylko jako siebie), nikt nie edytuje
+      match /log/{lid} {
+        function ga() { return getAfter(/databases/$(database)/documents/groups/$(gid)).data; }
+        function gb() { return get(/databases/$(database)/documents/groups/$(gid)).data; }
+        allow read: if signedIn() && me() in gb().memberIds;
+        allow create: if signedIn() && me() in ga().memberIds
+          && request.resource.data.by == me()
+          && request.resource.data.keys().hasOnly(['at', 'by', 'name', 'type', 'text'])
+          && request.resource.data.text is string && request.resource.data.text.size() <= 300;
+        allow update: if false;
+        allow delete: if signedIn() && gb().members.get(me(), '') == 'owner';
+      }
+    }
+
+    // Rejestracje kont (do Change Log): każdy zalogowany czyta, każdy zapisuje tylko swoją
+    match /registrations/{u} {
+      allow read: if signedIn();
+      allow create, update: if signedIn() && me() == u
+        && request.resource.data.keys().hasOnly(['name', 'at']);
+      allow delete: if false;
     }
 
     // Wszystko inne zamknięte

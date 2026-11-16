@@ -36,12 +36,17 @@
   try { db.enablePersistence({synchronizeTabs: false}).catch(() => {}); } catch(e){}
   const gref = gid => db.collection("groups").doc(gid);
   const pcol = gid => gref(gid).collection("plays");
+  const lcol = gid => gref(gid).collection("log");
 
   // ---------- stan ----------
   let me = null;                 // {uid, name}
   let groups = [];               // [{id, ...dane}]
   const playsBy = {};            // gid -> [play]
   const playSubs = {};           // gid -> unsubscribe
+  const logsBy = {};             // gid -> [wpis dziennika]
+  const logSubs = {};
+  let regs = {};                 // uid -> {name, at}  (rejestracje kont)
+  let regsUnsub = null;
   let groupsUnsub = null;
   let ui = { tab: 0, pool: lsGet("pl-pool", []), drawn: null, drawnGid: null, armed: null, moving: null,
              justPlayed: null, resArmed: null, rankGroup: "all" };
@@ -66,6 +71,26 @@
     return [...s.values()].sort(cmp);
   }
   function setStatus(t){ $("status").textContent = t; }
+  function fmtDT(ts){ const d = new Date(ts); return fmt(ts) + " " + String(d.getHours()).padStart(2,"0") + ":" + String(d.getMinutes()).padStart(2,"0"); }
+  const q = t => "„" + t + "”";
+  // ---------- dziennik zmian (Change Log) ----------
+  let logOk = true;   // false, gdy reguły w Firebase nie pozwalają jeszcze na dziennik
+  // Zapis paczką zmian razem z wpisem do dziennika; gdy dziennik jest niedozwolony – zapis bez niego.
+  async function commitB(fill){
+    const run = async withLog => { const b = db.batch(); fill(b, withLog ? (gid, t, x) => logTo(gid, t, x, b) : () => {}); await b.commit(); };
+    if (logOk) {
+      try { await run(true); return; }
+      catch(e){ if (!String(e.code).includes("permission-denied")) throw e; logOk = false; }
+    }
+    await run(false);
+  }
+  function logEntry(type, text){ return {at: Date.now(), by: me.uid, name: me.name, type, text: String(text).slice(0, 300)}; }
+  function logTo(gid, type, text, batch){
+    if (!logOk) return;
+    const e = logEntry(type, text);
+    if (batch) batch.set(lcol(gid).doc(), e);
+    else lcol(gid).doc().set(e).catch(() => {});
+  }
 
   // ================= LOGOWANIE =================
   let authMode = "login", pendingName = "";
@@ -133,6 +158,8 @@
     me = null;
     if (groupsUnsub) { groupsUnsub(); groupsUnsub = null; }
     Object.keys(playSubs).forEach(k => { playSubs[k](); delete playSubs[k]; delete playsBy[k]; });
+    Object.keys(logSubs).forEach(k => { logSubs[k](); delete logSubs[k]; delete logsBy[k]; });
+    if (regsUnsub) { regsUnsub(); regsUnsub = null; } regs = {};
     groups = [];
     $("appView").hidden = true; $("authView").hidden = false;
     setAuthMode("login");
@@ -149,11 +176,13 @@
         .sort((a,b) => (a.createdAtMs || 0) - (b.createdAtMs || 0));
       const ids = new Set(groups.map(g => g.id));
       Object.keys(playSubs).forEach(k => { if (!ids.has(k)) { playSubs[k](); delete playSubs[k]; delete playsBy[k]; } });
-      groups.forEach(g => subPlays(g.id, 0));
+      groups.forEach(g => { subPlays(g.id, 0); subLog(g.id, 0); });
+      Object.keys(logSubs).forEach(k => { if (!ids.has(k)) { logSubs[k](); delete logSubs[k]; delete logsBy[k]; } });
       setStatus(qs.metadata.fromCache ? "Tryb offline – zmiany wyślę po połączeniu" : "Połączono ✓");
       render();
       if (!qs.metadata.fromCache) oneTimeReset();
     }, err => { setStatus("Błąd połączenia z bazą: " + errMsg(err)); });
+    startRegs(user);
     checkUpdate();
   }
 
@@ -170,10 +199,36 @@
     });
   }
 
+  function subLog(gid, attempt){
+    if (logSubs[gid]) return;
+    logSubs[gid] = lcol(gid).orderBy("at", "desc").limit(200).onSnapshot(ls => {
+      logsBy[gid] = ls.docs.map(d => Object.assign({}, d.data(), {id: d.id, groupId: gid}));
+      renderLog();
+    }, () => {
+      delete logSubs[gid];
+      if (attempt < 8) setTimeout(() => { if (me && groupById(gid)) subLog(gid, attempt + 1); }, 1500 * (attempt + 1));
+    });
+  }
+  function startRegs(user){
+    regsUnsub = db.collection("registrations").onSnapshot(rs => {
+      regs = {}; rs.docs.forEach(d => regs[d.id] = d.data()); renderLog();
+    }, () => {});
+    // wpis o rejestracji (dla kont założonych przed dodaniem dziennika – z datą założenia konta)
+    const ref = db.collection("registrations").doc(user.uid);
+    ref.get().then(d => {
+      if (d.exists) return;
+      const created = user.metadata && user.metadata.creationTime ? Date.parse(user.metadata.creationTime) : Date.now();
+      return ref.set({name: me.name, at: isNaN(created) ? Date.now() : created});
+    }).catch(() => {});
+  }
+
   // ================= ZAPIS =================
-  async function upd(gid, patch){
-    try { await gref(gid).update(Object.assign(patch, {updatedAt: Date.now()})); return true; }
-    catch(e){ toast(errMsg(e)); return false; }
+  async function upd(gid, patch, logText, logType){
+    try {
+      Object.assign(patch, {updatedAt: Date.now()});
+      await commitB((b, log) => { b.update(gref(gid), patch); if (logText) log(gid, logType || "edit", logText); });
+      return true;
+    } catch(e){ toast(errMsg(e)); return false; }
   }
   async function createGroup(name, extra){
     for (let attempt = 0; attempt < 5; attempt++){
@@ -185,10 +240,14 @@
         inviteCode: code, games: [], played: {}, history: [], players: [],
         createdAtMs: Date.now(), updatedAt: Date.now(), resetV: 2
       }, extra || {});
-      const b = db.batch();
-      b.set(ref, data);
-      b.set(db.collection("invites").doc(code), {groupId: ref.id, createdBy: me.uid, createdAt: Date.now()});
-      try { await b.commit(); return ref.id; }
+      try {
+        await commitB((b, log) => {
+          b.set(ref, data);
+          b.set(db.collection("invites").doc(code), {groupId: ref.id, createdBy: me.uid, createdAt: Date.now()});
+          log(ref.id, "group", "Utworzenie grupy " + q(name));
+        });
+        return ref.id;
+      }
       catch(e){ if (!String(e.code).includes("permission-denied")) { toast(errMsg(e)); return null; } }
     }
     toast("Nie udało się utworzyć grupy"); return null;
@@ -240,12 +299,12 @@
     const at = Date.now();
     ui.drawn = null; ui.justPlayed = {id: f.game.id, gid: f.group.id};
     renderDraw();
-    if (await upd(f.group.id, {["played." + f.game.id]: at, history: historyWith(f.group, f.game, at)}))
+    if (await upd(f.group.id, {["played." + f.game.id]: at, history: historyWith(f.group, f.game, at)}, "Gramy w " + q(f.game.name) + " (z losowania)", "play"))
       toast("Miłej gry! „" + f.game.name + "” zapisana jako rozegrana");
   }
   async function resetPool(){
     const gs = groups.filter(g => inPool(g) && g.played && Object.keys(g.played).length);
-    for (const g of gs) await upd(g.id, {played: {}});
+    for (const g of gs) await upd(g.id, {played: {}}, "Nowy cykl losowania – wszystkie gry wróciły do puli", "cycle");
     ui.drawn = null; render(); toast("Nowy cykl – wszystkie gry znów w puli");
   }
 
@@ -346,7 +405,8 @@
       li.querySelector("small").textContent = played ? ("Rozegrana " + fmt(g.played[game.id])) : "Do zagrania";
       li.querySelector(".check").onclick = () => {
         if (ui.drawn === game.id) ui.drawn = null;
-        upd(g.id, {["played." + game.id]: played ? FV.delete() : Date.now()});
+        upd(g.id, {["played." + game.id]: played ? FV.delete() : Date.now()},
+            (played ? "Oznaczenie jako nierozegrana: " : "Oznaczenie jako rozegrana: ") + q(game.name), "mark");
       };
       const mv = li.querySelector(".move");
       if (mv) mv.onclick = () => {
@@ -365,7 +425,7 @@
         del.onclick = () => {
           if (ui.armed !== game.id) { ui.armed = game.id; renderGroup(); return; }
           ui.armed = null; if (ui.drawn === game.id) ui.drawn = null;
-          upd(g.id, {games: FV.arrayRemove(game), ["played." + game.id]: FV.delete()});
+          upd(g.id, {games: FV.arrayRemove(game), ["played." + game.id]: FV.delete()}, "Usunięcie gry " + q(game.name), "game-del");
         };
       }
       list.appendChild(li);
@@ -376,20 +436,22 @@
       const s = document.createElement("span"); s.textContent = "Rozegrane: " + playedN + " / " + games.length; tools.appendChild(s);
       if (playedN) {
         const r = document.createElement("button"); r.className = "link"; r.textContent = "Wyzeruj tę grupę";
-        r.onclick = () => { upd(g.id, {played: {}}); toast("Wyzerowano: " + g.name); };
+        r.onclick = () => { upd(g.id, {played: {}}, "Wyzerowanie grupy – wszystkie gry wróciły do puli", "cycle"); toast("Wyzerowano: " + g.name); };
         tools.appendChild(r);
       }
     }
   }
   async function moveGame(from, game, to){
     ui.moving = null;
-    const b = db.batch();
     const ts = from.played && from.played[game.id];
-    b.update(gref(from.id), {games: FV.arrayRemove(game), ["played." + game.id]: FV.delete(), updatedAt: Date.now()});
     const p = {games: FV.arrayUnion(game), updatedAt: Date.now()};
     if (ts) p["played." + game.id] = ts;
-    b.update(gref(to.id), p);
-    try { await b.commit(); toast("Przeniesiono do: " + to.name); } catch(e){ toast(errMsg(e)); }
+    try { await commitB((b, log) => {
+      b.update(gref(from.id), {games: FV.arrayRemove(game), ["played." + game.id]: FV.delete(), updatedAt: Date.now()});
+      b.update(gref(to.id), p);
+      log(from.id, "game-move", "Przeniesienie gry " + q(game.name) + " do grupy " + q(to.name));
+      log(to.id, "game-move", "Przeniesienie gry " + q(game.name) + " z grupy " + q(from.name));
+    }); toast("Przeniesiono do: " + to.name); } catch(e){ toast(errMsg(e)); }
   }
   function renderHist(){
     const el = $("hist"); el.innerHTML = "";
@@ -407,7 +469,7 @@
   }
   function render(){
     if (!me) return;
-    renderPool(); renderDraw(); renderGroup(); renderHist(); renderResults();
+    renderPool(); renderDraw(); renderGroup(); renderHist(); renderResults(); renderLog();
     if (!$("ov").hidden) renderAll();
     if (!$("gm").hidden) renderGm();
   }
@@ -419,7 +481,7 @@
     if (!name) return;
     const g = groups[ui.tab]; if (!g || !canEdit(g)) return;
     if ((g.games || []).some(x => x.name.toLowerCase() === name.toLowerCase())) { toast("Ta gra już jest na liście"); return; }
-    upd(g.id, {games: FV.arrayUnion({id: uid(), name})});
+    upd(g.id, {games: FV.arrayUnion({id: uid(), name})}, "Dodanie gry " + q(name), "game-add");
     inp.value = ""; inp.focus();
   });
   let nameTimer = null;
@@ -427,7 +489,7 @@
     const g = groups[ui.tab]; if (!g || !canEdit(g)) return;
     const v = e.target.value.trim();
     clearTimeout(nameTimer);
-    if (v) nameTimer = setTimeout(() => upd(g.id, {name: v.slice(0, 40)}), 600);
+    if (v) nameTimer = setTimeout(() => upd(g.id, {name: v.slice(0, 40)}, "Zmiana nazwy grupy na " + q(v.slice(0, 40)), "group"), 1200);
   });
   $("groupName").addEventListener("blur", () => renderGroup());
   async function addGroup(){
@@ -456,6 +518,7 @@
     if (open.length) { closeOv(open[open.length - 1].id); return true; }
     return false;
   };
+  $("openBk").onclick = () => { bkMsg(""); openOv("bkov"); };
   $("openHelp").onclick = () => { openOv("help"); $("help").querySelector(".ovscroll").scrollTop = 0; };
 
   // ---------- lista gier ----------
@@ -540,9 +603,10 @@
           sel.value = r;
           sel.onchange = async () => {
             if (sel.value === "__remove") {
-              const ok = await upd(g.id, {["members." + u]: FV.delete(), memberIds: FV.arrayRemove(u), ["memberNames." + u]: FV.delete()});
+              const ok = await upd(g.id, {["members." + u]: FV.delete(), memberIds: FV.arrayRemove(u), ["memberNames." + u]: FV.delete()},
+                "Usunięcie z grupy: " + ((g.memberNames || {})[u] || "?"), "member");
               if (ok) toast("Usunięto z grupy");
-            } else await upd(g.id, {["members." + u]: sel.value});
+            } else await upd(g.id, {["members." + u]: sel.value}, "Zmiana roli: " + ((g.memberNames || {})[u] || "?") + " → " + ROLE_PL[sel.value], "member");
           };
           row.appendChild(sel);
         } else {
@@ -564,6 +628,7 @@
       l.classList.toggle("armed", gmArmed === "leave");
       l.onclick = async () => {
         if (gmArmed !== "leave") { gmArmed = "leave"; renderGm(); return; }
+        try { await lcol(g.id).doc().set(logEntry("member", "Opuszczenie grupy")); } catch(e){}
         const ok = await upd(g.id, {["members." + me.uid]: FV.delete(), memberIds: FV.arrayRemove(me.uid), ["memberNames." + me.uid]: FV.delete()});
         if (ok) { closeOv("gm"); toast("Opuszczono grupę: " + g.name); }
       };
@@ -572,11 +637,12 @@
   async function regenCode(g){
     for (let attempt = 0; attempt < 5; attempt++){
       const code = newCode();
-      const b = db.batch();
-      if (g.inviteCode) b.delete(db.collection("invites").doc(g.inviteCode));
-      b.set(db.collection("invites").doc(code), {groupId: g.id, createdBy: me.uid, createdAt: Date.now()});
-      b.update(gref(g.id), {inviteCode: code, updatedAt: Date.now()});
-      try { await b.commit(); toast("Nowy kod: " + code); return; }
+      try { await commitB((b, log) => {
+        if (g.inviteCode) b.delete(db.collection("invites").doc(g.inviteCode));
+        b.set(db.collection("invites").doc(code), {groupId: g.id, createdBy: me.uid, createdAt: Date.now()});
+        b.update(gref(g.id), {inviteCode: code, updatedAt: Date.now()});
+        log(g.id, "invite", "Wygenerowanie nowego kodu zaproszenia");
+      }); toast("Nowy kod: " + code); return; }
       catch(e){ if (!String(e.code).includes("permission-denied")) { toast(errMsg(e)); return; } }
     }
     toast("Nie udało się wygenerować kodu");
@@ -584,7 +650,9 @@
   async function deleteGroup(g){
     try {
       const ps = await pcol(g.id).get();
-      const docs = ps.docs;
+      let logDocs = [];
+      try { logDocs = (await lcol(g.id).get()).docs; } catch(e){}
+      const docs = ps.docs.concat(logDocs);
       for (let i = 0; i < docs.length; i += 400) {
         const b = db.batch(); docs.slice(i, i + 400).forEach(d => b.delete(d.ref)); await b.commit();
       }
@@ -608,6 +676,7 @@
       const gid = inv.data().groupId;
       if (groupById(gid)) { $("jnErr").textContent = "Już należysz do tej grupy."; return; }
       await gref(gid).update({["members." + me.uid]: "player", memberIds: FV.arrayUnion(me.uid), ["memberNames." + me.uid]: me.name, joinCode: code});
+      lcol(gid).doc().set(logEntry("member", "Dołączenie do grupy (kodem zaproszenia)")).catch(() => {});
       closeOv("jn"); toast("Dołączono do grupy!");
     } catch(e){ $("jnErr").textContent = String(e.code).includes("permission-denied") ? "Ten kod jest już nieaktualny – poproś o nowy." : errMsg(e); }
     finally { $("jnBtn").disabled = false; }
@@ -746,7 +815,7 @@
       b.onclick = async () => {
         if (plArmed !== p) { plArmed = p; renderManage(); return; }
         plArmed = null;
-        for (const g of groups) if ((g.players || []).includes(p)) await upd(g.id, {players: FV.arrayRemove(p)});
+        for (const g of groups) if ((g.players || []).includes(p)) await upd(g.id, {players: FV.arrayRemove(p)}, "Usunięcie gracza z listy: " + p, "player");
       };
       box.appendChild(b);
     });
@@ -774,6 +843,7 @@
       return sc;
     });
     const gid = rf.gid;
+    const playId = rf.editId || uid();
     const play = { gameId: rf.gameId, gameName: f ? f.game.name : rf.orig.gameName, at, mode: rf.mode, scores,
                    winners: scores.filter(x => x.win).map(x => x.p),
                    createdBy: rf.editId ? (rf.orig.createdBy || me.uid) : me.uid, createdByName: rf.editId ? (rf.orig.createdByName || me.name) : me.name };
@@ -781,12 +851,13 @@
     const g = groupById(gid);
     $("rfSave").disabled = true;
     try {
-      const b = db.batch();
-      if (rf.editId && rf.orig.groupId !== gid) {
-        b.delete(pcol(rf.orig.groupId).doc(rf.editId));
-        b.set(pcol(gid).doc(rf.editId), play);
+      const editId = rf.editId, origGid = rf.editId ? rf.orig.groupId : null;
+      const fill = (b, log) => {
+      if (editId && origGid !== gid) {
+        b.delete(pcol(origGid).doc(editId));
+        b.set(pcol(gid).doc(editId), play);
       } else {
-        b.set(pcol(gid).doc(rf.editId || uid()), play);
+        b.set(pcol(gid).doc(playId), play);
       }
       // wpisane imiona trafiają na listę graczy grupy; nowy wynik oznacza grę jako rozegraną
       const gp = {updatedAt: Date.now()};
@@ -797,8 +868,12 @@
         gp.history = historyWith(g, f.game, at);
       }
       if (Object.keys(gp).length > 1) b.update(gref(gid), gp);
-      const wasEdit = !!rf.editId;
-      b.commit().catch(e => toast(errMsg(e)));   // offline: zapisze się po połączeniu
+      const summary = q(play.gameName) + " – " + scores.map(x => (x.win ? "🏆 " : "") + x.p + (x.pts !== undefined ? " " + x.pts : "")).join(", ")
+        + (play.mode === "coop" ? (play.coopWin ? " (kooperacja – wygrana)" : " (kooperacja – przegrana)") : "");
+      log(gid, "result", (editId ? "Zmiana wyniku: " : "Dodanie wyniku: ") + summary);
+      };
+      const wasEdit = !!editId;
+      commitB(fill).catch(e => toast(errMsg(e)));   // offline: zapisze się po połączeniu
       ui.justPlayed = null;
       closeOv("rf"); render();
       toast((wasEdit ? "Zmieniono wynik" : "Zapisano wynik") + (play.winners.length ? " · 🏆 " + play.winners.join(", ") : ""));
@@ -870,7 +945,10 @@
         del.onclick = () => {
           if (ui.resArmed !== pl.id) { ui.resArmed = pl.id; renderResults(); return; }
           ui.resArmed = null;
-          pcol(pl.groupId).doc(pl.id).delete().catch(e => toast(errMsg(e)));
+          commitB((b, log) => {
+            b.delete(pcol(pl.groupId).doc(pl.id));
+            log(pl.groupId, "result", "Usunięcie wyniku: " + q(pl.gameName) + " z " + fmt(pl.at));
+          }).catch(e => toast(errMsg(e)));
         };
       }
       ul.appendChild(li);
@@ -903,14 +981,50 @@
   }
   $("addResult").onclick = () => openResult(null, null);
 
+  // ================= CHANGE LOG =================
+  let logGroup = "all", logLimit = 30;
+  function renderLog(){
+    if (!me) return;
+    const fEl = $("logFilter"); fEl.innerHTML = ""; fEl.hidden = groups.length < 2;
+    if (logGroup !== "all" && !groupById(logGroup)) logGroup = "all";
+    [{id:"all", name:"Wszystko"}].concat(groups.map(g => ({id:g.id, name:g.name}))).forEach(o => {
+      const b = document.createElement("button");
+      b.className = "chip" + (logGroup === o.id ? " on" : ""); b.textContent = o.name;
+      b.onclick = () => { logGroup = o.id; logLimit = 30; renderLog(); };
+      fEl.appendChild(b);
+    });
+    let items = Object.values(logsBy).flat();
+    if (logGroup === "all") {
+      const known = new Set([me.uid, ...accounts().keys()]);
+      Object.entries(regs).forEach(([u, r]) => { if (known.has(u)) items.push({at: r.at, name: r.name, text: "Rejestracja konta w aplikacji", type: "register"}); });
+    } else items = items.filter(e => e.groupId === logGroup);
+    items.sort((a,b) => b.at - a.at);
+    const ul = $("logList"); ul.innerHTML = "";
+    if (!items.length) ul.innerHTML = '<li class="empty" style="justify-content:center">Brak wpisów.</li>';
+    items.slice(0, logLimit).forEach(e => {
+      const li = document.createElement("li");
+      li.innerHTML = '<div class="lh"><b></b><span></span></div><div class="lt"></div>';
+      li.querySelector("b").textContent = e.name || "?";
+      const g = e.groupId && groupById(e.groupId);
+      li.querySelector("span").textContent = fmtDT(e.at) + (g && groups.length > 1 && logGroup === "all" ? " · " + g.name : "");
+      li.querySelector(".lt").textContent = e.text;
+      ul.appendChild(li);
+    });
+    const more = $("logMore");
+    more.hidden = items.length <= logLimit;
+    more.onclick = () => { logLimit += 30; renderLog(); };
+  }
+
   // ================= KOPIA ZAPASOWA / IMPORT =================
   function bkMsg(t, err){ const m = $("bkMsg"); m.textContent = t; m.className = "msg" + (err ? " err" : ""); }
   $("bkCopy").onclick = async () => {
     const data = { v: 2, exportedAt: Date.now(),
       groups: groups.map(g => ({ id: g.id, name: g.name,
         games: (g.games || []).map(x => ({id: x.id, name: x.name, played: isPlayed(g, x), playedAt: (g.played || {})[x.id] || null})),
-        history: g.history || [], players: g.players || [] })),
-      plays: allPlays().map(p => Object.assign({}, p)) };
+        history: g.history || [], players: g.players || [],
+        log: (logsBy[g.id] || []).map(e => ({at: e.at, name: e.name, type: e.type, text: e.text})) })),
+      plays: allPlays().map(p => Object.assign({}, p)),
+      registrations: Object.entries(regs).map(([u, r]) => ({uid: u, name: r.name, at: r.at})) };
     const text = "PLANSZOWKI-KOPIA " + new Date().toLocaleDateString("pl-PL") + "\n" + JSON.stringify(data);
     $("bkText").value = text;
     if (Android && Android.copy) { Android.copy(text); bkMsg("Skopiowano do schowka. Wklej to w bezpieczne miejsce."); return; }
@@ -948,13 +1062,20 @@
         const gid = await createGroup(gname, {games, played, history, players});
         if (!gid) throw new Error("create");
         idMap[og.id || gname] = gid;
+        const oldLog = logOk ? (Array.isArray(og.log) ? og.log : []).filter(e => e && e.text).slice(0, 800) : [];
+        try { for (let i = 0; i < oldLog.length; i += 400) {
+          const b = db.batch();
+          oldLog.slice(i, i + 400).forEach(e => b.set(lcol(gid).doc(), {at: Number(e.at) || Date.now(), by: me.uid, name: String(e.name || "?").slice(0, 40), type: String(e.type || "edit").slice(0, 20), text: String(e.text).slice(0, 300)}));
+          await b.commit();
+        } } catch(e){ logOk = false; }
+        logTo(gid, "import", "Import kopii zapasowej (" + plural(games.length, "gra", "gry", "gier") + ")");
       }
       const plays = (Array.isArray(data.plays) ? data.plays : []).filter(p => p && p.gameName && idMap[p.groupId]);
       for (let i = 0; i < plays.length; i += 400) {
         const b = db.batch();
         plays.slice(i, i + 400).forEach(p => {
           const doc = { gameId: String(p.gameId || ""), gameName: String(p.gameName), at: Number(p.at) || Date.now(), mode: ["max","min","coop"].includes(p.mode) ? p.mode : "max",
-                        scores: (p.scores || []).map(s => s.pts !== undefined ? {p: String(s.p), pts: Number(s.pts)} : {p: String(s.p)}),
+                        scores: (p.scores || []).map(s => { const o = {p: String(s.p)}; if (s.pts !== undefined) o.pts = Number(s.pts); if (s.uid) o.uid = String(s.uid); if (s.win !== undefined) o.win = !!s.win; return o; }),
                         winners: (p.winners || []).map(String), createdBy: me.uid, createdByName: me.name };
           if (p.mode === "coop") doc.coopWin = p.coopWin !== false;
           b.set(pcol(idMap[p.groupId]).doc(), doc);

@@ -87,16 +87,14 @@
     <ul class="hist" id="hist"></ul>
   </section>
 
-  <section class="card bk">
-    <h2>Kopia zapasowa</h2>
-    <p>„Kopiuj” zapisuje do schowka Twoje grupy, gry i wyniki. „Importuj” tworzy z wklejonej kopii nowe grupy na Twoim koncie – działa też z kopią z poprzedniej wersji aplikacji (z Claude).</p>
-    <textarea id="bkText" spellcheck="false" placeholder="tu wklej tekst kopii zapasowej…"></textarea>
-    <div class="row2">
-      <button class="ok" id="bkCopy">Kopiuj</button>
-      <button class="ghost" id="bkImport">Importuj</button>
-    </div>
-    <div class="msg" id="bkMsg"></div>
+  <section class="card">
+    <h2>Change Log</h2>
+    <div class="chips" id="logFilter"></div>
+    <ul class="log" id="logList"></ul>
+    <button class="link" id="logMore" hidden>Pokaż więcej</button>
   </section>
+
+  <button class="listbtn" id="openBk" style="width:100%;margin-top:4px">⛁ Kopia zapasowa</button>
 
   <div class="status" id="status">Łączenie…</div>
   <div class="status" id="ver"></div>
@@ -166,6 +164,23 @@
   </div>
 </div>
 
+<!-- ================= KOPIA ZAPASOWA ================= -->
+<div class="ov" id="bkov" hidden role="dialog" aria-modal="true" aria-label="Kopia zapasowa">
+  <div class="ovin">
+    <div class="ovhead"><h2>Kopia zapasowa</h2><button class="ovclose" data-close="bkov" aria-label="Zamknij">✕</button></div>
+    <div class="ovscroll bk" style="border-top:0">
+      <p style="margin-top:6px">„Kopiuj” zapisuje do schowka wszystko z Twoich grup: listy gier ze stanem rozegranych, wyniki, ostatnio rozegrane, listę graczy i Change Log. Wklej tekst np. do notatek.</p>
+      <p>„Importuj” tworzy z wklejonej kopii nowe grupy na Twoim koncie – istniejące grupy zostają bez zmian. Działa też z kopią z poprzedniej wersji aplikacji (z Claude).</p>
+      <textarea id="bkText" spellcheck="false" placeholder="tu wklej tekst kopii zapasowej…"></textarea>
+      <div class="row2">
+        <button class="ok" id="bkCopy">Kopiuj</button>
+        <button class="ghost" id="bkImport">Importuj</button>
+      </div>
+      <div class="msg" id="bkMsg"></div>
+    </div>
+  </div>
+</div>
+
 <!-- ================= INSTRUKCJA ================= -->
 <div class="ov" id="help" hidden role="dialog" aria-modal="true" aria-label="Instrukcja">
   <div class="ovin">
@@ -221,6 +236,7 @@
         <li>Graczy wybierasz z listy: na górze są <b>konta w aplikacji</b> (osoby z Twoich grup, oznaczone ◉), niżej <b>inni gracze</b> wpisani wcześniej z imienia. Kogoś bez konta wpisujesz w polu „albo wpisz nowego gracza” – zostanie zapamiętany. ✕ usuwa gracza tylko z tej rozgrywki.</li>
         <li>Wyniki osób z kontem liczą się w rankingu pod ich kontem, nawet jeśli zmienią imię.</li>
         <li>Zwycięzca wybiera się sam na podstawie punktów. Przy remisie wygrywa każdy z najlepszym wynikiem.</li>
+        <li>Osoby z kontem w aplikacji (członkowie Twoich grup) są na liście graczy od razu po dołączeniu do grupy – nie trzeba ich wpisywać.</li>
         <li><b>✎</b> poprawia wynik, <b>🗑</b> go usuwa (dwa naciśnięcia). Zmienić lub usunąć wynik może osoba, która go wpisała, oraz właściciel i edytorzy grupy.</li>
       </ul>
 
@@ -241,9 +257,18 @@
         <li>Dane są w chmurze, więc aktualizacja niczego nie kasuje.</li>
       </ul>
 
+      <h3>Change Log</h3>
+      <ul>
+        <li>Sekcja <b>Change Log</b> pokazuje, kto i kiedy coś zrobił: imię, datę z godziną i opis zmiany.</li>
+        <li>Zapisywane są m.in.: rejestracja konta, utworzenie grupy, dołączenie do grupy, dodanie, usunięcie i przeniesienie gry, „Gramy”, dodanie, zmiana i usunięcie wyniku, zmiana ról, nowy kod zaproszenia, nowy cykl losowania.</li>
+        <li>Przy kilku grupach możesz wybrać, z której grupy pokazać wpisy. Rejestracje kont widać w widoku „Wszystko”.</li>
+        <li>Wpisów nie da się edytować ani usuwać. <b>Pokaż więcej</b> wczytuje starsze.</li>
+      </ul>
+
       <h3>Kopia zapasowa</h3>
       <ul>
-        <li><b>Kopiuj</b> kopiuje do schowka Twoje grupy, gry i wyniki – wklej to np. do notatek.</li>
+        <li>Przycisk <b>⛁ Kopia zapasowa</b> na dole ekranu otwiera okno kopii.</li>
+        <li><b>Kopiuj</b> kopiuje do schowka wszystko z Twoich grup: listy gier ze stanem rozegranych, wyniki, ostatnio rozegrane, listę graczy i Change Log – wklej to np. do notatek.</li>
         <li><b>Importuj</b>: wklej tekst kopii i naciśnij dwa razy. Z kopii powstaną nowe grupy na Twoim koncie (istniejące grupy pozostają bez zmian). Tak przeniesiesz też dane z poprzedniej wersji aplikacji w Claude.</li>
       </ul>
       <p class="note">Bez internetu aplikacja pokazuje ostatnio wczytane dane, a zmiany wyśle, gdy połączenie wróci.</p>

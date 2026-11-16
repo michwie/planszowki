@@ -181,3 +181,14 @@
 .danger.armed{background:var(--red);color:#fff}
 .tab.joing{flex:0 0 auto;color:var(--muted);font-size:13px;padding:8px 10px}
 .ok[disabled],.big[disabled]{opacity:.4}
+
+/* ---- Change Log ---- */
+.log{list-style:none;margin:0;padding:0}
+.log li{padding:9px 0;border-top:1px solid var(--line)}
+.log li:first-child{border-top:0}
+.log .lh{display:flex;justify-content:space-between;gap:10px;align-items:baseline}
+.log .lh b{color:var(--glow);font-weight:400;font-size:14px}
+.log .lh span{color:var(--muted);font-size:11px;white-space:nowrap}
+.log .lt{font-size:13px;color:var(--ink);margin-top:2px;line-height:1.45;word-break:break-word}
+#logMore{display:block;margin:8px auto 0}
+.bk p{color:var(--muted);font-size:12px;margin:0 0 10px;line-height:1.5}
