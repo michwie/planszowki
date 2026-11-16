@@ -1,5 +1,5 @@
 // Historia zmian wyświetlana pod przyciskiem „Zmiany!”. Najnowsza wersja na górze.
-window.CHANGELOG = [
+window.CHANGELOG = [{version:"1.1", date:"16.11.2026 14:57", items:[["Zmieniono","Nawigacja dolnym paskiem zakładek: Losuj · Gry · Wyniki · Więcej."],["Zmieniono","„Ostatnio rozegrane” przeniesione do zakładki Wyniki."],["Zmieniono","Instrukcja, Zmiany!, Motyw, Kopia zapasowa, Wyloguj, Usuń konto i Change Log w zakładce Więcej."],["Dodano","Przycisk „wstecz” telefonu wraca do zakładki Losuj."]]},
   {
     version: "1.0.6", date: "16.11.2026 14:48",
     items: [

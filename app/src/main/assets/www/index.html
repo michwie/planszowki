@@ -51,13 +51,11 @@
 <div class="wrap" id="appView" hidden>
   <h1>W co dziś gramy!</h1>
   <div class="sub">losowanie bez powtórek do końca kolekcji</div>
-  <div class="acct"><span>zalogowano: <b id="meName"></b></span><button id="logout">Wyloguj</button></div>
+  <div class="acct"><span>zalogowano: <b id="meName"></b></span></div>
   <div class="banner" id="updBanner" hidden><span id="updText">Dostępna nowa wersja</span><button id="updBtn">Pobierz</button></div>
-  <div class="topbtns">
-    <button class="listbtn" id="openList">☰ Lista gier</button>
-    <button class="listbtn" id="openHelp">? Instrukcja</button>
-  </div>
 
+  <!-- ===== zakładka: Losuj ===== -->
+  <div class="view" id="v-draw">
   <section class="card">
     <h2>Losowanie</h2>
     <div class="chips" id="pool"></div>
@@ -69,7 +67,11 @@
     </div>
     <div class="count" id="count"></div>
   </section>
+  </div>
 
+  <!-- ===== zakładka: Gry ===== -->
+  <div class="view" id="v-games" hidden>
+    <button class="listbtn" id="openList" style="width:100%">☰ Lista wszystkich gier</button>
   <section class="card">
     <h2>Moje gry</h2>
     <div class="tabs" id="tabs"></div>
@@ -88,7 +90,10 @@
     </div>
     <div id="noGroups" class="empty" hidden>Nie masz jeszcze żadnej grupy. Utwórz ją przyciskiem „+ grupa” albo dołącz do grupy znajomych kodem.</div>
   </section>
+  </div>
 
+  <!-- ===== zakładka: Wyniki ===== -->
+  <div class="view" id="v-results" hidden>
   <section class="card">
     <h2>Wyniki</h2>
     <button class="big" id="addResult">+ Dodaj wynik</button>
@@ -102,6 +107,19 @@
     <h2>Ostatnio rozegrane</h2>
     <ul class="hist" id="hist"></ul>
   </section>
+  </div>
+
+  <!-- ===== zakładka: Więcej ===== -->
+  <div class="view" id="v-more" hidden>
+    <section class="card menu">
+      <h2>Więcej</h2>
+      <button class="mitem" id="openHelp"><span class="mi">?</span>Instrukcja</button>
+      <button class="mitem" id="openChanges"><span class="mi">✦</span>Zmiany!</button>
+      <button class="mitem" id="openTheme"><span class="mi">◐</span>Motyw: <span id="themeName">Matrix</span></button>
+      <button class="mitem" id="openBk"><span class="mi">⛁</span>Kopia zapasowa</button>
+      <button class="mitem" id="logout"><span class="mi">⎋</span>Wyloguj</button>
+      <button class="mitem danger-item" id="openDelAcc"><span class="mi">⚠</span>Usuń konto</button>
+    </section>
 
   <section class="card">
     <h2>Change Log</h2>
@@ -110,19 +128,22 @@
     <button class="link" id="logMore" hidden>Pokaż więcej</button>
   </section>
 
-  <button class="listbtn" id="openBk" style="width:100%;margin-top:4px">⛁ Kopia zapasowa</button>
-  <button class="listbtn" id="openTheme" style="width:100%">◐ Motyw: <span id="themeName">Matrix</span></button>
-  <button class="listbtn" id="openChanges" style="width:100%">✦ Zmiany!</button>
-  <button class="listbtn delacc" id="openDelAcc" style="width:100%">⚠ Usuń konto</button>
-
-  <div class="status" id="status">Łączenie…</div>
-  <div class="status" id="ver"></div>
-  <footer class="foot">
-    <p class="motto">Bo najtrudniejsza gra to wybrać, w co zagrać. 🎲</p>
-    <p>Losujemy planszówki, zapisujemy wyniki, zbieramy statystyki.</p>
-    <p class="by">Planszomat · © 2026 by Michał „Misiek” W.</p>
-  </footer>
+    <div class="status" id="status">Łączenie…</div>
+    <div class="status" id="ver"></div>
+    <footer class="foot">
+      <p class="motto">Bo najtrudniejsza gra to wybrać, w co zagrać. 🎲</p>
+      <p>Losujemy planszówki, zapisujemy wyniki, zbieramy statystyki.</p>
+      <p class="by">Planszomat · © 2026 by Michał „Misiek” W.</p>
+    </footer>
+  </div>
 </div>
+
+<nav class="tabbar" id="tabbar" hidden aria-label="Nawigacja">
+  <button class="tb on" data-view="draw"><span class="ti">🎲</span><span>Losuj</span></button>
+  <button class="tb" data-view="games"><span class="ti">▦</span><span>Gry</span></button>
+  <button class="tb" data-view="results"><span class="ti">🏆</span><span>Wyniki</span></button>
+  <button class="tb" data-view="more"><span class="ti">☰</span><span>Więcej</span></button>
+</nav>
 
 <!-- ================= LISTA GIER ================= -->
 <div class="ov" id="ov" hidden role="dialog" aria-modal="true" aria-label="Lista wszystkich gier">
@@ -260,12 +281,22 @@
       <h3>Do czego to służy</h3>
       <p><b>Planszomat</b> przechowuje gry planszowe podzielone na grupy, losuje grę na wieczór bez powtórek i zapisuje wyniki, z których liczy ranking zwycięstw. Grupy można współdzielić z innymi osobami.</p>
 
+      <h3>Nawigacja</h3>
+      <ul>
+        <li>Na dole ekranu jest pasek z czterema zakładkami:</li>
+        <li><b>🎲 Losuj</b> – wybór puli i losowanie gry na wieczór.</li>
+        <li><b>▦ Gry</b> – Twoje grupy i gry (dodawanie, rozszerzenia, członkowie) oraz <b>☰ Lista wszystkich gier</b>.</li>
+        <li><b>🏆 Wyniki</b> – wpisywanie wyników, ranking i <b>Ostatnio rozegrane</b>.</li>
+        <li><b>☰ Więcej</b> – Instrukcja, Zmiany!, Motyw, Kopia zapasowa, Wyloguj, Usuń konto oraz Change Log.</li>
+        <li>Przycisk <b>wstecz</b> telefonu zamyka otwarte okno, a gdy żadnego nie ma – wraca do zakładki <b>Losuj</b>.</li>
+      </ul>
+
       <h3>Konto</h3>
       <ul>
         <li>Każda osoba zakłada własne konto w zakładce <b>Nowe konto</b>, podając <b>imię, nazwisko</b>, e-mail i hasło. Imię i nazwisko widzą inni członkowie grup.</li>
-        <li>Telefon pamięta logowanie. <b>Wyloguj</b> jest na górze ekranu.</li>
+        <li>Telefon pamięta logowanie. <b>⎋ Wyloguj</b> jest w zakładce <b>Więcej</b>.</li>
         <li>Zapomniane hasło: na ekranie logowania wpisz e-mail i naciśnij <b>Nie pamiętam hasła</b> – przyjdzie e-mail z linkiem.</li>
-        <li><b>⚠ Usuń konto</b> (na samym dole ekranu) trwale usuwa konto i e-mail, Twoje wpisy w wynikach, członkostwo w grupach, rozegrane gry i historię. Grupy, których jesteś właścicielem, zostają usunięte razem z grami i wynikami. Potwierdzasz hasłem.</li>
+        <li><b>⚠ Usuń konto</b> (zakładka <b>Więcej</b>) trwale usuwa konto i e-mail, Twoje wpisy w wynikach, członkostwo w grupach, rozegrane gry i historię. Grupy, których jesteś właścicielem, zostają usunięte razem z grami i wynikami. Potwierdzasz hasłem.</li>
       </ul>
 
       <h3>Grupy i role</h3>
@@ -324,7 +355,7 @@
       </ul>
 
       <h3>Lista gier</h3>
-      <p><b>☰ Lista gier</b> pokazuje wszystkie tytuły alfabetycznie, z podziałem na litery. Rozszerzenia są widoczne w drzewku pod grą (razem z wersją podstawową). Można filtrować po grupie i wyszukiwać – także po nazwie rozszerzenia. Rozegrane gry i wersje są przekreślone.</p>
+      <p><b>☰ Lista wszystkich gier</b> (na górze zakładki <b>Gry</b>) pokazuje wszystkie tytuły alfabetycznie, z podziałem na litery. Rozszerzenia są widoczne w drzewku pod grą (razem z wersją podstawową). Można filtrować po grupie i wyszukiwać – także po nazwie rozszerzenia. Rozegrane gry i wersje są przekreślone.</p>
 
       <h3>Aktualizacje</h3>
       <ul>
@@ -335,7 +366,7 @@
 
       <h3>Change Log</h3>
       <ul>
-        <li>Sekcja <b>Change Log</b> pokazuje, kto i kiedy coś zrobił: imię, datę z godziną i opis zmiany.</li>
+        <li>Sekcja <b>Change Log</b> (zakładka <b>Więcej</b>) pokazuje, kto i kiedy coś zrobił: imię, datę z godziną i opis zmiany.</li>
         <li>Zapisywane są m.in.: rejestracja konta, utworzenie grupy, dołączenie do grupy, dodanie, usunięcie i przeniesienie gry, „Gramy”, dodanie, zmiana i usunięcie wyniku, zmiana ról, nowy kod zaproszenia, nowy cykl losowania.</li>
         <li>Wydarzenia grupy (gry, członkowie, nazwa, kody zaproszeń) widzą wszyscy członkowie. Wpisy o wynikach i rozegranych grach widzą tylko osoby, których dotyczą.</li>
         <li>Przy kilku grupach możesz wybrać, z której grupy pokazać wpisy. Rejestracje kont widać w widoku „Wszystko”.</li>
@@ -344,7 +375,7 @@
 
       <h3>Motyw</h3>
       <ul>
-        <li>Przycisk <b>◐ Motyw</b> na samym dole ekranu otwiera wybór wyglądu. Dostępne są: <b>Matrix</b> (zielony terminal), <b>Szkoła Magii</b> (pergamin, złoto i bordo – inspirowany światem młodych czarodziejów), <b>Gęś Wyścigowa</b> (jasny, wesoły motyw z wyścigową szachownicą), <b>Galaktyka</b> (kosmos i żółte napisy – inspirowany kosmiczną sagą) i <b>Neon</b> (niebieski neon).</li>
+        <li><b>◐ Motyw</b> w zakładce <b>Więcej</b> otwiera wybór wyglądu. Dostępne są: <b>Matrix</b> (zielony terminal), <b>Szkoła Magii</b> (pergamin, złoto i bordo – inspirowany światem młodych czarodziejów), <b>Gęś Wyścigowa</b> (jasny, wesoły motyw z wyścigową szachownicą), <b>Galaktyka</b> (kosmos i żółte napisy – inspirowany kosmiczną sagą) i <b>Neon</b> (niebieski neon).</li>
         <li>Motyw zmienia się od razu i dotyczy tylko Twojego telefonu – każdy może mieć inny.</li>
         <li>Pojawiają się krótkie animacje: w <b>Gęsi Wyścigowej</b> co 8 sekund gęś biegnie przez dół ekranu i przecina linię mety, a w <b>Szkole Magii</b> mniej więcej co 10 sekund przez ekran przemyka złota piłeczka. Nie blokują przycisków – można normalnie klikać.</li>
         <li><b>Animowane tło</b> (razem z tymi animacjami) można wyłączyć, jeśli rozprasza albo telefon szybciej się rozładowuje.</li>
@@ -352,12 +383,12 @@
 
       <h3>Zmiany!</h3>
       <ul>
-        <li>Przycisk <b>✦ Zmiany!</b> na dole ekranu pokazuje historię wersji: datę i godzinę wydania, numer wersji oraz co dodano, zmieniono i poprawiono.</li>
+        <li><b>✦ Zmiany!</b> w zakładce <b>Więcej</b> pokazuje historię wersji: datę i godzinę wydania, numer wersji oraz co dodano, zmieniono i poprawiono.</li>
       </ul>
 
       <h3>Kopia zapasowa</h3>
       <ul>
-        <li>Przycisk <b>⛁ Kopia zapasowa</b> na dole ekranu otwiera okno kopii.</li>
+        <li><b>⛁ Kopia zapasowa</b> w zakładce <b>Więcej</b> otwiera okno kopii.</li>
         <li><b>Kopiuj</b> kopiuje do schowka wszystko z Twoich grup: listy gier ze stanem rozegranych, wyniki, ostatnio rozegrane, listę graczy i Change Log – wklej to np. do notatek.</li>
         <li><b>Importuj</b>: wklej tekst kopii i naciśnij dwa razy. Z kopii powstaną nowe grupy na Twoim koncie (istniejące grupy pozostają bez zmian). Tak przeniesiesz też dane z poprzedniej wersji aplikacji w Claude.</li>
       </ul>

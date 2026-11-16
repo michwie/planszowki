@@ -169,9 +169,9 @@
 
   // dwustopniowe potwierdzenie dla zwykłych przycisków
   function confirmTap(btn, armedText){
-    if (btn.dataset.armed === "1") { btn.dataset.armed = ""; btn.textContent = btn.dataset.orig; return true; }
-    btn.dataset.orig = btn.textContent; btn.dataset.armed = "1"; btn.textContent = armedText;
-    setTimeout(() => { if (btn.dataset.armed === "1") { btn.dataset.armed = ""; btn.textContent = btn.dataset.orig; } }, 4000);
+    if (btn.dataset.armed === "1") { btn.dataset.armed = ""; btn.innerHTML = btn.dataset.orig; return true; }
+    btn.dataset.orig = btn.innerHTML; btn.dataset.armed = "1"; btn.textContent = armedText;
+    setTimeout(() => { if (btn.dataset.armed === "1") { btn.dataset.armed = ""; btn.innerHTML = btn.dataset.orig; } }, 4000);
     return false;
   }
 
@@ -189,14 +189,15 @@
     backfilled.clear();
     if (regsUnsub) { regsUnsub(); regsUnsub = null; } regs = {};
     groups = [];
-    $("appView").hidden = true; $("authView").hidden = false;
+    $("appView").hidden = true; $("tabbar").hidden = true; $("authView").hidden = false;
     setAuthMode("login");
   }
   function startApp(user){
     if (me && me.uid === user.uid) return;
     me = { uid: user.uid, name: user.displayName || pendingName || lsGet("pl-name-" + user.uid, "") || (user.email || "").split("@")[0] };
     $("meName").textContent = me.name;
-    $("authView").hidden = true; $("appView").hidden = false;
+    $("authView").hidden = true; $("appView").hidden = false; $("tabbar").hidden = false;
+    showView("draw");
     setStatus("Łączenie…");
     render();
     groupsUnsub = db.collection("groups").where("memberIds", "array-contains", me.uid).onSnapshot(qs => {
@@ -669,8 +670,19 @@
   window.appBack = function(){
     const open = [...document.querySelectorAll(".ov:not([hidden])")];
     if (open.length) { closeOv(open[open.length - 1].id); return true; }
+    if (!$("appView").hidden && curView !== "draw") { showView("draw"); return true; }
     return false;
   };
+  // ================= ZAKŁADKI (dolny pasek) =================
+  let curView = "draw";
+  function navH(){ const n = $("tabbar"); return n && !n.hidden ? n.offsetHeight : 0; }
+  function showView(v){
+    curView = v;
+    document.querySelectorAll("#appView .view").forEach(el => el.hidden = el.id !== "v-" + v);
+    document.querySelectorAll("#tabbar .tb").forEach(b => { const on = b.dataset.view === v; b.classList.toggle("on", on); b.setAttribute("aria-current", on ? "page" : "false"); });
+    window.scrollTo(0, 0);
+  }
+  document.querySelectorAll("#tabbar .tb").forEach(b => b.onclick = () => showView(b.dataset.view));
   $("openBk").onclick = () => { bkMsg(""); openOv("bkov"); };
   // ================= USUWANIE KONTA =================
   $("openDelAcc").onclick = () => {
@@ -1524,7 +1536,7 @@
     }
     function startEvent(now){
       const W = innerWidth, H = innerHeight;
-      if (theme === "goose") ev = {type: "goose", t0: now, dur: 5200, fin: W - 46, y: H - 34, burst: null};
+      if (theme === "goose") ev = {type: "goose", t0: now, dur: 5200, fin: W - 46, y: H - 34 - navH(), burst: null};
       else if (theme === "wizard") {
         const fromLeft = Math.random() < .5;
         ev = {type: "ball", t0: now, dur: 6000, dur0: 6000, x: fromLeft ? -20 : W + 20, y: rnd(H * .2, H * .7),
