@@ -766,7 +766,7 @@
           '<div class="row2"><button class="ghost" id="gmCopy">Kopiuj kod</button><button class="ok" id="gmShare">Udostępnij</button></div>' +
           '<p class="rolenote" style="margin-top:10px">Kto wpisze ten kod w „⇥ kod”, dołączy do grupy jako gracz.</p>');
       body.querySelector(".code").textContent = g.inviteCode || "—";
-      const shareText = "Dołącz do mojej grupy „" + g.name + "” w aplikacji Planszówki. Kod: " + g.inviteCode;
+      const shareText = "Dołącz do mojej grupy „" + g.name + "” w aplikacji Planszomat. Kod: " + g.inviteCode;
       $("gmCopy").onclick = async () => {
         if (Android && Android.copy) { Android.copy(g.inviteCode); toast("Skopiowano kod"); return; }
         try { await navigator.clipboard.writeText(g.inviteCode); toast("Skopiowano kod"); } catch(e){ toast("Kod: " + g.inviteCode); }

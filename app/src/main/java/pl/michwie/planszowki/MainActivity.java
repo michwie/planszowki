@@ -151,7 +151,7 @@ public class MainActivity extends Activity {
         public void copy(String text) {
             runOnUiThread(() -> {
                 ClipboardManager cm = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
-                if (cm != null) cm.setPrimaryClip(ClipData.newPlainText("Planszówki", text));
+                if (cm != null) cm.setPrimaryClip(ClipData.newPlainText("Planszomat", text));
             });
         }
 

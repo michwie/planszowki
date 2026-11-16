@@ -1,4 +1,4 @@
-# Planszówki
+# Planszomat
 
 Aplikacja na Androida do losowania gier planszowych, prowadzenia wspólnych kolekcji w grupach i zapisywania wyników.
 
