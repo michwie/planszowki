@@ -305,3 +305,8 @@ span.ib.check{cursor:default}
 /* szersze okna na tabletach: szerokość rośnie z ekranem (520 → 720 px), telefon bez zmian */
 .wrap,.ovin{max-width:clamp(520px, 80vw, 720px)}
 @media (min-width:700px){ .auth{max-width:520px} }
+/* instrukcja: podsekcje i kroki numerowane */
+.help h4{font-family:var(--font-head);font-size:12px;letter-spacing:1px;color:var(--ink);margin:14px 0 6px;font-weight:600}
+.help ol{list-style:none;padding:0;margin:0 0 8px;counter-reset:krok}
+.help ol li{counter-increment:krok;position:relative;padding-left:26px}
+.help ol li::before{content:counter(krok) ".";position:absolute;left:2px;top:0;color:var(--glow);font-weight:600}
