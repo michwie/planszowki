@@ -324,7 +324,8 @@
   }
 
   // ================= LOSOWANIE =================
-  function inPool(g){ return !ui.pool.length || ui.pool.includes(g.id); }
+  // zapisana pula może zawierać grupy, których już nie ma (np. po usunięciu grupy) – takie pomijamy
+  function inPool(g){ const p = ui.pool.filter(id => groups.some(x => x.id === id)); return !p.length || p.includes(g.id); }
   function poolGames(){
     const out = [];
     groups.forEach(g => { if (inPool(g)) (g.games || []).forEach(game => out.push({game, group: g})); });
@@ -436,7 +437,7 @@
       stage.querySelector(".name").textContent = vlabel(jp.game, findExp(jp.game, ui.justPlayed.exp));
       stage.querySelector(".stagebtn").onclick = () => openResult(jp.game.id, jp.group.id, null, ui.justPlayed.exp);
     } else if (!groups.length) stage.innerHTML = '<div class="hint">Utwórz grupę albo dołącz do grupy znajomych.</div>';
-    else if (!pool.length) stage.innerHTML = '<div class="hint">Dodaj gry poniżej, a potem losuj.</div>';
+    else if (!pool.length) stage.innerHTML = '<div class="hint">Dodaj gry w zakładce Gry, a potem losuj.</div>';
     else if (!left) stage.innerHTML = '<div class="hint">Cała pula rozegrana. Misja zakończona.</div>';
     else stage.innerHTML = '<div class="hint">oczekuję na polecenie…</div>';
     const btn = $("drawBtn");
