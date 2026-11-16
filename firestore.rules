@@ -144,6 +144,13 @@ service cloud.firestore {
       allow delete: if signedIn() && me() == u;
     }
 
+    // Ustawienia konta (motyw, animacje): tylko właściciel konta
+    match /prefs/{u} {
+      allow read, delete: if signedIn() && me() == u;
+      allow create, update: if signedIn() && me() == u
+        && request.resource.data.keys().hasOnly(['theme', 'fx', 'updatedAt']);
+    }
+
     // Wszystko inne zamknięte
     match /{document=**} {
       allow read, write: if false;

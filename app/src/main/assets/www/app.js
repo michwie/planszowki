@@ -197,6 +197,7 @@
     groupDocs = [];
     backfilled.clear();
     if (regsUnsub) { regsUnsub(); regsUnsub = null; } regs = {};
+    if (prefsUnsub) { prefsUnsub(); prefsUnsub = null; }
     groups = [];
     $("appView").hidden = true; $("tabbar").hidden = true; $("authView").hidden = false;
     setAuthMode("login");
@@ -229,6 +230,7 @@
       render();
     }, err => { setStatus("Błąd połączenia z bazą: " + errMsg(err)); });
     startRegs(user);
+    subPrefs(user);
     checkUpdate();
   }
 
@@ -788,6 +790,7 @@
         await gref(g.id).update({["members." + uidMe]: FV.delete(), memberIds: FV.arrayRemove(uidMe), ["memberNames." + uidMe]: FV.delete()});
       }
       try { await db.collection("registrations").doc(uidMe).delete(); } catch(e){}
+      try { await db.collection("prefs").doc(uidMe).delete(); } catch(e){}
       try { Object.keys(localStorage).filter(k => k.includes(uidMe)).forEach(k => localStorage.removeItem(k)); } catch(e){}
       stopApp();
       await user.delete();
@@ -1534,14 +1537,31 @@
       const sw = b.querySelector(".sw"); sw.style.background = t.bg; sw.style.color = t.fg; sw.style.fontFamily = '"' + t.font + '"'; sw.textContent = "Aa";
       b.querySelector(".tn").textContent = t.name + (theme === t.id ? "  ✓" : "");
       b.querySelector(".td").textContent = t.desc;
-      b.onclick = () => { applyTheme(t.id); renderThemes(); };
+      b.onclick = () => { applyTheme(t.id); renderThemes(); savePrefs(); };
       box.appendChild(b);
     });
     $("fxToggle").classList.toggle("on", fxOn);
     $("fxToggle").setAttribute("aria-checked", fxOn ? "true" : "false");
   }
   $("openTheme").onclick = () => { renderThemes(); openOv("th"); };
-  $("fxToggle").onclick = () => { fxOn = !fxOn; lsSet("pl-fx", fxOn); fx.reset(); renderThemes(); };
+  $("fxToggle").onclick = () => { fxOn = !fxOn; lsSet("pl-fx", fxOn); fx.reset(); renderThemes(); savePrefs(); };
+  // Motyw i animacje zapisane na koncie – po zalogowaniu na innym urządzeniu włączą się te same.
+  let prefsUnsub = null;
+  function savePrefs(){
+    if (!me) return;
+    db.collection("prefs").doc(me.uid).set({theme, fx: fxOn, updatedAt: Date.now()}).catch(() => {});
+  }
+  function subPrefs(user){
+    if (prefsUnsub) prefsUnsub();
+    prefsUnsub = db.collection("prefs").doc(user.uid).onSnapshot(d => {
+      if (!d.exists) { if (!d.metadata.fromCache) savePrefs(); return; }   // pierwsze logowanie: zapisz obecny wybór
+      const p = d.data();
+      let ch = false;
+      if (p.theme && p.theme !== theme && THEMES.some(t => t.id === p.theme)) { applyTheme(p.theme); ch = true; }
+      if (typeof p.fx === "boolean" && p.fx !== fxOn) { fxOn = p.fx; lsSet("pl-fx", fxOn); fx.reset(); ch = true; }
+      if (ch && !$("th").hidden) renderThemes();
+    }, () => {});
+  }
 
   // Animowane tło – osobny efekt dla każdego motywu, delikatny, pod kartami.
   const fx = (function(){
