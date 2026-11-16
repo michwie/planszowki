@@ -204,3 +204,25 @@
 .foot .by{margin-top:8px;font-size:11px;letter-spacing:.5px}
 .testnote{border:1px dashed var(--amber);border-radius:var(--radius);padding:10px 12px;margin:6px 0 4px;font-size:14px;line-height:1.55}
 .helpfoot{margin-top:22px;padding-top:14px;border-top:1px solid var(--line)}
+/* ---- rozszerzenia ---- */
+.expbox{width:100%;display:flex;flex-wrap:wrap;gap:6px;padding:2px 0 4px 42px}
+.xchip{padding:5px 9px;border-radius:999px;border:1px solid var(--line);font-size:12px;color:var(--muted);letter-spacing:.3px;line-height:1.2}
+.xchip.done{color:var(--glow);border-color:var(--glow);background:var(--green-soft)}
+.xchip.edit{border-style:dashed;color:var(--ink)}
+.xchip.armed{background:var(--red);border-color:var(--red);color:#fff}
+.expadd{width:100%;margin:4px 0 0}
+.expadd input{padding:8px 10px;font-size:14px}
+.expadd button{font-size:18px;padding:0 12px}
+.ib.xed.on{color:var(--glow);border:1px solid var(--glow)}
+.stage .xv{color:var(--amber);font-size:15px;margin-top:6px;font-family:var(--font-head);letter-spacing:.5px}
+/* ---- Zmiany! ---- */
+.chgv{padding:12px 2px 14px;border-bottom:1px solid var(--line)}
+.chgh{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:6px}
+.chgh b{font-family:var(--font-head);color:var(--glow);font-size:16px;letter-spacing:1px}
+.chgh span{color:var(--muted);font-size:12px;white-space:nowrap}
+.chgv ul{list-style:none;margin:0;padding:0}
+.chgv li{font-size:14px;line-height:1.5;margin:4px 0;color:var(--ink)}
+.chgv .kind{display:inline-block;font-size:10px;letter-spacing:1px;text-transform:uppercase;border:1px solid var(--line);border-radius:3px;padding:1px 6px;margin-right:4px;color:var(--muted);vertical-align:1px}
+.chgv .k-dodano{color:var(--glow);border-color:var(--glow)}
+.chgv .k-zmieniono{color:var(--amber);border-color:var(--amber)}
+.chgv .k-poprawiono{color:var(--red);border-color:var(--red)}

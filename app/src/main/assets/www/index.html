@@ -103,6 +103,7 @@
 
   <button class="listbtn" id="openBk" style="width:100%;margin-top:4px">⛁ Kopia zapasowa</button>
   <button class="listbtn" id="openTheme" style="width:100%">◐ Motyw: <span id="themeName">Matrix</span></button>
+  <button class="listbtn" id="openChanges" style="width:100%">✦ Zmiany!</button>
 
   <div class="status" id="status">Łączenie…</div>
   <div class="status" id="ver"></div>
@@ -131,6 +132,10 @@
     <div class="ovscroll" style="border-top:0">
       <label class="fl" for="rfGame">Gra</label>
       <select id="rfGame"></select>
+      <div id="rfExpBox" hidden>
+        <span class="fl">Wersja gry</span>
+        <div class="chips" id="rfExps" style="margin-bottom:0"></div>
+      </div>
       <label class="fl" for="rfDate">Data</label>
       <input type="date" id="rfDate">
       <span class="fl">Kto wygrywa</span>
@@ -206,6 +211,14 @@
   </div>
 </div>
 
+<!-- ================= ZMIANY ================= -->
+<div class="ov" id="chg" hidden role="dialog" aria-modal="true" aria-label="Historia zmian">
+  <div class="ovin">
+    <div class="ovhead"><h2>Zmiany!</h2><button class="ovclose" data-close="chg" aria-label="Zamknij">✕</button></div>
+    <div class="ovscroll chglist" id="chgList"></div>
+  </div>
+</div>
+
 <!-- ================= INSTRUKCJA ================= -->
 <div class="ov" id="help" hidden role="dialog" aria-modal="true" aria-label="Instrukcja">
   <div class="ovin">
@@ -245,6 +258,7 @@
       <ul>
         <li>Grę dodajesz, wpisując tytuł i naciskając <b>+</b>. Gry układają się alfabetycznie.</li>
         <li><b>⇄</b> przenosi grę do innej grupy (w której też możesz edytować), <b>🗑</b> ją usuwa – naciśnij dwa razy.</li>
+        <li><b>Rozszerzenia:</b> przycisk <b>⊕</b> przy grze (właściciel i edytorzy) pozwala dopisać jej rozszerzenia albo je usunąć. Pod nazwą gry widać wtedy „podstawowa” i nazwy rozszerzeń – dotknięcie oznacza daną wersję jako rozegraną lub nie.</li>
         <li>Kwadracik przy grze ręcznie oznacza ją jako rozegraną albo nierozegraną. <b>„Rozegrana (data)” dotyczy tylko Ciebie</b> – każdy członek grupy ma własny stan rozegranych gier.</li>
       </ul>
 
@@ -252,6 +266,7 @@
       <ul>
         <li>Nad losowaniem wybierz, z których grup losować: <b>Wszystkie grupy</b> albo dowolne konkretne (można zaznaczyć kilka, np. Waszą i znajomych). Telefon zapamiętuje wybór.</li>
         <li><b>Losuj grę</b> wybiera tytuł spośród gier, których <b>Ty</b> jeszcze nie rozegrałeś w bieżącym cyklu.</li>
+        <li>Gry z rozszerzeniami losują się w wariantach: <b>wersja podstawowa</b> i każde rozszerzenie osobno. Rozegrany wariant wypada z puli, więc tę samą grę możesz wylosować później z innym rozszerzeniem. Gra znika z losowania dopiero po rozegraniu wszystkich jej wersji.</li>
         <li><b>Losuj inną</b> losuje ponownie, <b>Gramy!</b> zapisuje grę jako rozegraną dla Ciebie – nie wypadnie Ci ponownie, dopóki nie przejdziesz całej puli. Zapisanie wyniku oznacza grę jako rozegraną dla wszystkich graczy z kontem, którzy w nim są.</li>
         <li>Gdy wszystko z wybranej puli zostało rozegrane, pojawia się <b>Zacznij nowy cykl</b>. <b>Wyzeruj moje rozegrane</b> (pod listą gier) robi to samo dla jednej grupy. Oba dotyczą tylko Ciebie.</li>
       </ul>
@@ -259,6 +274,7 @@
       <h3>Wyniki</h3>
       <ul>
         <li>Po <b>Gramy!</b> możesz od razu nacisnąć <b>Wpisz wynik po grze</b>. Wynik dodasz też w każdej chwili przyciskiem <b>+ Dodaj wynik</b>.</li>
+        <li>Przy grze z rozszerzeniami zaznacz, w co graliście: <b>Wersja podstawowa</b> albo jedno lub kilka rozszerzeń.</li>
         <li>Wybierz grę, datę i sposób wygrywania: <b>Najwięcej pkt</b>, <b>Najmniej pkt</b> albo <b>Kooperacja</b> (cała drużyna wygrywa lub przegrywa).</li>
         <li>Graczy wybierasz z listy: na górze są <b>konta w aplikacji</b> (osoby z Twoich grup, oznaczone ◉), niżej <b>inni gracze</b> wpisani wcześniej z imienia. Kogoś bez konta wpisujesz w polu „albo wpisz nowego gracza” – zostanie zapamiętany. ✕ usuwa gracza tylko z tej rozgrywki.</li>
         <li>Wyniki osób z kontem liczą się w rankingu pod ich kontem, nawet jeśli zmienią imię.</li>
@@ -302,6 +318,11 @@
         <li><b>Animowane tło</b> (razem z tymi animacjami) można wyłączyć, jeśli rozprasza albo telefon szybciej się rozładowuje.</li>
       </ul>
 
+      <h3>Zmiany!</h3>
+      <ul>
+        <li>Przycisk <b>✦ Zmiany!</b> na dole ekranu pokazuje historię wersji: datę i godzinę wydania, numer wersji oraz co dodano, zmieniono i poprawiono.</li>
+      </ul>
+
       <h3>Kopia zapasowa</h3>
       <ul>
         <li>Przycisk <b>⛁ Kopia zapasowa</b> na dole ekranu otwiera okno kopii.</li>
@@ -325,6 +346,7 @@
 <script src="vendor/firebase-auth-compat.js"></script>
 <script src="vendor/firebase-firestore-compat.js"></script>
 <script src="config.js"></script>
+<script src="changelog.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

@@ -59,7 +59,15 @@
   const isOwner = g => role(g) === "owner";
   const myPlayed = g => (stateBy[g.id] && stateBy[g.id].played) || {};
   const myHistory = g => (stateBy[g.id] && stateBy[g.id].history) || [];
-  const isPlayed = (g, game) => !!myPlayed(g)[game.id];
+  // Warianty gry: wersja podstawowa + każde rozszerzenie osobno (każdy wypada z losowania osobno)
+  const exps = game => Array.isArray(game.exps) ? game.exps : [];
+  const vkey = (game, exp) => exp ? game.id + "__" + exp.id : game.id;
+  const variants = game => [null].concat(exps(game));
+  const vlabel = (game, exp) => game.name + (exp ? " + " + exp.name : (exps(game).length ? " (wersja podstawowa)" : ""));
+  const isVPlayed = (g, game, exp) => !!myPlayed(g)[vkey(game, exp)];
+  // gra "rozegrana" (przekreślona) = rozegrane wszystkie jej warianty
+  const isPlayed = (g, game) => variants(game).every(e => isVPlayed(g, game, e));
+  const findExp = (game, expId) => expId ? exps(game).find(e => e.id === expId) || null : null;
   const groupById = id => groups.find(g => g.id === id);
   function findGame(gameId, gid){
     for (const g of groups){
@@ -320,11 +328,16 @@
     groups.forEach(g => { if (inPool(g)) (g.games || []).forEach(game => out.push({game, group: g})); });
     return out;
   }
+  function poolVariants(){
+    const out = [];
+    poolGames().forEach(x => variants(x.game).forEach(exp => out.push({game: x.game, group: x.group, exp})));
+    return out;
+  }
   let spinning = false;
-  function draw(excludeId){
+  function draw(exclude){
     if (spinning) return;
-    let cands = poolGames().filter(x => !isPlayed(x.group, x.game));
-    if (excludeId && cands.length > 1) cands = cands.filter(x => x.game.id !== excludeId);
+    let cands = poolVariants().filter(x => !isVPlayed(x.group, x.game, x.exp));
+    if (exclude && cands.length > 1) cands = cands.filter(x => vkey(x.game, x.exp) !== exclude);
     if (!cands.length) return;
     const pick = cands[Math.floor(Math.random() * cands.length)];
     spinning = true; ui.drawn = null; ui.justPlayed = null; renderDraw();
@@ -340,26 +353,27 @@
       nameEl.textContent = out;
       if (frame < total) setTimeout(tick, 55);
       else {
-        spinning = false; ui.drawn = pick.game.id; ui.drawnGid = pick.group.id; renderDraw();
+        spinning = false; ui.drawn = pick.game.id; ui.drawnGid = pick.group.id; ui.drawnExp = pick.exp ? pick.exp.id : null; renderDraw();
         const el = document.querySelector("#stage .name"); if (el) el.classList.add("pop");
         if (Android && Android.vibrate) try { Android.vibrate(30); } catch(e){}
       }
     };
     tick();
   }
-  const histEntry = (game, at) => ({id: game.id, name: game.name, at});
+  const histEntry = (game, at, exp) => ({id: vkey(game, exp), name: vlabel(game, exp), at});
   async function markPlayed(){
     const f = ui.drawn && findGame(ui.drawn, ui.drawnGid);
     if (!f) return;
+    const exp = findExp(f.game, ui.drawnExp);
     const at = Date.now();
-    ui.drawn = null; ui.justPlayed = {id: f.game.id, gid: f.group.id};
+    ui.drawn = null; ui.justPlayed = {id: f.game.id, gid: f.group.id, exp: exp ? exp.id : null};
     renderDraw();
     try {
       await commitB((b, log, extra) => {
-        extra(b => stateSet(b, f.group.id, me.uid, {played: {[f.game.id]: at}, history: FV.arrayUnion(histEntry(f.game, at))}));
-        log(f.group.id, "play", "Gramy w " + q(f.game.name) + " (z losowania)", [me.uid]);
+        extra(b => stateSet(b, f.group.id, me.uid, {played: {[vkey(f.game, exp)]: at}, history: FV.arrayUnion(histEntry(f.game, at, exp))}));
+        log(f.group.id, "play", "Gramy w " + q(vlabel(f.game, exp)) + " (z losowania)", [me.uid]);
       });
-      toast("Miłej gry! „" + f.game.name + "” zapisana jako rozegrana");
+      toast("Miłej gry! „" + vlabel(f.game, exp) + "” zapisana jako rozegrana");
     } catch(e){ toast(errMsg(e)); }
   }
   async function resetMine(gs, label){
@@ -400,20 +414,25 @@
     });
   }
   function renderDraw(){
-    const pool = poolGames();
-    const left = pool.filter(x => !isPlayed(x.group, x.game)).length;
+    const pool = poolVariants();
+    const left = pool.filter(x => !isVPlayed(x.group, x.game, x.exp)).length;
     const stage = $("stage");
     const drawn = ui.drawn && findGame(ui.drawn, ui.drawnGid);
     const jp = ui.justPlayed && findGame(ui.justPlayed.id, ui.justPlayed.gid);
     if (spinning) stage.innerHTML = '<div class="name spin"></div>';
     else if (drawn) {
-      stage.innerHTML = '<div class="name"></div><div class="grp"></div>';
+      const dexp = findExp(drawn.game, ui.drawnExp);
+      stage.innerHTML = '<div class="name"></div><div class="xv"></div><div class="grp"></div>';
       stage.querySelector(".name").textContent = drawn.game.name;
+      const xv = stage.querySelector(".xv");
+      if (dexp) xv.textContent = "+ " + dexp.name;
+      else if (exps(drawn.game).length) xv.textContent = "wersja podstawowa";
+      else xv.remove();
       stage.querySelector(".grp").textContent = drawn.group.name;
     } else if (jp) {
       stage.innerHTML = '<div class="hint">Gracie w:</div><div class="name" style="font-size:20px;margin-top:4px"></div><button class="stagebtn">Wpisz wynik po grze</button>';
-      stage.querySelector(".name").textContent = jp.game.name;
-      stage.querySelector(".stagebtn").onclick = () => openResult(jp.game.id, jp.group.id);
+      stage.querySelector(".name").textContent = vlabel(jp.game, findExp(jp.game, ui.justPlayed.exp));
+      stage.querySelector(".stagebtn").onclick = () => openResult(jp.game.id, jp.group.id, null, ui.justPlayed.exp);
     } else if (!groups.length) stage.innerHTML = '<div class="hint">Utwórz grupę albo dołącz do grupy znajomych.</div>';
     else if (!pool.length) stage.innerHTML = '<div class="hint">Dodaj gry poniżej, a potem losuj.</div>';
     else if (!left) stage.innerHTML = '<div class="hint">Cała pula rozegrana. Misja zakończona.</div>';
@@ -463,22 +482,73 @@
     const moveTargets = groups.filter(x => x !== g && canEdit(x));
     games.forEach(game => {
       const played = isPlayed(g, game);
+      const ex = exps(game);
+      const baseDone = isVPlayed(g, game, null);
       const li = document.createElement("li");
       li.className = "game" + (played ? " played" : "");
-      li.innerHTML = '<button class="ib check" title="Rozegrana / nierozegrana">' + (played ? "✓" : "") + '</button>' +
+      li.innerHTML = '<button class="ib check" title="Wersja podstawowa: rozegrana / nierozegrana">' + (baseDone ? "✓" : "") + '</button>' +
         '<div class="gname"><b></b><small></small></div>' +
+        (edit ? '<button class="ib xed" title="Rozszerzenia">⊕</button>' : '') +
         (edit && moveTargets.length ? '<button class="ib move" title="Przenieś do innej grupy">⇄</button>' : '') +
         (edit ? '<button class="ib del" title="Usuń">🗑</button>' : '');
       li.querySelector("b").textContent = game.name;
-      li.querySelector("small").textContent = played ? ("Rozegrana " + fmt(myPlayed(g)[game.id])) : "Do zagrania";
-      li.querySelector(".check").onclick = () => {
-        if (ui.drawn === game.id) ui.drawn = null;
-        const at = Date.now();
+      const sm = li.querySelector("small");
+      if (!ex.length) sm.textContent = baseDone ? ("Rozegrana " + fmt(myPlayed(g)[game.id])) : "Do zagrania";
+      else {
+        const n = variants(game).filter(e => isVPlayed(g, game, e)).length;
+        sm.textContent = "Rozegrane wersje: " + n + " / " + (ex.length + 1);
+      }
+      const toggleVariant = exp => {
+        const was = isVPlayed(g, game, exp), key = vkey(game, exp), at = Date.now();
+        if (ui.drawn === game.id && (ui.drawnExp || null) === (exp ? exp.id : null)) ui.drawn = null;
         commitB((b, log, extra) => {
-          extra(b => stateSet(b, g.id, me.uid, played ? {played: {[game.id]: FV.delete()}} : {played: {[game.id]: at}, history: FV.arrayUnion(histEntry(game, at))}));
-          log(g.id, "mark", (played ? "Oznaczenie jako nierozegrana: " : "Oznaczenie jako rozegrana: ") + q(game.name), [me.uid]);
+          extra(b => stateSet(b, g.id, me.uid, was ? {played: {[key]: FV.delete()}} : {played: {[key]: at}, history: FV.arrayUnion(histEntry(game, at, exp))}));
+          log(g.id, "mark", (was ? "Oznaczenie jako nierozegrana: " : "Oznaczenie jako rozegrana: ") + q(vlabel(game, exp)), [me.uid]);
         }).catch(e => toast(errMsg(e)));
       };
+      li.querySelector(".check").onclick = () => toggleVariant(null);
+      // rozszerzenia: dotknięcie = rozegrane / nierozegrane (dla Ciebie); edycja listy dla właściciela i edytorów
+      if (ex.length || ui.expEdit === game.id) {
+        const box = document.createElement("div"); box.className = "expbox";
+        if (ex.length) {
+          const base = document.createElement("button"); base.className = "xchip" + (baseDone ? " done" : "");
+          base.textContent = (baseDone ? "✓ " : "") + "podstawowa"; base.title = "Wersja podstawowa";
+          base.onclick = () => toggleVariant(null); box.appendChild(base);
+        }
+        ex.forEach(e => {
+          const c = document.createElement("button");
+          const done = isVPlayed(g, game, e);
+          const editing = ui.expEdit === game.id;
+          c.className = "xchip" + (done ? " done" : "") + (editing ? " edit" : "") + (ui.expArmed === e.id ? " armed" : "");
+          c.textContent = editing ? (ui.expArmed === e.id ? "Usunąć „" + e.name + "”?" : e.name + "  ✕") : ((done ? "✓ " : "+ ") + e.name);
+          c.onclick = () => {
+            if (!editing) { toggleVariant(e); return; }
+            if (ui.expArmed !== e.id) { ui.expArmed = e.id; renderGroup(); return; }
+            ui.expArmed = null;
+            saveGame(g, Object.assign({}, game, {exps: ex.filter(x => x.id !== e.id)}), "Usunięcie rozszerzenia " + q(e.name) + " z gry " + q(game.name));
+          };
+          box.appendChild(c);
+        });
+        if (ui.expEdit === game.id) {
+          const f = document.createElement("form"); f.className = "add expadd";
+          f.innerHTML = '<input type="text" maxlength="60" placeholder="nazwa rozszerzenia…" autocomplete="off"><button type="submit" aria-label="Dodaj rozszerzenie">+</button>';
+          f.onsubmit = ev => {
+            ev.preventDefault();
+            const inp = f.querySelector("input"); const n = inp.value.trim().replace(/\s+/g, " ");
+            if (!n) return;
+            if (ex.some(x => x.name.toLowerCase() === n.toLowerCase())) { toast("To rozszerzenie już jest"); return; }
+            ui.expFocus = game.id;
+            saveGame(g, Object.assign({}, game, {exps: ex.concat({id: uid(), name: n})}), "Dodanie rozszerzenia " + q(n) + " do gry " + q(game.name));
+          };
+          box.appendChild(f);
+        }
+        li.appendChild(box);
+      }
+      const xed = li.querySelector(".xed");
+      if (xed) {
+        xed.classList.toggle("on", ui.expEdit === game.id);
+        xed.onclick = () => { ui.expEdit = ui.expEdit === game.id ? null : game.id; ui.expArmed = null; ui.expFocus = game.id; renderGroup(); };
+      }
       const mv = li.querySelector(".move");
       if (mv) mv.onclick = () => {
         if (moveTargets.length === 1) { moveGame(g, game, moveTargets[0]); return; }
@@ -501,10 +571,13 @@
       }
       list.appendChild(li);
     });
-    const playedN = games.filter(x => isPlayed(g, x)).length;
+    if (ui.expFocus) { const fi = list.querySelector(".expadd input"); if (fi) fi.focus(); ui.expFocus = null; }
+    const allV = games.reduce((a, x) => a + variants(x).length, 0);
+    const doneV = games.reduce((a, x) => a + variants(x).filter(e => isVPlayed(g, x, e)).length, 0);
+    const playedN = doneV;
     const tools = $("tools"); tools.innerHTML = "";
     if (games.length) {
-      const s = document.createElement("span"); s.textContent = "Rozegrane: " + playedN + " / " + games.length; tools.appendChild(s);
+      const s = document.createElement("span"); s.textContent = "Rozegrane: " + doneV + " / " + allV + (allV > games.length ? " wersji" : ""); tools.appendChild(s);
       if (playedN) {
         const r = document.createElement("button"); r.className = "link"; r.textContent = "Wyzeruj moje rozegrane";
         r.onclick = () => { resetMine([g], "Wyzerowanie rozegranych w grupie – wszystkie gry wróciły do puli"); toast("Wyzerowano: " + g.name); };
@@ -512,12 +585,18 @@
       }
     }
   }
+  // zmiana jednej gry (np. lista rozszerzeń) – zapis całej listy gier grupy
+  function saveGame(g, newGame, logText){
+    const games = (g.games || []).map(x => x.id === newGame.id ? newGame : x);
+    return upd(g.id, {games}, logText, "game-exp");
+  }
   async function moveGame(from, game, to){
     ui.moving = null;
-    const ts = myPlayed(from)[game.id];
+    const mine = {};
+    variants(game).forEach(e => { const k = vkey(game, e); if (myPlayed(from)[k]) mine[k] = myPlayed(from)[k]; });
     const p = {games: FV.arrayUnion(game), updatedAt: Date.now()};
     try { await commitB((b, log, extra) => {
-      if (ts) extra(b => stateSet(b, to.id, me.uid, {played: {[game.id]: ts}}));
+      if (Object.keys(mine).length) extra(b => stateSet(b, to.id, me.uid, {played: mine}));
       b.update(gref(from.id), {games: FV.arrayRemove(game), updatedAt: Date.now()});
       b.update(gref(to.id), p);
       log(from.id, "game-move", "Przeniesienie gry " + q(game.name) + " do grupy " + q(to.name));
@@ -571,7 +650,7 @@
     toast("Dodano grupę – wpisz jej nazwę");
     setTimeout(() => { const i = groups.findIndex(g => g.id === id); if (i >= 0) { ui.tab = i; renderGroup(); const gn = $("groupName"); gn.focus(); gn.select(); } }, 400);
   }
-  $("rerollBtn").onclick = () => draw(ui.drawn);
+  $("rerollBtn").onclick = () => { const f = ui.drawn && findGame(ui.drawn, ui.drawnGid); draw(f ? vkey(f.game, findExp(f.game, ui.drawnExp)) : null); };
   $("playBtn").onclick = markPlayed;
   document.addEventListener("click", e => {
     if (ui.armed && !e.target.closest(".del")) { ui.armed = null; renderGroup(); }
@@ -590,6 +669,25 @@
     return false;
   };
   $("openBk").onclick = () => { bkMsg(""); openOv("bkov"); };
+  $("openChanges").onclick = () => {
+    const box = $("chgList"); box.innerHTML = "";
+    (window.CHANGELOG || []).forEach(v => {
+      const sec = document.createElement("section"); sec.className = "chgv";
+      sec.innerHTML = '<div class="chgh"><b></b><span></span></div><ul></ul>';
+      sec.querySelector("b").textContent = "v" + v.version;
+      sec.querySelector("span").textContent = v.date;
+      v.items.forEach(([kind, text]) => {
+        const li = document.createElement("li");
+        li.innerHTML = '<span class="kind"></span> <span class="txt"></span>';
+        li.querySelector(".kind").textContent = kind;
+        li.querySelector(".kind").className = "kind k-" + kind.toLowerCase();
+        li.querySelector(".txt").textContent = text;
+        sec.querySelector("ul").appendChild(li);
+      });
+      box.appendChild(sec);
+    });
+    box.scrollTop = 0; openOv("chg");
+  };
   $("openHelp").onclick = () => { openOv("help"); $("help").querySelector(".ovscroll").scrollTop = 0; };
 
   // ---------- lista gier ----------
@@ -616,7 +714,8 @@
       const li = document.createElement("li");
       li.className = isPlayed(x.group, x.game) ? "played" : "";
       li.innerHTML = '<span class="nm"></span><span class="tag"></span>';
-      li.querySelector(".nm").textContent = x.game.name;
+      li.querySelector(".nm").textContent = x.game.name + (exps(x.game).length ? "  (+" + exps(x.game).length + " rozszerz.)" : "");
+      if (exps(x.game).length) li.querySelector(".nm").title = exps(x.game).map(e => e.name).join(", ");
       if (groups.length > 1) li.querySelector(".tag").textContent = x.group.name; else li.querySelector(".tag").remove();
       ul.appendChild(li);
     });
@@ -776,14 +875,32 @@
   }
   function lastModeFor(gameId){ const p = allPlays().find(x => x.gameId === gameId); return p ? p.mode : "max"; }
   const optVal = (gid, gameId) => gid + "|" + gameId;
-  function openResult(gameId, gid, edit){
+  const playLabel = pl => pl.gameName + (Array.isArray(pl.exps) && pl.exps.length ? " + " + pl.exps.map(e => e.name).join(", ") : "");
+  function renderRfExps(){
+    const f = findGame(rf.gameId, rf.gid);
+    const ex = f ? exps(f.game) : [];
+    $("rfExpBox").hidden = !ex.length;
+    const box = $("rfExps"); box.innerHTML = "";
+    if (!ex.length) return;
+    const base = document.createElement("button"); base.type = "button";
+    base.className = "chip" + (!rf.exps.size ? " on" : ""); base.textContent = "Wersja podstawowa";
+    base.onclick = () => { rf.exps.clear(); renderRfExps(); };
+    box.appendChild(base);
+    ex.forEach(e => {
+      const b = document.createElement("button"); b.type = "button";
+      b.className = "chip" + (rf.exps.has(e.id) ? " on" : ""); b.textContent = "+ " + e.name;
+      b.onclick = () => { if (rf.exps.has(e.id)) rf.exps.delete(e.id); else rf.exps.add(e.id); renderRfExps(); };
+      box.appendChild(b);
+    });
+  }
+  function openResult(gameId, gid, edit, presetExp){
     const games = allGamesSorted();
     if (!games.length && !edit) { toast("Najpierw dodaj gry"); return; }
     const sel = $("rfGame"); sel.innerHTML = "";
     games.forEach(x => { const o = document.createElement("option"); o.value = optVal(x.group.id, x.game.id); o.textContent = x.game.name + (groups.length > 1 ? "  ·  " + x.group.name : ""); sel.appendChild(o); });
     if (edit) {
       rf = { editId: edit.id, orig: edit, gid: edit.groupId, gameId: edit.gameId, mode: edit.mode || "max", coopWin: edit.coopWin !== false,
-             list: [], pts: {}, labels: {} };
+             list: [], pts: {}, labels: {}, exps: new Set((edit.exps || []).map(e => e.id)) };
       (edit.scores || []).forEach(x => { const k = scoreKey(x); rf.list.push(k); rf.labels[k] = x.p; if (x.pts !== undefined) rf.pts[k] = String(x.pts); });
       if (!findGame(edit.gameId, edit.groupId)) { const o = document.createElement("option"); o.value = optVal(edit.groupId, edit.gameId); o.textContent = edit.gameName + " (usunięta z listy)"; sel.insertBefore(o, sel.firstChild); }
       sel.value = optVal(edit.groupId, edit.gameId);
@@ -791,13 +908,14 @@
       $("rfTitle").textContent = "Edytuj wynik"; $("rfSave").textContent = "Zapisz zmiany";
     } else {
       const pick = (gameId && findGame(gameId, gid)) || games[0];
-      rf = { gid: pick.group.id, gameId: pick.game.id, mode: lastModeFor(pick.game.id), coopWin: true, list: [], pts: {}, labels: {} };
+      rf = { gid: pick.group.id, gameId: pick.game.id, mode: lastModeFor(pick.game.id), coopWin: true, list: [], pts: {}, labels: {},
+             exps: new Set(presetExp && findExp(pick.game, presetExp) ? [presetExp] : []) };
       sel.value = optVal(rf.gid, rf.gameId);
       $("rfDate").value = todayStr();
       $("rfTitle").textContent = "Nowy wynik"; $("rfSave").textContent = "Zapisz wynik";
     }
     $("rfErr").textContent = ""; $("rfManageList").hidden = true;
-    renderRF(); openOv("rf");
+    renderRfExps(); renderRF(); openOv("rf");
   }
   function computeWinners(){   // zwraca klucze zwycięzców
     const chosen = rf.list.slice();
@@ -856,9 +974,9 @@
   }
   $("rfGame").onchange = () => {
     const [gid, gameId] = $("rfGame").value.split("|");
-    rf.gid = gid; rf.gameId = gameId;
+    rf.gid = gid; rf.gameId = gameId; rf.exps = new Set();
     if (!rf.editId) rf.mode = lastModeFor(gameId);
-    renderRF();
+    renderRfExps(); renderRF();
   };
   function addToGame(key){
     if (!rf.list.includes(key)) rf.list.push(key);
@@ -919,6 +1037,8 @@
                    winners: scores.filter(x => x.win).map(x => x.p),
                    createdBy: rf.editId ? (rf.orig.createdBy || me.uid) : me.uid, createdByName: rf.editId ? (rf.orig.createdByName || me.name) : me.name };
     if (rf.mode === "coop") play.coopWin = rf.coopWin;
+    const selExps = f ? exps(f.game).filter(e => rf.exps.has(e.id)) : (rf.orig && rf.orig.exps) || [];
+    play.exps = selExps.map(e => ({id: e.id, name: e.name}));
     // kto widzi wynik: gracze z kontem + osoba, która go wpisała
     const accountUids = [...new Set(scores.filter(x => x.uid).map(x => x.uid))];
     play.viewers = [...new Set(accountUids.concat(play.createdBy))];
@@ -937,8 +1057,13 @@
       const newNames = chosen.filter(k => k.startsWith("n:")).map(k => k.slice(2)).filter(p => !(g.players || []).includes(p));
       if (newNames.length) b.update(gref(gid), {players: FV.arrayUnion(...newNames), updatedAt: Date.now()});
       // nowy wynik: gra rozegrana dla każdego gracza z kontem (w jego prywatnym stanie)
-      if (!editId && f) extra(b => accountUids.forEach(u => stateSet(b, gid, u, {played: {[f.game.id]: at}, history: FV.arrayUnion(histEntry(f.game, at))})));
-      const summary = q(play.gameName) + " – " + scores.map(x => (x.win ? "🏆 " : "") + x.p + (x.pts !== undefined ? " " + x.pts : "")).join(", ")
+      if (!editId && f) {
+        const vs = selExps.length ? selExps : [null];
+        const playedMap = {}; vs.forEach(e => playedMap[vkey(f.game, e)] = at);
+        const hist = vs.map(e => histEntry(f.game, at, e));
+        extra(b => accountUids.forEach(u => stateSet(b, gid, u, {played: Object.assign({}, playedMap), history: FV.arrayUnion(...hist)})));
+      }
+      const summary = q(playLabel(play)) + " – " + scores.map(x => (x.win ? "🏆 " : "") + x.p + (x.pts !== undefined ? " " + x.pts : "")).join(", ")
         + (play.mode === "coop" ? (play.coopWin ? " (kooperacja – wygrana)" : " (kooperacja – przegrana)") : "");
       log(gid, "result", (editId ? "Zmiana wyniku: " : "Dodanie wyniku: ") + summary, play.viewers);
       };
@@ -995,7 +1120,7 @@
       const li = document.createElement("li");
       li.innerHTML = '<div class="rb"><div class="rt"><b></b><span></span></div><div class="rs"></div></div>' +
         (mayEdit ? '<button class="ib ed" title="Edytuj wynik">✎</button><button class="ib del" title="Usuń wynik">🗑</button>' : '');
-      li.querySelector("b").textContent = pl.gameName;
+      li.querySelector("b").textContent = playLabel(pl);
       li.querySelector(".rt span").textContent = fmt(pl.at) + (groups.length > 1 && g ? " · " + g.name : "");
       const rs = li.querySelector(".rs");
       const sorted = (pl.scores || []).slice().sort((a,b) => (pl.mode === "min" ? 1 : -1) * ((a.pts ?? -Infinity) - (b.pts ?? -Infinity)));
@@ -1017,7 +1142,7 @@
           ui.resArmed = null;
           commitB((b, log) => {
             b.delete(pcol(pl.groupId).doc(pl.id));
-            log(pl.groupId, "result", "Usunięcie wyniku: " + q(pl.gameName) + " z " + fmt(pl.at), pl.viewers || [me.uid]);
+            log(pl.groupId, "result", "Usunięcie wyniku: " + q(playLabel(pl)) + " z " + fmt(pl.at), pl.viewers || [me.uid]);
           }).catch(e => toast(errMsg(e)));
         };
       }
@@ -1096,7 +1221,8 @@
   $("bkCopy").onclick = async () => {
     const data = { v: 2, exportedAt: Date.now(),
       groups: groups.map(g => ({ id: g.id, name: g.name,
-        games: (g.games || []).map(x => ({id: x.id, name: x.name, played: isPlayed(g, x), playedAt: myPlayed(g)[x.id] || null})),
+        games: (g.games || []).map(x => ({id: x.id, name: x.name, played: isVPlayed(g, x, null), playedAt: myPlayed(g)[x.id] || null,
+          expansions: exps(x).map(e => ({id: e.id, name: e.name, played: isVPlayed(g, x, e), playedAt: myPlayed(g)[vkey(x, e)] || null}))})),
         history: myHistory(g), players: g.players || [],
         log: (logsBy[g.id] || []).map(e => ({at: e.at, name: e.name, type: e.type, text: e.text, scope: e.scope || "group"})) })),
       plays: allPlays().map(p => Object.assign({}, p)),
@@ -1128,9 +1254,19 @@
     try {
       const idMap = {};
       for (const og of data.groups.slice(0, MAX_GROUPS)) {
-        const games = (og.games || []).filter(x => x && x.name).map(x => ({id: String(x.id || uid()).replace(/[^A-Za-z0-9_-]/g, "") || uid(), name: String(x.name).slice(0, 80)}));
+        const cleanId = v => String(v || "").replace(/[^A-Za-z0-9]/g, "") || uid();
         const played = {};
-        (og.games || []).forEach((x, i) => { if (x && x.played) played[games[i].id] = Number(x.playedAt) || Date.now(); });
+        const games = (og.games || []).filter(x => x && x.name).map(x => {
+          const gm = {id: cleanId(x.id), name: String(x.name).slice(0, 80)};
+          if (x.played) played[gm.id] = Number(x.playedAt) || Date.now();
+          const ex = (Array.isArray(x.expansions) ? x.expansions : []).filter(e => e && e.name).map(e => {
+            const en = {id: cleanId(e.id), name: String(e.name).slice(0, 60)};
+            if (e.played) played[gm.id + "__" + en.id] = Number(e.playedAt) || Date.now();
+            return en;
+          });
+          if (ex.length) gm.exps = ex;
+          return gm;
+        });
         const gname = String(og.name || "Grupa").slice(0, 40);
         const histSrc = Array.isArray(og.history) ? og.history : (Array.isArray(data.history) ? data.history.filter(h => h.group === og.name) : []);
         const history = histSrc.filter(h => h && h.id && h.name).map(h => ({id: String(h.id), name: String(h.name), at: Number(h.at) || Date.now()})).slice(0, 50);
@@ -1160,7 +1296,7 @@
       for (let i = 0; i < plays.length; i += 400) {
         const b = db.batch();
         plays.slice(i, i + 400).forEach(p => {
-          const doc = { gameId: String(p.gameId || ""), gameName: String(p.gameName), at: Number(p.at) || Date.now(), mode: ["max","min","coop"].includes(p.mode) ? p.mode : "max",
+          const doc = { gameId: String(p.gameId || ""), gameName: String(p.gameName), exps: (Array.isArray(p.exps) ? p.exps : []).map(e => ({id: String(e.id), name: String(e.name)})), at: Number(p.at) || Date.now(), mode: ["max","min","coop"].includes(p.mode) ? p.mode : "max",
                         scores: (p.scores || []).map(s => { const o = {p: String(s.p)}; if (s.pts !== undefined) o.pts = Number(s.pts); if (s.uid) o.uid = String(s.uid); if (s.win !== undefined) o.win = !!s.win; return o; }),
                         winners: (p.winners || []).map(String), createdBy: me.uid, createdByName: me.name };
           doc.viewers = [...new Set(doc.scores.filter(x => x.uid).map(x => x.uid).concat(me.uid))];
