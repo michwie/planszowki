@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#020503">
+<title>Planszówki</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<canvas id="rain" aria-hidden="true"></canvas>
+
+<!-- ================= LOGOWANIE ================= -->
+<div class="wrap auth" id="authView" hidden>
+  <h1>Co dziś gramy?</h1>
+  <div class="sub">zaloguj się, aby zacząć</div>
+  <section class="card">
+    <div class="tabs" id="authTabs">
+      <button class="tab on" data-mode="login">Logowanie</button>
+      <button class="tab" data-mode="register">Nowe konto</button>
+    </div>
+    <form id="authForm" autocomplete="on">
+      <input type="text" id="aName" placeholder="Twoje imię (widoczne w grupach)" maxlength="30" autocomplete="nickname" hidden>
+      <input type="text" id="aEmail" placeholder="e-mail" autocomplete="email" inputmode="email" autocapitalize="off" spellcheck="false">
+      <input type="password" id="aPass" placeholder="hasło (min. 6 znaków)" autocomplete="current-password">
+      <button class="big" type="submit" id="aSubmit">Zaloguj</button>
+    </form>
+    <div class="ferr" id="aErr"></div>
+    <button class="link" id="aReset">Nie pamiętam hasła</button>
+    <div class="info">Konto zakładasz raz. Telefon zapamięta logowanie.</div>
+  </section>
+</div>
+
+<!-- ================= APLIKACJA ================= -->
+<div class="wrap" id="appView" hidden>
+  <h1>Co dziś gramy?</h1>
+  <div class="sub">losowanie bez powtórek do końca kolekcji</div>
+  <div class="acct"><span>zalogowano: <b id="meName"></b></span><button id="logout">Wyloguj</button></div>
+  <div class="banner" id="updBanner" hidden><span id="updText">Dostępna nowa wersja</span><button id="updBtn">Pobierz</button></div>
+  <div class="topbtns">
+    <button class="listbtn" id="openList">☰ Lista gier</button>
+    <button class="listbtn" id="openHelp">? Instrukcja</button>
+  </div>
+
+  <section class="card">
+    <h2>Losowanie</h2>
+    <div class="chips" id="pool"></div>
+    <div class="stage" id="stage"></div>
+    <button class="big" id="drawBtn">Losuj grę</button>
+    <div class="row2" id="afterDraw" hidden>
+      <button class="ghost" id="rerollBtn">Losuj inną</button>
+      <button class="ok" id="playBtn">Gramy! ✓</button>
+    </div>
+    <div class="count" id="count"></div>
+  </section>
+
+  <section class="card">
+    <h2>Moje gry</h2>
+    <div class="tabs" id="tabs"></div>
+    <div id="groupBox">
+      <div class="grouphead">
+        <input type="text" id="groupName" maxlength="40" aria-label="Nazwa grupy">
+        <button class="gearb" id="openGm" title="Członkowie i zaproszenie" aria-label="Członkowie i zaproszenie">⚙</button>
+      </div>
+      <p class="rolenote" id="roleNote" hidden></p>
+      <form class="add" id="addForm">
+        <input type="text" id="newGame" placeholder="nazwa nowej gry…" maxlength="80" autocomplete="off">
+        <button type="submit" aria-label="Dodaj">+</button>
+      </form>
+      <ul id="list"></ul>
+      <div class="tools" id="tools"></div>
+    </div>
+    <div id="noGroups" class="empty" hidden>Nie masz jeszcze żadnej grupy. Utwórz ją przyciskiem „+ grupa” albo dołącz do grupy znajomych kodem.</div>
+  </section>
+
+  <section class="card">
+    <h2>Wyniki</h2>
+    <button class="big" id="addResult">+ Dodaj wynik</button>
+    <div class="chips" id="rankFilter" style="margin:14px 0 0"></div>
+    <table class="rank" id="rank"></table>
+    <div class="sub2">Ostatnie wyniki</div>
+    <ul class="res" id="resList"></ul>
+  </section>
+
+  <section class="card">
+    <h2>Ostatnio rozegrane</h2>
+    <ul class="hist" id="hist"></ul>
+  </section>
+
+  <section class="card bk">
+    <h2>Kopia zapasowa</h2>
+    <p>„Kopiuj” zapisuje do schowka Twoje grupy, gry i wyniki. „Importuj” tworzy z wklejonej kopii nowe grupy na Twoim koncie – działa też z kopią z poprzedniej wersji aplikacji (z Claude).</p>
+    <textarea id="bkText" spellcheck="false" placeholder="tu wklej tekst kopii zapasowej…"></textarea>
+    <div class="row2">
+      <button class="ok" id="bkCopy">Kopiuj</button>
+      <button class="ghost" id="bkImport">Importuj</button>
+    </div>
+    <div class="msg" id="bkMsg"></div>
+  </section>
+
+  <div class="status" id="status">Łączenie…</div>
+  <div class="status" id="ver"></div>
+</div>
+
+<!-- ================= LISTA GIER ================= -->
+<div class="ov" id="ov" hidden role="dialog" aria-modal="true" aria-label="Lista wszystkich gier">
+  <div class="ovin">
+    <div class="ovhead"><h2>Wszystkie gry</h2><button class="ovclose" data-close="ov" aria-label="Zamknij">✕</button></div>
+    <div class="chips" id="ovFilter"></div>
+    <input type="text" id="ovSearch" placeholder="szukaj…" autocomplete="off" style="margin-bottom:10px">
+    <div class="ovscroll"><ul class="all" id="allList"></ul></div>
+    <div class="ovsum" id="ovSum"></div>
+  </div>
+</div>
+
+<!-- ================= WYNIK ================= -->
+<div class="ov" id="rf" hidden role="dialog" aria-modal="true" aria-label="Wynik">
+  <div class="ovin">
+    <div class="ovhead"><h2 id="rfTitle">Nowy wynik</h2><button class="ovclose" data-close="rf" aria-label="Zamknij">✕</button></div>
+    <div class="ovscroll" style="border-top:0">
+      <label class="fl" for="rfGame">Gra</label>
+      <select id="rfGame"></select>
+      <label class="fl" for="rfDate">Data</label>
+      <input type="date" id="rfDate">
+      <span class="fl">Kto wygrywa</span>
+      <div class="chips" id="rfMode" style="margin-bottom:0"></div>
+      <div id="rfCoop" hidden>
+        <span class="fl">Wynik drużyny</span>
+        <div class="chips" id="rfCoopRes" style="margin-bottom:0"></div>
+      </div>
+      <span class="fl" id="rfPlLabel">Gracze i punkty</span>
+      <div id="rfPlayers"></div>
+      <span class="fl">Dodaj gracza</span>
+      <select id="rfPick" aria-label="Wybierz gracza z listy"></select>
+      <form class="add" id="rfAddPl" style="margin-top:8px">
+        <input type="text" id="rfNewPl" placeholder="albo wpisz nowego gracza…" maxlength="30" autocomplete="off">
+        <button type="submit" aria-label="Dodaj nowego gracza">+</button>
+      </form>
+      <div id="rfManage"><button type="button" class="link" id="rfManageBtn">Edytuj listę graczy</button>
+        <div class="chips" id="rfManageList" hidden style="margin-top:6px"></div></div>
+      <div class="preview" id="rfPreview"></div>
+      <div class="ferr" id="rfErr"></div>
+    </div>
+    <button class="big" id="rfSave" style="margin-top:10px">Zapisz wynik</button>
+  </div>
+</div>
+
+<!-- ================= GRUPA: CZŁONKOWIE I ZAPROSZENIE ================= -->
+<div class="ov" id="gm" hidden role="dialog" aria-modal="true" aria-label="Grupa">
+  <div class="ovin">
+    <div class="ovhead"><h2 id="gmTitle">Grupa</h2><button class="ovclose" data-close="gm" aria-label="Zamknij">✕</button></div>
+    <div class="ovscroll" style="border-top:0" id="gmBody"></div>
+  </div>
+</div>
+
+<!-- ================= DOŁĄCZ KODEM ================= -->
+<div class="ov" id="jn" hidden role="dialog" aria-modal="true" aria-label="Dołącz do grupy">
+  <div class="ovin">
+    <div class="ovhead"><h2>Dołącz do grupy</h2><button class="ovclose" data-close="jn" aria-label="Zamknij">✕</button></div>
+    <div class="ovscroll" style="border-top:0">
+      <p class="rolenote" style="margin-top:6px">Wpisz kod, który dostałeś od właściciela grupy. Dołączysz jako gracz: zobaczysz gry tej grupy, będziesz mógł z nich losować i wpisywać wyniki.</p>
+      <input type="text" id="jnCode" placeholder="KOD" maxlength="8" autocomplete="off" autocapitalize="characters" spellcheck="false" style="text-align:center;letter-spacing:6px;font-size:22px;text-transform:uppercase">
+      <div class="ferr" id="jnErr"></div>
+      <button class="big" id="jnBtn" style="margin-top:10px">Dołącz</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= INSTRUKCJA ================= -->
+<div class="ov" id="help" hidden role="dialog" aria-modal="true" aria-label="Instrukcja">
+  <div class="ovin">
+    <div class="ovhead"><h2>Instrukcja</h2><button class="ovclose" data-close="help" aria-label="Zamknij">✕</button></div>
+    <div class="ovscroll help">
+      <h3>Do czego to służy</h3>
+      <p>Aplikacja przechowuje gry planszowe podzielone na grupy, losuje grę na wieczór bez powtórek i zapisuje wyniki, z których liczy ranking zwycięstw. Grupy można współdzielić z innymi osobami.</p>
+
+      <h3>Konto</h3>
+      <ul>
+        <li>Każda osoba zakłada własne konto (e-mail i hasło) w zakładce <b>Nowe konto</b>. Imię podane przy rejestracji widzą inni członkowie grup.</li>
+        <li>Telefon pamięta logowanie. <b>Wyloguj</b> jest na górze ekranu.</li>
+        <li>Zapomniane hasło: na ekranie logowania wpisz e-mail i naciśnij <b>Nie pamiętam hasła</b> – przyjdzie e-mail z linkiem.</li>
+      </ul>
+
+      <h3>Grupy i role</h3>
+      <ul>
+        <li><b>+ grupa</b> tworzy nową grupę – jesteś jej <b>właścicielem</b>.</li>
+        <li><b>Właściciel</b> może wszystko: zmieniać gry, nadawać role, usuwać osoby i całą grupę.</li>
+        <li><b>Edytor</b> dodaje, usuwa i przenosi gry oraz zmienia nazwę grupy.</li>
+        <li><b>Gracz</b> widzi gry, losuje, oznacza gry jako rozegrane i wpisuje wyniki – nie zmienia listy gier.</li>
+        <li>Ikona <b>⚙</b> obok nazwy grupy otwiera listę członków i kod zaproszenia.</li>
+      </ul>
+
+      <h3>Zapraszanie</h3>
+      <ul>
+        <li>Właściciel lub edytor otwiera <b>⚙</b> i wysyła znajomemu <b>kod zaproszenia</b> (przycisk <b>Udostępnij</b> albo <b>Kopiuj</b>).</li>
+        <li>Znajomy w zakładkach grup naciska <b>⇥ kod</b>, wpisuje kod i dołącza jako gracz.</li>
+        <li>Właściciel może potem zmienić mu rolę na edytora albo usunąć go z grupy.</li>
+        <li><b>Nowy kod</b> unieważnia stary – przydaje się, gdy kod trafił do niewłaściwej osoby.</li>
+        <li>Chcesz losować z gier znajomych? Poproś ich o kod do ich grupy.</li>
+      </ul>
+
+      <h3>Gry</h3>
+      <ul>
+        <li>Grę dodajesz, wpisując tytuł i naciskając <b>+</b>. Gry układają się alfabetycznie.</li>
+        <li><b>⇄</b> przenosi grę do innej grupy (w której też możesz edytować), <b>🗑</b> ją usuwa – naciśnij dwa razy.</li>
+        <li>Kwadracik przy grze ręcznie oznacza ją jako rozegraną albo nierozegraną.</li>
+      </ul>
+
+      <h3>Losowanie</h3>
+      <ul>
+        <li>Nad losowaniem wybierz, z których grup losować: <b>Wszystkie grupy</b> albo dowolne konkretne (można zaznaczyć kilka, np. Waszą i znajomych). Telefon zapamiętuje wybór.</li>
+        <li><b>Losuj grę</b> wybiera tytuł spośród gier jeszcze nierozegranych.</li>
+        <li><b>Losuj inną</b> losuje ponownie, <b>Gramy!</b> zapisuje grę jako rozegraną – nie wypadnie ponownie, dopóki nie przejdziecie całej puli.</li>
+        <li>Gdy wszystko z wybranej puli zostało rozegrane, pojawia się <b>Zacznij nowy cykl</b>. <b>Wyzeruj tę grupę</b> robi to samo dla jednej grupy.</li>
+      </ul>
+
+      <h3>Wyniki</h3>
+      <ul>
+        <li>Po <b>Gramy!</b> możesz od razu nacisnąć <b>Wpisz wynik po grze</b>. Wynik dodasz też w każdej chwili przyciskiem <b>+ Dodaj wynik</b>.</li>
+        <li>Wybierz grę, datę i sposób wygrywania: <b>Najwięcej pkt</b>, <b>Najmniej pkt</b> albo <b>Kooperacja</b> (cała drużyna wygrywa lub przegrywa).</li>
+        <li>Graczy dodajesz z listy albo wpisujesz nowe imię – zostanie zapamiętane. ✕ usuwa gracza tylko z tej rozgrywki.</li>
+        <li>Zwycięzca wybiera się sam na podstawie punktów. Przy remisie wygrywa każdy z najlepszym wynikiem.</li>
+        <li><b>✎</b> poprawia wynik, <b>🗑</b> go usuwa (dwa naciśnięcia). Zmienić lub usunąć wynik może osoba, która go wpisała, oraz właściciel i edytorzy grupy.</li>
+      </ul>
+
+      <h3>Ranking</h3>
+      <ul>
+        <li><b>Wygrane</b> – liczba zwycięstw, <b>Gry</b> – w ilu rozgrywkach ktoś brał udział.</li>
+        <li><b>%</b> to procent wygranych z gier, w których dana osoba grała (nie ze wszystkich gier).</li>
+        <li>👑 oznacza prowadzącego. Filtr nad rankingiem pokazuje wszystkie grupy albo jedną.</li>
+      </ul>
+
+      <h3>Lista gier</h3>
+      <p><b>☰ Lista gier</b> pokazuje wszystkie tytuły alfabetycznie, z podziałem na litery. Można filtrować po grupie i wyszukiwać. Rozegrane gry są przekreślone.</p>
+
+      <h3>Aktualizacje</h3>
+      <ul>
+        <li>Gdy jest nowa wersja, na górze pojawi się żółty pasek <b>Dostępna nowa wersja</b> z przyciskiem <b>Pobierz</b>.</li>
+        <li>Telefon pobierze plik, a Ty potwierdzasz instalację. Za pierwszym razem Android może poprosić o zgodę na instalowanie aplikacji z przeglądarki – zezwól.</li>
+        <li>Dane są w chmurze, więc aktualizacja niczego nie kasuje.</li>
+      </ul>
+
+      <h3>Kopia zapasowa</h3>
+      <ul>
+        <li><b>Kopiuj</b> kopiuje do schowka Twoje grupy, gry i wyniki – wklej to np. do notatek.</li>
+        <li><b>Importuj</b>: wklej tekst kopii i naciśnij dwa razy. Z kopii powstaną nowe grupy na Twoim koncie (istniejące grupy pozostają bez zmian). Tak przeniesiesz też dane z poprzedniej wersji aplikacji w Claude.</li>
+      </ul>
+      <p class="note">Bez internetu aplikacja pokazuje ostatnio wczytane dane, a zmiany wyśle, gdy połączenie wróci.</p>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="vendor/firebase-app-compat.js"></script>
+<script src="vendor/firebase-auth-compat.js"></script>
+<script src="vendor/firebase-firestore-compat.js"></script>
+<script src="config.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

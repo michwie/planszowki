@@ -1,0 +1,94 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() { return request.auth != null; }
+    function me() { return request.auth.uid; }
+
+    // Kody zaproszeń: invites/{KOD} -> { groupId }
+    // Kod można odczytać tylko znając go dokładnie (bez listowania).
+    match /invites/{code} {
+      allow get: if signedIn();
+      allow list: if false;
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly(['groupId', 'createdBy', 'createdAt'])
+        && request.resource.data.createdBy == me()
+        && getAfter(/databases/$(database)/documents/groups/$(request.resource.data.groupId)).data.ownerId == me()
+        && getAfter(/databases/$(database)/documents/groups/$(request.resource.data.groupId)).data.inviteCode == code;
+      allow delete: if signedIn()
+        && get(/databases/$(database)/documents/groups/$(resource.data.groupId)).data.ownerId == me();
+      allow update: if false;
+    }
+
+    match /groups/{gid} {
+      function isMember() { return signedIn() && me() in resource.data.memberIds; }
+      function myRole() { return resource.data.members.get(me(), ''); }
+      function changed() { return request.resource.data.diff(resource.data).affectedKeys(); }
+
+      // Dołączenie kodem: dopisuję tylko siebie jako "player" i podaję poprawny kod.
+      function joining() {
+        let m = request.resource.data.members.diff(resource.data.members);
+        let n = request.resource.data.memberNames.diff(resource.data.memberNames);
+        return signedIn()
+          && !(me() in resource.data.memberIds)
+          && changed().hasOnly(['members', 'memberIds', 'memberNames', 'joinCode'])
+          && request.resource.data.joinCode == resource.data.inviteCode
+          && m.addedKeys().hasOnly([me()]) && m.changedKeys().size() == 0 && m.removedKeys().size() == 0
+          && request.resource.data.members[me()] == 'player'
+          && request.resource.data.memberIds.toSet() == resource.data.memberIds.toSet().union([me()].toSet())
+          && request.resource.data.memberIds.size() == resource.data.memberIds.size() + 1
+          && n.addedKeys().hasOnly([me()]) && n.changedKeys().size() == 0 && n.removedKeys().size() == 0;
+      }
+
+      // Opuszczenie grupy (nie dotyczy właściciela).
+      function leaving() {
+        let m = request.resource.data.members.diff(resource.data.members);
+        return myRole() != 'owner'
+          && changed().hasOnly(['members', 'memberIds', 'memberNames'])
+          && m.removedKeys().hasOnly([me()]) && m.addedKeys().size() == 0 && m.changedKeys().size() == 0
+          && !(me() in request.resource.data.memberIds)
+          && request.resource.data.memberIds.toSet() == resource.data.memberIds.toSet().difference([me()].toSet());
+      }
+
+      allow read: if isMember();
+
+      allow create: if signedIn()
+        && request.resource.data.ownerId == me()
+        && request.resource.data.members.keys().hasOnly([me()])
+        && request.resource.data.members[me()] == 'owner'
+        && request.resource.data.memberIds == [me()]
+        && request.resource.data.inviteCode is string;
+
+      allow update: if joining() || (isMember() && (
+           (myRole() == 'owner'
+              && request.resource.data.ownerId == resource.data.ownerId
+              && request.resource.data.members[me()] == 'owner'
+              && me() in request.resource.data.memberIds)
+        || (myRole() == 'editor' && changed().hasOnly(['name', 'games', 'played', 'history', 'players', 'updatedAt']))
+        || (myRole() == 'player' && changed().hasOnly(['played', 'history', 'players', 'updatedAt']))
+        || leaving()
+      ));
+
+      allow delete: if isMember() && myRole() == 'owner';
+
+      // Wyniki rozgrywek danej grupy
+      match /plays/{pid} {
+        function g() { return get(/databases/$(database)/documents/groups/$(gid)).data; }
+        function member() { return signedIn() && me() in g().memberIds; }
+        function power() { return g().members.get(me(), '') in ['owner', 'editor']; }
+
+        allow read: if member();
+        allow create: if member() && request.resource.data.createdBy == me();
+        allow update: if member()
+          && (resource.data.createdBy == me() || power())
+          && request.resource.data.createdBy == resource.data.createdBy;
+        allow delete: if member() && (resource.data.createdBy == me() || power());
+      }
+    }
+
+    // Wszystko inne zamknięte
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
