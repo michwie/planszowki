@@ -281,3 +281,5 @@ body{padding-bottom:calc(env(safe-area-inset-bottom) + 86px)}
 .expadd{flex-wrap:wrap}
 .expadd .xdone{background:none;box-shadow:none;font-weight:600;flex-basis:100%;margin-top:6px;padding:8px;border:1px solid var(--glow);border-radius:4px;color:var(--glow);font-family:var(--font-head);font-size:12px;letter-spacing:2px;text-transform:uppercase}
 .expadd .xdone:active{background:var(--green-soft)}
+.xrow.ro{cursor:default}.xrow.ro:active{background:none}
+span.ib.check{cursor:default}

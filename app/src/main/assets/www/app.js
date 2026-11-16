@@ -364,20 +364,14 @@
     tick();
   }
   const histEntry = (game, at, exp) => ({id: vkey(game, exp), name: vlabel(game, exp), at});
-  async function markPlayed(){
+  // "Gramy!" tylko zapamiętuje wybór – gra wypada z losowania dopiero po wpisaniu wyniku
+  function markPlayed(){
     const f = ui.drawn && findGame(ui.drawn, ui.drawnGid);
     if (!f) return;
     const exp = findExp(f.game, ui.drawnExp);
-    const at = Date.now();
     ui.drawn = null; ui.justPlayed = {id: f.game.id, gid: f.group.id, exp: exp ? exp.id : null};
     renderDraw();
-    try {
-      await commitB((b, log, extra) => {
-        extra(b => stateSet(b, f.group.id, me.uid, {played: {[vkey(f.game, exp)]: at}, history: FV.arrayUnion(histEntry(f.game, at, exp))}));
-        log(f.group.id, "play", "Gramy w " + q(vlabel(f.game, exp)) + " (z losowania)", [me.uid]);
-      });
-      toast("Miłej gry! „" + vlabel(f.game, exp) + "” zapisana jako rozegrana");
-    } catch(e){ toast(errMsg(e)); }
+    toast("Miłej gry! Po partii wpisz wynik – wtedy gra wypadnie z losowania.");
   }
   async function resetMine(gs, label){
     try {
@@ -489,7 +483,7 @@
       const baseDone = isVPlayed(g, game, null);
       const li = document.createElement("li");
       li.className = "game" + (played ? " played" : "");
-      li.innerHTML = '<button class="ib check" title="Wersja podstawowa: rozegrana / nierozegrana">' + (baseDone ? "✓" : "") + '</button>' +
+      li.innerHTML = '<span class="ib check" title="' + (baseDone ? "Rozegrana" : "Do zagrania") + '">' + (baseDone ? "✓" : "") + '</span>' +
         '<div class="gname"><b></b><small></small></div>' +
         (edit ? '<button class="ib xed" title="Rozszerzenia">⊕</button>' : '') +
         (edit && moveTargets.length ? '<button class="ib move" title="Przenieś do innej grupy">⇄</button>' : '') +
@@ -501,20 +495,7 @@
         const n = variants(game).filter(e => isVPlayed(g, game, e)).length;
         sm.textContent = "Rozegrane wersje: " + n + " / " + (ex.length + 1);
       }
-      const toggleVariant = exp => {
-        const was = isVPlayed(g, game, exp), key = vkey(game, exp), at = Date.now();
-        // oznaczenie jako rozegrana wymaga potwierdzenia (drugie dotknięcie)
-        if (!was && ui.playArmed !== g.id + "|" + key) { ui.playArmed = g.id + "|" + key; renderGroup(); return; }
-        ui.playArmed = null;
-        if (ui.drawn === game.id && (ui.drawnExp || null) === (exp ? exp.id : null)) ui.drawn = null;
-        commitB((b, log, extra) => {
-          extra(b => stateSet(b, g.id, me.uid, was ? {played: {[key]: FV.delete()}} : {played: {[key]: at}, history: FV.arrayUnion(histEntry(game, at, exp))}));
-          log(g.id, "mark", (was ? "Oznaczenie jako nierozegrana: " : "Oznaczenie jako rozegrana: ") + q(vlabel(game, exp)), [me.uid]);
-        }).catch(e => toast(errMsg(e)));
-      };
-      const chk = li.querySelector(".check");
-      if (ui.playArmed === g.id + "|" + vkey(game, null)) { chk.classList.add("armed"); chk.textContent = "Rozegrana?"; }
-      chk.onclick = () => toggleVariant(null);
+      // stan "rozegrana" zmienia się wyłącznie po dodaniu wyniku – tutaj tylko podgląd
       // rozszerzenia: dotknięcie = rozegrane / nierozegrane (dla Ciebie); edycja listy dla właściciela i edytorów
       if (ex.length || ui.expEdit === game.id) {
         // drzewko wersji: podstawowa + rozszerzenia; dotknięcie = rozegrana / nierozegrana (dla Ciebie)
@@ -524,16 +505,15 @@
         rows.forEach((r, i) => {
           const done = isVPlayed(g, game, r.e);
           const last = i === rows.length - 1 && !editing;
-          const row = document.createElement("button"); row.type = "button";
-          const pArmed = (!editing || !r.e) && ui.playArmed === g.id + "|" + vkey(game, r.e);
-          row.className = "xrow" + (done ? " done" : "") + (r.e ? "" : " base") + (editing && r.e ? " edit" : "") + (r.e && ui.expArmed === r.e.id ? " armed" : "") + (pArmed ? " parmed" : "");
+          const canDel = editing && r.e;
+          const row = document.createElement(canDel ? "button" : "div"); if (canDel) row.type = "button";
+          row.className = "xrow" + (done ? " done" : "") + (r.e ? "" : " base") + (canDel ? " edit" : " ro") + (r.e && ui.expArmed === r.e.id ? " armed" : "");
           row.innerHTML = '<span class="br"></span><span class="mk"></span><span class="nm"></span><span class="dt"></span>';
           row.querySelector(".br").textContent = last ? "└─" : "├─";
           row.querySelector(".mk").textContent = editing && r.e ? "✕" : (done ? "✓" : "○");
-          row.querySelector(".nm").textContent = editing && r.e && ui.expArmed === r.e.id ? "Usunąć „" + r.name + "”?" : (pArmed ? "Rozegrana: " + r.name + "? Dotknij ponownie" : r.name);
+          row.querySelector(".nm").textContent = editing && r.e && ui.expArmed === r.e.id ? "Usunąć „" + r.name + "”?" : r.name;
           if (done && !editing) row.querySelector(".dt").textContent = fmt(myPlayed(g)[vkey(game, r.e)]);
-          row.onclick = () => {
-            if (!editing || !r.e) { toggleVariant(r.e); return; }
+          if (canDel) row.onclick = () => {
             if (ui.expArmed !== r.e.id) { ui.expArmed = r.e.id; renderGroup(); return; }
             ui.expArmed = null;
             saveGame(g, Object.assign({}, game, {exps: ex.filter(x => x.id !== r.e.id)}), "Usunięcie rozszerzenia " + q(r.name) + " z gry " + q(game.name));
@@ -663,10 +643,9 @@
     setTimeout(() => { const i = groups.findIndex(g => g.id === id); if (i >= 0) { ui.tab = i; renderGroup(); const gn = $("groupName"); gn.focus(); gn.select(); } }, 400);
   }
   $("rerollBtn").onclick = () => { const f = ui.drawn && findGame(ui.drawn, ui.drawnGid); draw(f ? vkey(f.game, findExp(f.game, ui.drawnExp)) : null); };
-  $("playBtn").onclick = () => { if (confirmTap($("playBtn"), "Na pewno rozegrana? ✓")) markPlayed(); };
+  $("playBtn").onclick = markPlayed;
   document.addEventListener("click", e => {
     if (ui.armed && !e.target.closest(".del")) { ui.armed = null; renderGroup(); }
-    if (ui.playArmed && !e.target.closest(".check,.xrow")) { ui.playArmed = null; renderGroup(); }
     if (ui.resArmed && !e.target.closest(".del")) { ui.resArmed = null; renderResults(); }
   });
 
@@ -1149,12 +1128,15 @@
       // wpisane imiona trafiają na listę graczy grupy
       const newNames = chosen.filter(k => k.startsWith("n:")).map(k => k.slice(2)).filter(p => !(g.players || []).includes(p));
       if (newNames.length) b.update(gref(gid), {players: FV.arrayUnion(...newNames), updatedAt: Date.now()});
-      // nowy wynik: gra rozegrana dla każdego gracza z kontem (w jego prywatnym stanie)
-      if (!editId && f) {
+      // gra rozegrana dla każdego gracza z kontem, który jest w tej grupie (w jego prywatnym stanie);
+      // przy edycji – tylko dla nowo dopisanych graczy
+      const origUids = new Set(editId ? (rf.orig.scores || []).filter(x => x.uid).map(x => x.uid) : []);
+      const markUids = accountUids.filter(u => (g.memberIds || []).includes(u) && !origUids.has(u));
+      if (f && markUids.length) {
         const vs = selExps.length ? selExps : [null];
         const playedMap = {}; vs.forEach(e => playedMap[vkey(f.game, e)] = at);
         const hist = vs.map(e => histEntry(f.game, at, e));
-        extra(b => accountUids.forEach(u => stateSet(b, gid, u, {played: Object.assign({}, playedMap), history: FV.arrayUnion(...hist)})));
+        extra(b => markUids.forEach(u => stateSet(b, gid, u, {played: Object.assign({}, playedMap), history: FV.arrayUnion(...hist)})));
       }
       const summary = q(playLabel(play)) + " – " + scores.map(x => (x.win ? "🏆 " : "") + x.p + (x.pts !== undefined ? " " + x.pts : "")).join(", ")
         + (play.mode === "coop" ? (play.coopWin ? " (kooperacja – wygrana)" : " (kooperacja – przegrana)") : "");
