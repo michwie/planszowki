@@ -588,10 +588,7 @@
       li.querySelector("b").textContent = game.name;
       const sm = li.querySelector("small");
       if (!ex.length) sm.textContent = baseDone ? ("Rozegrana " + fmt(myPlayed(g)[game.id])) : "Do zagrania";
-      else {
-        const n = variants(game).filter(e => isVPlayed(g, game, e)).length;
-        sm.textContent = "Rozegrane wersje: " + n + " / " + (ex.length + 1);
-      }
+      else sm.remove();   // gra z rozszerzeniami: stan widać w drzewku pod nazwą
       // stan "rozegrana" zmienia się wyłącznie po dodaniu wyniku – tutaj tylko podgląd
       // rozszerzenia: dotknięcie = rozegrane / nierozegrane (dla Ciebie); edycja listy dla właściciela i edytorów
       if (ex.length || ui.expEdit === game.id) {
