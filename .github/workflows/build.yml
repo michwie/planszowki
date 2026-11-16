@@ -105,12 +105,14 @@ jobs:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
         run: |
           gradle :app:assembleRelease --no-daemon --stacktrace
-          cp app/build/outputs/apk/release/app-release.apk planszowki.apk
+          APK="Planszomat-${VERSION_NAME}-build${{ github.run_number }}.apk"
+          cp app/build/outputs/apk/release/app-release.apk "$APK"
+          echo "APK_NAME=$APK" >> "$GITHUB_ENV"
 
       - uses: actions/upload-artifact@v4
         with:
           name: planszowki-apk
-          path: planszowki.apk
+          path: ${{ env.APK_NAME }}
 
       - name: Opublikuj wersję
         if: steps.key.outputs.signed == 'true'
@@ -118,6 +120,6 @@ jobs:
         with:
           tag_name: v${{ env.VERSION_NAME }}-build${{ github.run_number }}
           name: Wersja ${{ env.VERSION_NAME }}
-          body: "Wersja ${{ env.VERSION_NAME }} (kompilacja ${{ github.run_number }}). Plik do instalacji: planszowki.apk"
-          files: planszowki.apk
+          body: "Wersja ${{ env.VERSION_NAME }} (kompilacja ${{ github.run_number }}). Plik do instalacji: ${{ env.APK_NAME }}"
+          files: ${{ env.APK_NAME }}
           make_latest: true
