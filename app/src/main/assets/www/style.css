@@ -279,8 +279,11 @@ body{padding-bottom:calc(env(safe-area-inset-bottom) + 86px)}
 #playBtn[data-armed="1"]{background:var(--amber);border-color:var(--amber);color:var(--accent-ink)}
 /* przycisk Gotowe w edycji rozszerzeń */
 .expadd{flex-wrap:wrap}
-.expadd .xdone{background:none;box-shadow:none;font-weight:600;flex-basis:100%;margin-top:6px;padding:8px;border:1px solid var(--glow);border-radius:4px;color:var(--glow);font-family:var(--font-head);font-size:12px;letter-spacing:2px;text-transform:uppercase}
-.expadd .xdone:active{background:var(--green-soft)}
+.expadd .xbtns{flex-basis:100%;display:flex;gap:8px;margin-top:6px}
+.expadd .xbtns button{flex:1;box-shadow:none;font-weight:600;padding:8px;border-radius:4px;font-family:var(--font-head);font-size:12px;letter-spacing:2px;text-transform:uppercase}
+.expadd .xdone{background:var(--glow);color:var(--accent-ink);border:1px solid var(--glow)}
+.expadd .xcancel{background:none;color:var(--muted);border:1px solid var(--line)}
+.expadd .xbtns button:active{filter:brightness(1.2)}
 .xrow.ro{cursor:default}.xrow.ro:active{background:none}
 span.ib.check{cursor:default}
 .codebox{margin-bottom:14px;padding-bottom:10px;border-bottom:1px dashed var(--line)}

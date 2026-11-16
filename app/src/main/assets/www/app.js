@@ -587,8 +587,7 @@
         (edit ? '<button class="ib del" title="Usuń">🗑</button>' : '');
       li.querySelector("b").textContent = game.name;
       const sm = li.querySelector("small");
-      if (!ex.length) sm.textContent = baseDone ? ("Rozegrana " + fmt(myPlayed(g)[game.id])) : "Do zagrania";
-      else sm.remove();   // gra z rozszerzeniami: stan widać w drzewku pod nazwą
+      sm.remove();   // bez napisów pod nazwą: stan pokazuje kwadracik (✓) i drzewko wersji
       // stan "rozegrana" zmienia się wyłącznie po dodaniu wyniku – tutaj tylko podgląd
       // rozszerzenia: dotknięcie = rozegrane / nierozegrane (dla Ciebie); edycja listy dla właściciela i edytorów
       if (ex.length || ui.expEdit === game.id) {
@@ -616,15 +615,19 @@
         });
         if (ui.expEdit === game.id) {
           const f = document.createElement("form"); f.className = "add expadd";
-          f.innerHTML = '<span class="br">└─</span><input type="text" maxlength="60" placeholder="nazwa rozszerzenia…" autocomplete="off"><button type="submit" aria-label="Dodaj rozszerzenie">+</button><button type="button" class="xdone">✓ Gotowe</button>';
-          f.querySelector(".xdone").onclick = () => { ui.expEdit = null; ui.expArmed = null; renderGroup(); };
+          f.innerHTML = '<span class="br">└─</span><input type="text" maxlength="60" placeholder="nazwa rozszerzenia…" autocomplete="off">' +
+            '<div class="xbtns"><button type="button" class="xcancel">Anuluj</button><button type="submit" class="xdone">✓ Gotowe</button></div>';
+          const closeEdit = () => { ui.expEdit = null; ui.expArmed = null; renderGroup(); };
+          f.querySelector(".xcancel").onclick = closeEdit;   // porzuca wpisaną nazwę
+          // Gotowe (lub Enter): dodaje wpisane rozszerzenie i kończy edycję; puste pole – tylko kończy edycję
           f.onsubmit = ev => {
             ev.preventDefault();
             const inp = f.querySelector("input"); const n = inp.value.trim().replace(/\s+/g, " ");
-            if (!n) return;
+            if (!n) { closeEdit(); return; }
             if (ex.some(x => x.name.toLowerCase() === n.toLowerCase())) { toast("To rozszerzenie już jest"); return; }
-            ui.expFocus = game.id;
+            ui.expEdit = null; ui.expArmed = null;
             saveGame(g, Object.assign({}, game, {exps: ex.concat({id: uid(), name: n})}), "Dodanie rozszerzenia " + q(n) + " do gry " + q(game.name));
+            renderGroup();
           };
           box.appendChild(f);
         }
