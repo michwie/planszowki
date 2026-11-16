@@ -299,3 +299,6 @@ span.ib.check{cursor:default}
   #v-draw .stage .name{font-size:32px}
   #v-draw #drawBtn{padding:18px;font-size:17px}
 }
+/* szersze okna na tabletach: szerokość rośnie z ekranem (520 → 720 px), telefon bez zmian */
+.wrap,.ovin{max-width:clamp(520px, 80vw, 720px)}
+@media (min-width:700px){ .auth{max-width:520px} }
