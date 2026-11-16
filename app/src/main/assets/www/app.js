@@ -727,7 +727,9 @@
   function openOv(id){ $(id).hidden = false; document.body.style.overflow = "hidden"; }
   function closeOv(id){ $(id).hidden = true; if (!document.querySelector(".ov:not([hidden])")) document.body.style.overflow = ""; if (id === "rf") rf = null; }
   document.querySelectorAll("[data-close]").forEach(b => b.onclick = () => closeOv(b.dataset.close));
-  document.querySelectorAll(".ov").forEach(o => o.addEventListener("click", e => { if (e.target === o) closeOv(o.id); }));
+  // dotknięcie poza oknem zamyka tylko okna informacyjne – formularze (wynik, kod, kopia, usuwanie konta) zamyka się ✕ lub „wstecz”
+  const FORM_OV = new Set(["rf", "jn", "bkov", "da"]);
+  document.querySelectorAll(".ov").forEach(o => o.addEventListener("click", e => { if (e.target === o && !FORM_OV.has(o.id)) closeOv(o.id); }));
   // przycisk "wstecz" Androida: zamyka okno, jeśli jakieś jest otwarte
   window.appBack = function(){
     const open = [...document.querySelectorAll(".ov:not([hidden])")];
