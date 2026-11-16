@@ -80,7 +80,9 @@ jobs:
 
       - name: Wpisz wersję i repozytorium
         run: |
-          sed -i "s|__REPO__|${{ github.repository }}|; s|__VERSION__|${{ github.run_number }}|" app/src/main/assets/www/config.js
+          VN=$(tr -d ' \r\n' < VERSION)
+          echo "VERSION_NAME=$VN" >> "$GITHUB_ENV"
+          sed -i "s|__REPO__|${{ github.repository }}|; s|__VERSION__|$VN|; s|__BUILD__|${{ github.run_number }}|" app/src/main/assets/www/config.js
           grep -n "repo\|version" app/src/main/assets/www/config.js
 
       - name: Klucz do podpisu
@@ -114,8 +116,8 @@ jobs:
         if: steps.key.outputs.signed == 'true'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v${{ github.run_number }}
-          name: Wersja ${{ github.run_number }}
-          body: "Plik do instalacji: planszowki.apk"
+          tag_name: v${{ env.VERSION_NAME }}-build${{ github.run_number }}
+          name: Wersja ${{ env.VERSION_NAME }}
+          body: "Wersja ${{ env.VERSION_NAME }} (kompilacja ${{ github.run_number }}). Plik do instalacji: planszowki.apk"
           files: planszowki.apk
           make_latest: true

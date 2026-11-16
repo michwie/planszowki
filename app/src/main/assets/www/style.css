@@ -196,3 +196,9 @@
 .log .lt{font-size:13px;color:var(--ink);margin-top:2px;line-height:1.45;word-break:break-word}
 #logMore{display:block;margin:8px auto 0}
 .bk p{color:var(--muted);font-size:12px;margin:0 0 10px;line-height:1.5}
+
+/* ---- stopka ---- */
+.foot{text-align:center;margin:18px auto 6px;max-width:420px;color:var(--muted);font-size:12px;line-height:1.55}
+.foot p{margin:0 0 4px}
+.foot .motto{color:var(--ink);font-size:13px}
+.foot .by{margin-top:8px;font-size:11px;letter-spacing:.5px}

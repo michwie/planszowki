@@ -130,6 +130,9 @@ public class MainActivity extends Activity {
         public int versionCode() { return BuildConfig.VERSION_CODE; }
 
         @JavascriptInterface
+        public String versionName() { return BuildConfig.VERSION_NAME; }
+
+        @JavascriptInterface
         public void openUrl(String url) {
             if (url != null && url.startsWith("https://")) runOnUiThread(() -> openExternal(url));
         }

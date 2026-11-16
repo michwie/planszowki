@@ -1176,23 +1176,33 @@
   };
 
   // ================= AKTUALIZACJE =================
-  function currentVersion(){
+  // Numer kompilacji (rośnie z każdym wydaniem) służy do wykrywania aktualizacji,
+  // a nazwa wersji (np. 1.0) jest tym, co widzi użytkownik.
+  function currentBuild(){
     if (Android && Android.versionCode) try { return Number(Android.versionCode()) || 0; } catch(e){}
-    const v = parseInt(String(CFG.version).replace(/\D/g, ""), 10);
-    return isNaN(v) ? 0 : v;
+    const m = String(CFG.build || "").match(/\d+/); return m ? Number(m[0]) : 0;
   }
-  $("ver").textContent = "wersja " + (currentVersion() || "dev");
+  function currentVersionName(){
+    if (Android && Android.versionName) try { return String(Android.versionName()); } catch(e){}
+    return CFG.version && !String(CFG.version).startsWith("__") ? String(CFG.version) : "dev";
+  }
+  // numer kompilacji z nazwy wydania: "v1.0-build14" -> 14 (starsze wydania "v13" -> 13)
+  function tagBuild(tag){
+    const m = String(tag || "").match(/build(\d+)/i) || String(tag || "").match(/^v(\d+)$/i);
+    return m ? Number(m[1]) : 0;
+  }
+  $("ver").textContent = "wersja " + currentVersionName();
   async function checkUpdate(){
     if (!CFG.repo || CFG.repo.startsWith("__")) return;
     try {
       const r = await fetch("https://api.github.com/repos/" + CFG.repo + "/releases/latest", {headers: {"Accept": "application/vnd.github+json"}});
       if (!r.ok) return;
       const rel = await r.json();
-      const latest = parseInt(String(rel.tag_name || "").replace(/\D/g, ""), 10);
-      if (!latest || latest <= currentVersion()) return;
+      const latest = tagBuild(rel.tag_name);
+      if (!latest || latest <= currentBuild()) return;
       const asset = (rel.assets || []).find(a => /\.apk$/i.test(a.name));
       const url = asset ? asset.browser_download_url : ("https://github.com/" + CFG.repo + "/releases/latest");
-      $("updText").textContent = "Dostępna nowa wersja (" + latest + ")";
+      $("updText").textContent = "Dostępna nowa wersja " + String(rel.name || "").replace(/^Wersja\s*/i, "");
       $("updBanner").hidden = false;
       $("updBtn").onclick = () => {
         if (Android && Android.openUrl) Android.openUrl(url); else window.open(url, "_blank");

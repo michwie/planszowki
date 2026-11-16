@@ -9,5 +9,6 @@ window.APP_CONFIG = {
   },
   // uzupełniane automatycznie przy budowaniu (GitHub Actions)
   repo: "__REPO__",
-  version: "__VERSION__"
+  version: "__VERSION__",
+  build: "__BUILD__"
 };
