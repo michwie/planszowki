@@ -5,16 +5,18 @@ service cloud.firestore {
     function signedIn() { return request.auth != null; }
     function me() { return request.auth.uid; }
 
-    // Kody zaproszeń: invites/{KOD} -> { groupId }
+    // Kody zaproszeń: invites/{KOD} -> { groupId, role: editor|player }
     // Kod można odczytać tylko znając go dokładnie (bez listowania).
     match /invites/{code} {
+      function shelfAfter(gid) { return getAfter(/databases/$(database)/documents/groups/$(gid)/shelf/main).data; }
       allow get: if signedIn();
       allow list: if false;
       allow create: if signedIn()
-        && request.resource.data.keys().hasOnly(['groupId', 'createdBy', 'createdAt'])
+        && request.resource.data.keys().hasOnly(['groupId', 'role', 'createdBy', 'createdAt'])
         && request.resource.data.createdBy == me()
         && getAfter(/databases/$(database)/documents/groups/$(request.resource.data.groupId)).data.ownerId == me()
-        && getAfter(/databases/$(database)/documents/groups/$(request.resource.data.groupId)).data.inviteCode == code;
+        && ((request.resource.data.role == 'editor' && shelfAfter(request.resource.data.groupId).editorCode == code)
+         || (request.resource.data.role == 'player' && shelfAfter(request.resource.data.groupId).playerCode == code));
       allow delete: if signedIn()
         && get(/databases/$(database)/documents/groups/$(resource.data.groupId)).data.ownerId == me();
       allow update: if false;
@@ -25,16 +27,18 @@ service cloud.firestore {
       function myRole() { return resource.data.members.get(me(), ''); }
       function changed() { return request.resource.data.diff(resource.data).affectedKeys(); }
 
-      // Dołączenie kodem: dopisuję tylko siebie jako "player" i podaję poprawny kod.
+      function shelfPath() { return /databases/$(database)/documents/groups/$(gid)/shelf/main; }
+      // Dołączenie kodem: dopisuję tylko siebie, z rolą wynikającą z kodu (edytor albo gracz).
       function joining() {
         let m = request.resource.data.members.diff(resource.data.members);
         let n = request.resource.data.memberNames.diff(resource.data.memberNames);
         return signedIn()
           && !(me() in resource.data.memberIds)
           && changed().hasOnly(['members', 'memberIds', 'memberNames', 'joinCode'])
-          && request.resource.data.joinCode == resource.data.inviteCode
           && m.addedKeys().hasOnly([me()]) && m.changedKeys().size() == 0 && m.removedKeys().size() == 0
-          && request.resource.data.members[me()] == 'player'
+          && exists(shelfPath())
+          && ((request.resource.data.members[me()] == 'editor' && request.resource.data.joinCode == get(shelfPath()).data.editorCode)
+           || (request.resource.data.members[me()] == 'player' && request.resource.data.joinCode == get(shelfPath()).data.playerCode))
           && request.resource.data.memberIds.toSet() == resource.data.memberIds.toSet().union([me()].toSet())
           && request.resource.data.memberIds.size() == resource.data.memberIds.size() + 1
           && n.addedKeys().hasOnly([me()]) && n.changedKeys().size() == 0 && n.removedKeys().size() == 0;
@@ -57,19 +61,31 @@ service cloud.firestore {
         && request.resource.data.members.keys().hasOnly([me()])
         && request.resource.data.members[me()] == 'owner'
         && request.resource.data.memberIds == [me()]
-        && request.resource.data.inviteCode is string;
+        && request.resource.data.keys().hasOnly(['name', 'ownerId', 'members', 'memberIds', 'memberNames', 'createdAtMs', 'updatedAt']);
 
       allow update: if joining() || (isMember() && (
            (myRole() == 'owner'
               && request.resource.data.ownerId == resource.data.ownerId
               && request.resource.data.members[me()] == 'owner'
               && me() in request.resource.data.memberIds)
-        || (myRole() == 'editor' && changed().hasOnly(['name', 'games', 'played', 'history', 'players', 'updatedAt']))
-        || (myRole() == 'player' && changed().hasOnly(['played', 'history', 'players', 'updatedAt']))
+        || (myRole() == 'editor' && changed().hasOnly(['name', 'updatedAt']))
         || leaving()
       ));
 
       allow delete: if isMember() && myRole() == 'owner';
+
+      // Szafa grupy: gry, gracze bez konta, kody zaproszeń. Tylko właściciel i edytorzy.
+      // Edytor zmienia gry i graczy, kody zmienia tylko właściciel.
+      match /shelf/{doc} {
+        function gsh() { return get(/databases/$(database)/documents/groups/$(gid)).data; }
+        function roleSh() { return gsh().members.get(me(), ''); }
+        allow read: if signedIn() && roleSh() in ['owner', 'editor'];
+        allow create: if signedIn() && doc == 'main'
+          && getAfter(/databases/$(database)/documents/groups/$(gid)).data.members.get(me(), '') == 'owner';
+        allow update: if signedIn() && (roleSh() == 'owner'
+          || (roleSh() == 'editor' && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['games', 'players', 'updatedAt'])));
+        allow delete: if signedIn() && roleSh() == 'owner';
+      }
 
       // Wyniki rozgrywek danej grupy
       match /plays/{pid} {
@@ -79,23 +95,24 @@ service cloud.firestore {
 
         // wynik widzą tylko osoby z listy "viewers" (gracze z kontem + osoba wpisująca)
         allow read: if member() && me() in resource.data.viewers;
-        allow create: if member() && request.resource.data.createdBy == me()
+        allow create: if member() && power() && request.resource.data.createdBy == me()
           && request.resource.data.viewers is list && me() in request.resource.data.viewers;
         allow update: if member() && request.resource.data.createdBy == resource.data.createdBy && (
-             ((resource.data.createdBy == me() || power()) && request.resource.data.viewers is list)
+             (power() && request.resource.data.viewers is list)
           // usuwanie konta: uczestnik usuwa z wyniku tylko siebie
           || (me() in resource.data.viewers && !(me() in request.resource.data.viewers)
               && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['scores', 'winners', 'viewers'])));
-        allow delete: if member() && (resource.data.createdBy == me() || power());
+        allow delete: if member() && power();
       }
 
       // Change Log grupy: członkowie czytają i dopisują (tylko jako siebie), nikt nie edytuje
       match /log/{lid} {
         function ga() { return getAfter(/databases/$(database)/documents/groups/$(gid)).data; }
         function gb() { return get(/databases/$(database)/documents/groups/$(gid)).data; }
-        // wpisy "group" widzi cała grupa, wpisy "private" tylko osoby z listy "viewers"
+        // wpisy "group" widzą właściciel i edytorzy, wpisy "private" tylko osoby z listy "viewers"
         allow read: if signedIn() && me() in gb().memberIds
-          && (resource.data.scope == 'group' || me() in resource.data.viewers);
+          && ((resource.data.scope == 'group' && gb().members.get(me(), '') in ['owner', 'editor'])
+              || me() in resource.data.viewers);
         allow create: if signedIn() && me() in ga().memberIds
           && request.resource.data.by == me()
           && request.resource.data.keys().hasOnly(['at', 'by', 'name', 'type', 'text', 'scope', 'viewers'])
@@ -112,7 +129,8 @@ service cloud.firestore {
       match /userState/{u} {
         function gs() { return get(/databases/$(database)/documents/groups/$(gid)).data; }
         allow read: if signedIn() && me() == u && me() in gs().memberIds;
-        allow create, update: if signedIn() && me() in gs().memberIds && u in gs().memberIds
+        allow create, update: if signedIn() && u in gs().memberIds
+          && (me() == u || gs().members.get(me(), '') in ['owner', 'editor'])
           && request.resource.data.keys().hasOnly(['played', 'history', 'updatedAt']);
         allow delete: if signedIn() && me() == u;
       }

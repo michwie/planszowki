@@ -37,11 +37,18 @@
   const gref = gid => db.collection("groups").doc(gid);
   const pcol = gid => gref(gid).collection("plays");
   const lcol = gid => gref(gid).collection("log");
-  const scol = gid => gref(gid).collection("userState");   // prywatny stan gracza: rozegrane gry i historia
+  const scol = gid => gref(gid).collection("userState");
+  // "Szafa" grupy: gry, gracze bez konta i kody zaproszeń – widzą ją tylko właściciel i edytorzy
+  const sref = gid => gref(gid).collection("shelf").doc("main");
+  const gdoc = g => g.shelf ? sref(g.id) : gref(g.id);   // gdzie leżą gry i gracze danej grupy   // prywatny stan gracza: rozegrane gry i historia
 
   // ---------- stan ----------
   let me = null;                 // {uid, name}
-  let groups = [];               // [{id, ...dane}]
+  let groups = [];               // [{id, ...dane}] – dokument grupy połączony z szafą
+  let groupDocs = [];            // surowe dokumenty grup
+  const shelfBy = {};            // gid -> szafa (gry, gracze, kody)
+  const shelfSubs = {};
+  const logRole = {};            // gid -> rola, z którą subskrybowano Change Log
   const playsBy = {};            // gid -> [play]
   const playSubs = {};           // gid -> unsubscribe
   const logsBy = {};             // gid -> [wpis dziennika]
@@ -186,6 +193,8 @@
     Object.keys(playSubs).forEach(k => { playSubs[k](); delete playSubs[k]; delete playsBy[k]; });
     Object.keys(logSubs).forEach(k => { logSubs[k](); delete logSubs[k]; delete logsBy[k]; });
     Object.keys(stateSubs).forEach(k => { stateSubs[k](); delete stateSubs[k]; delete stateBy[k]; });
+    Object.keys(shelfSubs).forEach(k => { shelfSubs[k](); delete shelfSubs[k]; delete shelfBy[k]; });
+    groupDocs = [];
     backfilled.clear();
     if (regsUnsub) { regsUnsub(); regsUnsub = null; } regs = {};
     groups = [];
@@ -201,11 +210,18 @@
     setStatus("Łączenie…");
     render();
     groupsUnsub = db.collection("groups").where("memberIds", "array-contains", me.uid).onSnapshot(qs => {
-      groups = qs.docs.map(d => Object.assign({id: d.id}, d.data()))
-        .sort((a,b) => (a.createdAtMs || 0) - (b.createdAtMs || 0));
+      groupDocs = qs.docs.map(d => Object.assign({id: d.id}, d.data()));
+      mergeGroups();
       const ids = new Set(groups.map(g => g.id));
+      groups.forEach(g => { if (canEdit(g)) subShelf(g.id, 0); else if (shelfSubs[g.id]) { shelfSubs[g.id](); delete shelfSubs[g.id]; delete shelfBy[g.id]; } });
+      Object.keys(shelfSubs).forEach(k => { if (!ids.has(k)) { shelfSubs[k](); delete shelfSubs[k]; delete shelfBy[k]; } });
       Object.keys(playSubs).forEach(k => { if (!ids.has(k)) { playSubs[k](); delete playSubs[k]; delete playsBy[k]; } });
-      groups.forEach(g => { subPlays(g.id, 0); subLog(g.id, 0); subState(g.id, 0); });
+      groups.forEach(g => {
+        // zmiana roli (gracz <-> edytor) zmienia, które wpisy Change Log wolno czytać
+        if (logSubs[g.id] && logRole[g.id] !== canEdit(g)) { logSubs[g.id](); delete logSubs[g.id]; delete logsBy[g.id]; }
+        logRole[g.id] = canEdit(g);
+        subPlays(g.id, 0); subLog(g.id, 0); subState(g.id, 0);
+      });
       Object.keys(logSubs).forEach(k => { if (!ids.has(k)) { logSubs[k](); delete logSubs[k]; delete logsBy[k]; } });
       Object.keys(stateSubs).forEach(k => { if (!ids.has(k)) { stateSubs[k](); delete stateSubs[k]; delete stateBy[k]; } });
       if (!qs.metadata.fromCache) groups.forEach(g => backfillPlays(g));
@@ -214,6 +230,50 @@
     }, err => { setStatus("Błąd połączenia z bazą: " + errMsg(err)); });
     startRegs(user);
     checkUpdate();
+  }
+
+  // Grupa = dokument grupy (nazwa, członkowie) + szafa (gry, gracze, kody) dla właściciela i edytorów.
+  // Starsze grupy trzymały gry w dokumencie grupy – wtedy bierzemy je stamtąd, a właściciel przenosi je do szafy.
+  function mergeGroups(){
+    groups = groupDocs.map(d => {
+      const g = Object.assign({}, d);
+      const sh = shelfBy[d.id];
+      if (!canEdit(g)) { g.games = []; g.players = []; delete g.inviteCode; }
+      else if (sh) { g.games = sh.games || []; g.players = sh.players || []; g.editorCode = sh.editorCode || ""; g.playerCode = sh.playerCode || ""; g.shelf = true; }
+      else { g.games = d.games || []; g.players = d.players || []; }
+      return g;
+    }).sort((a,b) => (a.createdAtMs || 0) - (b.createdAtMs || 0));
+  }
+  function subShelf(gid, attempt){
+    if (shelfSubs[gid]) return;
+    shelfSubs[gid] = sref(gid).onSnapshot(d => {
+      if (d.exists) shelfBy[gid] = d.data(); else delete shelfBy[gid];
+      mergeGroups();
+      const g = groupById(gid);
+      if (!d.exists && g && isOwner(g) && !d.metadata.fromCache) migrateShelf(g);
+      render();
+    }, () => {
+      delete shelfSubs[gid];
+      if (attempt < 8) setTimeout(() => { const g = groupById(gid); if (me && g && canEdit(g)) subShelf(gid, attempt + 1); }, 1500 * (attempt + 1));
+    });
+  }
+  // Jednorazowo (właściciel): przeniesienie gier, graczy i kodu z dokumentu grupy do szafy + osobny kod dla graczy
+  const migrated = new Set();
+  async function migrateShelf(g){
+    if (migrated.has(g.id)) return; migrated.add(g.id);
+    const d = groupDocs.find(x => x.id === g.id) || {};
+    const editorCode = d.inviteCode || newCode(), playerCode = newCode();
+    try {
+      const b = db.batch();
+      b.set(sref(g.id), {games: d.games || [], players: d.players || [], editorCode, playerCode, updatedAt: Date.now()});
+      if (d.inviteCode) b.delete(db.collection("invites").doc(d.inviteCode));
+      b.update(gref(g.id), {games: FV.delete(), players: FV.delete(), inviteCode: FV.delete(), updatedAt: Date.now()});
+      await b.commit();
+      const b2 = db.batch();
+      b2.set(db.collection("invites").doc(editorCode), {groupId: g.id, role: "editor", createdBy: me.uid, createdAt: Date.now()});
+      b2.set(db.collection("invites").doc(playerCode), {groupId: g.id, role: "player", createdBy: me.uid, createdAt: Date.now()});
+      await b2.commit();
+    } catch(e){ migrated.delete(g.id); }
   }
 
   // Wyniki grupy. Nowo utworzona grupa może jeszcze nie istnieć na serwerze, gdy zaczynamy
@@ -241,7 +301,8 @@
       unsubs.forEach(u => u()); delete logSubs[gid];
       if (attempt < 8) setTimeout(() => { if (me && groupById(gid)) subLog(gid, attempt + 1); }, 1500 * (attempt + 1));
     };
-    unsubs.push(lcol(gid).where("scope", "==", "group").onSnapshot(ls => { part.g = ls.docs.map(d => Object.assign({}, d.data(), {id: d.id, groupId: gid})); merge(); }, onErr));
+    const g0 = groupById(gid);
+    if (g0 && canEdit(g0)) unsubs.push(lcol(gid).where("scope", "==", "group").onSnapshot(ls => { part.g = ls.docs.map(d => Object.assign({}, d.data(), {id: d.id, groupId: gid})); merge(); }, onErr));
     unsubs.push(lcol(gid).where("viewers", "array-contains", me.uid).onSnapshot(ls => { part.p = ls.docs.map(d => Object.assign({}, d.data(), {id: d.id, groupId: gid})); merge(); }, onErr));
     logSubs[gid] = () => unsubs.forEach(u => u());
   }
@@ -295,25 +356,32 @@
   // ================= ZAPIS =================
   async function upd(gid, patch, logText, logType){
     try {
-      Object.assign(patch, {updatedAt: Date.now()});
-      await commitB((b, log) => { b.update(gref(gid), patch); if (logText) log(gid, logType || "edit", logText); });
+      const g = groupById(gid), sp = {}, gp = {};
+      Object.keys(patch).forEach(k => ((k === "games" || k === "players") && g && g.shelf ? sp : gp)[k] = patch[k]);
+      await commitB((b, log) => {
+        if (Object.keys(gp).length) b.update(gref(gid), Object.assign(gp, {updatedAt: Date.now()}));
+        if (Object.keys(sp).length) b.update(sref(gid), Object.assign(sp, {updatedAt: Date.now()}));
+        if (logText) log(gid, logType || "edit", logText);
+      });
       return true;
     } catch(e){ toast(errMsg(e)); return false; }
   }
   async function createGroup(name, extra){
     for (let attempt = 0; attempt < 5; attempt++){
-      const code = newCode();
+      const editorCode = newCode(), playerCode = newCode();
       const ref = db.collection("groups").doc();
-      const data = Object.assign({
+      const data = {
         name: name, ownerId: me.uid,
         members: {[me.uid]: "owner"}, memberIds: [me.uid], memberNames: {[me.uid]: me.name},
-        inviteCode: code, games: [], players: [],
         createdAtMs: Date.now(), updatedAt: Date.now()
-      }, extra || {});
+      };
+      const shelf = Object.assign({games: [], players: []}, extra || {}, {editorCode, playerCode, updatedAt: Date.now()});
       try {
         await commitB((b, log) => {
           b.set(ref, data);
-          b.set(db.collection("invites").doc(code), {groupId: ref.id, createdBy: me.uid, createdAt: Date.now()});
+          b.set(sref(ref.id), shelf);
+          b.set(db.collection("invites").doc(editorCode), {groupId: ref.id, role: "editor", createdBy: me.uid, createdAt: Date.now()});
+          b.set(db.collection("invites").doc(playerCode), {groupId: ref.id, role: "player", createdBy: me.uid, createdAt: Date.now()});
           log(ref.id, "group", "Utworzenie grupy " + q(name));
         });
         return ref.id;
@@ -325,7 +393,7 @@
 
   // ================= LOSOWANIE =================
   // zapisana pula może zawierać grupy, których już nie ma (np. po usunięciu grupy) – takie pomijamy
-  function inPool(g){ const p = ui.pool.filter(id => groups.some(x => x.id === id)); return !p.length || p.includes(g.id); }
+  function inPool(g){ if (!canEdit(g)) return false; const p = ui.pool.filter(id => groups.some(x => x.id === id && canEdit(x))); return !p.length || p.includes(g.id); }
   function poolGames(){
     const out = [];
     groups.forEach(g => { if (inPool(g)) (g.games || []).forEach(game => out.push({game, group: g})); });
@@ -390,16 +458,17 @@
   // ================= RENDER =================
   function renderPool(){
     const el = $("pool");
-    if (groups.length < 2) { el.innerHTML = ""; el.hidden = true; return; }
+    const dg = groups.filter(canEdit);   // losujemy tylko z grup, których gry widzisz
+    if (dg.length < 2) { el.innerHTML = ""; el.hidden = true; return; }
     el.hidden = false;
-    ui.pool = ui.pool.filter(id => groups.some(g => g.id === id));
-    if (ui.pool.length === groups.length) ui.pool = [];
+    ui.pool = ui.pool.filter(id => dg.some(g => g.id === id));
+    if (ui.pool.length === dg.length) ui.pool = [];
     el.innerHTML = "";
     const all = document.createElement("button");
     all.className = "chip" + (!ui.pool.length ? " on" : ""); all.textContent = "Wszystkie grupy";
     all.onclick = () => { if (spinning) return; ui.pool = []; ui.drawn = null; lsSet("pl-pool", ui.pool); render(); };
     el.appendChild(all);
-    groups.forEach(g => {
+    dg.forEach(g => {
       const b = document.createElement("button");
       b.className = "chip" + (ui.pool.includes(g.id) ? " on" : ""); b.textContent = g.name;
       b.onclick = () => {
@@ -431,6 +500,7 @@
       stage.querySelector(".name").textContent = vlabel(jp.game, findExp(jp.game, ui.justPlayed.exp));
       stage.querySelector(".stagebtn").onclick = () => openResult(jp.game.id, jp.group.id, null, ui.justPlayed.exp);
     } else if (!groups.length) stage.innerHTML = '<div class="hint">Utwórz grupę albo dołącz do grupy znajomych.</div>';
+    else if (!groups.some(canEdit)) stage.innerHTML = '<div class="hint">Jesteś graczem w swoich grupach – gry losuje właściciel lub edytor. Swoje wyniki zobaczysz w zakładce Wyniki.</div>';
     else if (!pool.length) stage.innerHTML = '<div class="hint">Dodaj gry w zakładce Gry, a potem losuj.</div>';
     else if (!left) stage.innerHTML = '<div class="hint">Cała pula rozegrana. Misja zakończona.</div>';
     else stage.innerHTML = '<div class="hint">oczekuję na polecenie…</div>';
@@ -448,7 +518,7 @@
     groups.forEach((g, i) => {
       const b = document.createElement("button");
       b.className = "tab" + (ui.tab === i ? " on" : "");
-      b.textContent = g.name + " (" + (g.games || []).length + ")";
+      b.textContent = g.name + (canEdit(g) ? " (" + (g.games || []).length + ")" : " · gracz");
       b.onclick = () => { ui.tab = i; ui.armed = null; ui.moving = null; renderGroup(); };
       tabs.appendChild(b);
     });
@@ -471,7 +541,9 @@
     $("addForm").hidden = !edit;
     const rn = $("roleNote");
     rn.hidden = edit;
-    if (!edit) rn.textContent = "Jesteś graczem w tej grupie – możesz losować, oznaczać rozegrane gry i wpisywać wyniki. Listę gier zmienia właściciel lub edytor.";
+    if (!edit) rn.innerHTML = "Jesteś <b>graczem</b> w tej grupie – nie widzisz jej gier. Widzisz wyniki rozgrywek, w których grasz (zakładka Wyniki). Gry i wyniki dodają właściciel i edytorzy.";
+    $("list").hidden = !edit; $("tools").hidden = !edit;
+    if (!edit) { $("list").innerHTML = ""; $("tools").innerHTML = ""; return; }
 
     const list = $("list"); list.innerHTML = "";
     const games = (g.games || []).slice().sort((a,b) => cmp(a.name, b.name));
@@ -589,8 +661,8 @@
     const p = {games: FV.arrayUnion(game), updatedAt: Date.now()};
     try { await commitB((b, log, extra) => {
       if (Object.keys(mine).length) extra(b => stateSet(b, to.id, me.uid, {played: mine}));
-      b.update(gref(from.id), {games: FV.arrayRemove(game), updatedAt: Date.now()});
-      b.update(gref(to.id), p);
+      b.update(gdoc(from), {games: FV.arrayRemove(game), updatedAt: Date.now()});
+      b.update(gdoc(to), p);
       log(from.id, "game-move", "Przeniesienie gry " + q(game.name) + " do grupy " + q(to.name));
       log(to.id, "game-move", "Przeniesienie gry " + q(game.name) + " z grupy " + q(from.name));
     }); toast("Przeniesiono do: " + to.name); } catch(e){ toast(errMsg(e)); }
@@ -611,6 +683,8 @@
   }
   function render(){
     if (!me) return;
+    const anyEdit = groups.some(canEdit);
+    $("addResult").hidden = !anyEdit; $("openList").hidden = !anyEdit;
     renderPool(); renderDraw(); renderGroup(); renderHist(); renderResults(); renderLog();
     if (!$("ov").hidden) renderAll();
     if (!$("gm").hidden) renderGm();
@@ -746,9 +820,10 @@
   // ---------- lista gier ----------
   let ovFilter = "all";
   function renderAll(){
-    const fEl = $("ovFilter"); fEl.innerHTML = ""; fEl.hidden = groups.length < 2;
-    if (groups.length < 2) ovFilter = "all";
-    [{id:"all", name:"Wszystkie"}].concat(groups.map(g => ({id:g.id, name:g.name}))).forEach(o => {
+    const eg = groups.filter(canEdit);
+    const fEl = $("ovFilter"); fEl.innerHTML = ""; fEl.hidden = eg.length < 2;
+    if (eg.length < 2) ovFilter = "all";
+    [{id:"all", name:"Wszystkie"}].concat(eg.map(g => ({id:g.id, name:g.name}))).forEach(o => {
       const b = document.createElement("button");
       b.className = "chip" + (ovFilter === o.id ? " on" : ""); b.textContent = o.name;
       b.onclick = () => { ovFilter = o.id; renderAll(); };
@@ -805,24 +880,38 @@
     const add = html => { const d = document.createElement("div"); d.innerHTML = html; while (d.firstChild) body.appendChild(d.firstChild); };
     add('<span class="fl">Twoja rola</span><p class="rolenote"><span class="role ' + role(g) + '">' + ROLE_PL[role(g)] + '</span></p>');
     if (canEdit(g)) {
-      add('<span class="fl">Kod zaproszenia</span><div class="code"></div>' +
-          '<div class="row2"><button class="ghost" id="gmCopy">Kopiuj kod</button><button class="ok" id="gmShare">Udostępnij</button></div>' +
-          '<p class="rolenote" style="margin-top:10px">Kto wpisze ten kod w „⇥ kod”, dołączy do grupy jako gracz.</p>');
-      body.querySelector(".code").textContent = g.inviteCode || "—";
-      const shareText = "Dołącz do mojej grupy „" + g.name + "” w aplikacji Planszomat. Kod: " + g.inviteCode;
-      $("gmCopy").onclick = async () => {
-        if (Android && Android.copy) { Android.copy(g.inviteCode); toast("Skopiowano kod"); return; }
-        try { await navigator.clipboard.writeText(g.inviteCode); toast("Skopiowano kod"); } catch(e){ toast("Kod: " + g.inviteCode); }
-      };
-      $("gmShare").onclick = () => {
-        if (Android && Android.share) Android.share(shareText);
-        else if (navigator.share) navigator.share({text: shareText}).catch(() => {});
-        else $("gmCopy").click();
-      };
-      if (isOwner(g)) {
-        add('<button class="link" id="gmNewCode">Wygeneruj nowy kod (stary przestanie działać)</button>');
-        $("gmNewCode").onclick = () => regenCode(g);
-      }
+      // dwa kody: dla edytora (widzi gry, wpisuje wyniki) i dla gracza (tylko bierze udział w rozgrywkach)
+      [["editor", "Kod dla edytora", "Edytor widzi gry grupy, dodaje i usuwa gry oraz wpisuje wyniki."],
+       ["player", "Kod dla gracza", "Gracz nie widzi gier grupy – bierze udział w rozgrywkach i widzi swoje wyniki."]].forEach(([r, label, note]) => {
+        const code = g.shelf ? (r === "editor" ? g.editorCode : g.playerCode) : (r === "player" ? g.inviteCode : "");
+        const wrap = document.createElement("div"); wrap.className = "codebox";
+        wrap.innerHTML = '<span class="fl"></span><div class="code"></div>' +
+          '<div class="row2"><button class="ghost cp">Kopiuj</button><button class="ok sh">Udostępnij</button></div>' +
+          '<p class="rolenote" style="margin-top:8px"></p>';
+        wrap.querySelector(".fl").textContent = label;
+        wrap.querySelector(".code").textContent = code || "—";
+        wrap.querySelector(".rolenote").textContent = note;
+        const shareText = "Dołącz do grupy „" + g.name + "” w aplikacji Planszomat jako " + ROLE_PL[r].toLowerCase() + ". Kod: " + code;
+        wrap.querySelector(".cp").onclick = async () => {
+          if (!code) return;
+          if (Android && Android.copy) { Android.copy(code); toast("Skopiowano kod"); return; }
+          try { await navigator.clipboard.writeText(code); toast("Skopiowano kod"); } catch(e){ toast("Kod: " + code); }
+        };
+        wrap.querySelector(".sh").onclick = () => {
+          if (!code) return;
+          if (Android && Android.share) Android.share(shareText);
+          else if (navigator.share) navigator.share({text: shareText}).catch(() => {});
+          else wrap.querySelector(".cp").click();
+        };
+        if (isOwner(g) && g.shelf) {
+          const nb = document.createElement("button"); nb.className = "link"; nb.textContent = "Nowy kod (stary przestanie działać)";
+          nb.onclick = () => regenCode(g, r); wrap.appendChild(nb);
+        }
+        body.appendChild(wrap);
+      });
+      if (!g.shelf) add('<p class="rolenote">Trwa przygotowanie kodów – właściciel grupy musi raz otworzyć aplikację w nowej wersji.</p>');
+    } else {
+      add('<p class="rolenote">Jesteś <b>graczem</b> w tej grupie: nie widzisz jej gier, ale widzisz wyniki rozgrywek, w których grasz.</p>');
     }
     add('<span class="fl">Członkowie (' + (g.memberIds || []).length + ')</span><div id="gmMembers"></div>');
     const box = $("gmMembers");
@@ -871,14 +960,15 @@
       };
     }
   }
-  async function regenCode(g){
+  async function regenCode(g, r){
+    const field = r === "editor" ? "editorCode" : "playerCode";
     for (let attempt = 0; attempt < 5; attempt++){
       const code = newCode();
       try { await commitB((b, log) => {
-        if (g.inviteCode) b.delete(db.collection("invites").doc(g.inviteCode));
-        b.set(db.collection("invites").doc(code), {groupId: g.id, createdBy: me.uid, createdAt: Date.now()});
-        b.update(gref(g.id), {inviteCode: code, updatedAt: Date.now()});
-        log(g.id, "invite", "Wygenerowanie nowego kodu zaproszenia");
+        if (g[field]) b.delete(db.collection("invites").doc(g[field]));
+        b.update(sref(g.id), {[field]: code, updatedAt: Date.now()});
+        b.set(db.collection("invites").doc(code), {groupId: g.id, role: r, createdBy: me.uid, createdAt: Date.now()});
+        log(g.id, "invite", "Wygenerowanie nowego kodu zaproszenia (" + ROLE_PL[r].toLowerCase() + ")");
       }); toast("Nowy kod: " + code); return; }
       catch(e){ if (!String(e.code).includes("permission-denied")) { toast(errMsg(e)); return; } }
     }
@@ -899,7 +989,8 @@
         const b = db.batch(); uniq.slice(i, i + 400).forEach(d => b.delete(d.ref)); await b.commit();
       }
       const b = db.batch();
-      if (g.inviteCode) b.delete(db.collection("invites").doc(g.inviteCode));
+      [g.inviteCode, g.editorCode, g.playerCode].filter(Boolean).forEach(c => b.delete(db.collection("invites").doc(c)));
+      if (g.shelf) b.delete(sref(g.id));
       b.delete(gref(g.id));
       await b.commit();
       if (!silent) { closeOv("gm"); ui.tab = 0; toast("Usunięto grupę: " + g.name); }
@@ -915,11 +1006,11 @@
     try {
       const inv = await db.collection("invites").doc(code).get();
       if (!inv.exists) { $("jnErr").textContent = "Nie ma takiego kodu. Sprawdź, czy jest aktualny."; return; }
-      const gid = inv.data().groupId;
+      const gid = inv.data().groupId, r = inv.data().role === "editor" ? "editor" : "player";
       if (groupById(gid)) { $("jnErr").textContent = "Już należysz do tej grupy."; return; }
-      await gref(gid).update({["members." + me.uid]: "player", memberIds: FV.arrayUnion(me.uid), ["memberNames." + me.uid]: me.name, joinCode: code});
+      await gref(gid).update({["members." + me.uid]: r, memberIds: FV.arrayUnion(me.uid), ["memberNames." + me.uid]: me.name, joinCode: code});
       lcol(gid).doc().set(logEntry("member", "Dołączenie do grupy (kodem zaproszenia)")).catch(() => {});
-      closeOv("jn"); toast("Dołączono do grupy!");
+      closeOv("jn"); toast(r === "editor" ? "Dołączono do grupy jako edytor!" : "Dołączono do grupy jako gracz – zobaczysz wyniki, w których grasz.");
     } catch(e){ $("jnErr").textContent = String(e.code).includes("permission-denied") ? "Ten kod jest już nieaktualny – poproś o nowy." : errMsg(e); }
     finally { $("jnBtn").disabled = false; }
   };
@@ -1127,7 +1218,7 @@
       }
       // wpisane imiona trafiają na listę graczy grupy
       const newNames = chosen.filter(k => k.startsWith("n:")).map(k => k.slice(2)).filter(p => !(g.players || []).includes(p));
-      if (newNames.length) b.update(gref(gid), {players: FV.arrayUnion(...newNames), updatedAt: Date.now()});
+      if (newNames.length) b.update(gdoc(g), {players: FV.arrayUnion(...newNames), updatedAt: Date.now()});
       // gra rozegrana dla każdego gracza z kontem, który jest w tej grupie (w jego prywatnym stanie);
       // przy edycji – tylko dla nowo dopisanych graczy
       const origUids = new Set(editId ? (rf.orig.scores || []).filter(x => x.uid).map(x => x.uid) : []);
@@ -1191,7 +1282,7 @@
     if (!shown.length) { ul.innerHTML = '<li class="empty" style="justify-content:center">—</li>'; return; }
     shown.slice(0, 15).forEach(pl => {
       const g = groupById(pl.groupId);
-      const mayEdit = pl.createdBy === me.uid || canEdit(g);
+      const mayEdit = canEdit(g);
       const li = document.createElement("li");
       li.innerHTML = '<div class="rb"><div class="rt"><b></b><span></span></div><div class="rs"></div></div>' +
         (mayEdit ? '<button class="ib ed" title="Edytuj wynik">✎</button><button class="ib del" title="Usuń wynik">🗑</button>' : '');
@@ -1215,8 +1306,9 @@
         del.onclick = () => {
           if (ui.resArmed !== pl.id) { ui.resArmed = pl.id; renderResults(); return; }
           ui.resArmed = null;
-          commitB((b, log) => {
+          commitB((b, log, extra) => {
             b.delete(pcol(pl.groupId).doc(pl.id));
+            extra(b => unmarkPlay(b, pl));
             log(pl.groupId, "result", "Usunięcie wyniku: " + q(playLabel(pl)) + " z " + fmt(pl.at), pl.viewers || [me.uid]);
           }).catch(e => toast(errMsg(e)));
         };
@@ -1225,6 +1317,25 @@
     });
   }
   $("addResult").onclick = () => openResult(null, null);
+  // Usunięcie wyniku: gra (wersje z tego wyniku) wraca do losowania u graczy z kontem, którzy w nim byli –
+  // chyba że ta sama wersja jest jeszcze w innym wyniku z ich udziałem.
+  function unmarkPlay(b, pl){
+    const g = groupById(pl.groupId); if (!g) return;
+    const f = findGame(pl.gameId, pl.groupId);
+    const game = f ? f.game : {id: pl.gameId, name: pl.gameName, exps: pl.exps || []};
+    const vs = (pl.exps && pl.exps.length) ? pl.exps.map(e => findExp(game, e.id) || e) : [null];
+    const others = (playsBy[pl.groupId] || []).filter(x => x.id !== pl.id && x.gameId === pl.gameId);
+    const uids = [...new Set((pl.scores || []).filter(x => x.uid).map(x => x.uid))].filter(u => (g.memberIds || []).includes(u));
+    uids.forEach(u => {
+      const keep = new Set();
+      others.filter(x => (x.scores || []).some(sc => sc.uid === u))
+        .forEach(x => ((x.exps && x.exps.length) ? x.exps.map(e => e.id) : [null]).forEach(id => keep.add(id)));
+      const drop = vs.filter(e => !keep.has(e ? e.id : null));
+      if (!drop.length) return;
+      const played = {}; drop.forEach(e => played[vkey(game, e)] = FV.delete());
+      stateSet(b, pl.groupId, u, {played, history: FV.arrayRemove(...drop.map(e => histEntry(game, pl.at, e)))});
+    });
+  }
 
   // ================= CHANGE LOG =================
   let logGroup = "all";
@@ -1263,7 +1374,7 @@
   function bkMsg(t, err){ const m = $("bkMsg"); m.textContent = t; m.className = "msg" + (err ? " err" : ""); }
   $("bkCopy").onclick = async () => {
     const data = { v: 2, exportedAt: Date.now(),
-      groups: groups.map(g => ({ id: g.id, name: g.name,
+      groups: groups.filter(canEdit).map(g => ({ id: g.id, name: g.name,
         games: (g.games || []).map(x => ({id: x.id, name: x.name, played: isVPlayed(g, x, null), playedAt: myPlayed(g)[x.id] || null,
           expansions: exps(x).map(e => ({id: e.id, name: e.name, played: isVPlayed(g, x, e), playedAt: myPlayed(g)[vkey(x, e)] || null}))})),
         history: myHistory(g), players: g.players || [],

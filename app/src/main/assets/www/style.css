@@ -283,3 +283,5 @@ body{padding-bottom:calc(env(safe-area-inset-bottom) + 86px)}
 .expadd .xdone:active{background:var(--green-soft)}
 .xrow.ro{cursor:default}.xrow.ro:active{background:none}
 span.ib.check{cursor:default}
+.codebox{margin-bottom:14px;padding-bottom:10px;border-bottom:1px dashed var(--line)}
+.codebox .link{margin-top:6px}
