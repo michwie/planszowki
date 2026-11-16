@@ -1216,7 +1216,110 @@
       }
     }
     function staticFrame(){ for (let k = 0; k < 60; k++) frame(); }
+
+    // ---- krótkie animacje nad treścią (nie blokują dotyku): bieg gęsi do mety, magiczna kometa ----
+    const top = $("fxTop"), tctx = top.getContext("2d");
+    let ev = null, nextEv = performance.now() + 5000;
+    function sizeTop(){ top.width = innerWidth * dpr; top.height = innerHeight * dpr; tctx.setTransform(dpr,0,0,dpr,0,0); }
+    sizeTop(); addEventListener("resize", sizeTop);
+    function drawGoose(x, y, t, s){
+      const c = tctx, leg = Math.sin(t * 0.03) * 9 * s;
+      c.save(); c.translate(x, y); c.lineCap = "round"; c.lineJoin = "round";
+      // nogi
+      c.strokeStyle = "#e07a1a"; c.lineWidth = 3 * s;
+      c.beginPath(); c.moveTo(-4 * s, 2 * s); c.lineTo(-4 * s + leg, 18 * s); c.lineTo(-4 * s + leg + 6 * s, 18 * s); c.stroke();
+      c.beginPath(); c.moveTo(4 * s, 2 * s); c.lineTo(4 * s - leg, 18 * s); c.lineTo(4 * s - leg + 6 * s, 18 * s); c.stroke();
+      // ogon i tułów
+      c.fillStyle = "#ffffff"; c.strokeStyle = "#3a332c"; c.lineWidth = 2 * s;
+      c.beginPath(); c.moveTo(-16 * s, -6 * s); c.lineTo(-26 * s, -12 * s); c.lineTo(-20 * s, -2 * s); c.closePath(); c.fill(); c.stroke();
+      c.beginPath(); c.ellipse(0, -4 * s, 18 * s, 11 * s, -0.1, 0, Math.PI * 2); c.fill(); c.stroke();
+      // skrzydło machające w biegu
+      c.fillStyle = "#e9e4dc"; c.beginPath();
+      c.ellipse(-3 * s, -6 * s - Math.abs(Math.sin(t * 0.03)) * 4 * s, 10 * s, 5 * s, -0.4, 0, Math.PI * 2); c.fill(); c.stroke();
+      // szyja i głowa (wyciągnięta do przodu – sprint!)
+      c.fillStyle = "#ffffff"; c.lineWidth = 2 * s;
+      c.beginPath(); c.moveTo(12 * s, -10 * s); c.quadraticCurveTo(22 * s, -16 * s, 26 * s, -26 * s); c.lineTo(31 * s, -24 * s);
+      c.quadraticCurveTo(26 * s, -12 * s, 16 * s, -2 * s); c.closePath(); c.fill(); c.stroke();
+      c.beginPath(); c.arc(29 * s, -27 * s, 6 * s, 0, Math.PI * 2); c.fill(); c.stroke();
+      c.fillStyle = "#e07a1a"; c.beginPath(); c.moveTo(34 * s, -29 * s); c.lineTo(43 * s, -26 * s); c.lineTo(34 * s, -24 * s); c.closePath(); c.fill(); c.stroke();
+      c.fillStyle = "#2b2520"; c.beginPath(); c.arc(30 * s, -29 * s, 1.4 * s, 0, Math.PI * 2); c.fill();
+      // smugi pędu
+      c.strokeStyle = "rgba(43,37,32,.35)"; c.lineWidth = 2 * s;
+      for (let i = 0; i < 3; i++) { c.beginPath(); c.moveTo(-30 * s - i * 6 * s, -12 * s + i * 7 * s); c.lineTo(-44 * s - i * 6 * s, -12 * s + i * 7 * s); c.stroke(); }
+      c.restore();
+    }
+    function startEvent(now){
+      const W = innerWidth, H = innerHeight;
+      if (theme === "goose") ev = {type: "goose", t0: now, dur: 5200, fin: W - 46, y: H - 34, burst: null};
+      else if (theme === "wizard") {
+        const fromLeft = Math.random() < .5;
+        ev = {type: "ball", t0: now, dur: 6000, x: fromLeft ? -20 : W + 20, y: rnd(H * .2, H * .7),
+              dir: fromLeft ? 1 : -1, vx: 0, vy: 0, tx: 0, ty: 0, retarget: 0, trail: []};
+      }
+    }
+    function eventFrame(now){
+      const W = innerWidth, H = innerHeight;
+      tctx.clearRect(0, 0, W, H);
+      const k = (now - ev.t0) / ev.dur;
+      if (ev.type === "goose") {
+        const s = Math.min(1.1, W / 360);
+        // meta: szachownica i taśma
+        const fx = ev.fin, fy = ev.y;
+        for (let r = 0; r < 7; r++) for (let q = 0; q < 2; q++) {
+          tctx.fillStyle = (r + q) % 2 ? "#2b2520" : "#ffffff";
+          tctx.fillRect(fx + q * 6, fy - 48 + r * 7, 6, 7);
+        }
+        tctx.strokeStyle = "#2b2520"; tctx.lineWidth = 1; tctx.strokeRect(fx, fy - 48, 12, 49);
+        const gx = -60 + (fx + 70) * Math.min(k / 0.78, 1.15);
+        const crossed = gx + 40 * s >= fx;
+        if (!crossed) {
+          tctx.strokeStyle = "#c0262d"; tctx.lineWidth = 3;
+          tctx.beginPath(); tctx.moveTo(fx - 40, fy - 22); tctx.lineTo(fx, fy - 22); tctx.stroke();
+        } else {
+          if (!ev.burst) ev.burst = Array.from({length: 36}, () => ({x: fx, y: fy - 30, vx: rnd(-3, 3), vy: rnd(-5, -1.5),
+            c: ["#b94e05", "#145f7a", "#c0262d", "#e8b84f", "#2b2520"][Math.floor(rnd(0, 5))], r: rnd(2, 4)}));
+          tctx.strokeStyle = "#c0262d"; tctx.lineWidth = 3;   // przerwana taśma
+          tctx.beginPath(); tctx.moveTo(fx - 40, fy - 22); tctx.lineTo(fx - 24, fy - 12); tctx.stroke();
+          ev.burst.forEach(p => { p.x += p.vx; p.y += p.vy; p.vy += .12; tctx.fillStyle = p.c; tctx.fillRect(p.x, p.y, p.r, p.r * 1.6); });
+        }
+        if (gx < W + 80) drawGoose(gx, fy - 18 * s, now, s);
+      } else if (ev.type === "ball") {
+        // złota piłeczka: krótkie, szybkie zrywy w losowych kierunkach, ogólnie w poprzek ekranu
+        if (now > ev.retarget) {
+          const prog = Math.min(1, k * 1.15);
+          const baseX = ev.dir > 0 ? -20 + (W + 40) * prog : W + 20 - (W + 40) * prog;
+          ev.tx = baseX + rnd(-W * .25, W * .25) * (1 - prog);
+          ev.ty = Math.max(40, Math.min(H - 60, ev.y + rnd(-160, 160)));
+          ev.retarget = now + rnd(250, 700);
+        }
+        ev.vx += (ev.tx - ev.x) * .012; ev.vy += (ev.ty - ev.y) * .012;
+        ev.vx *= .86; ev.vy *= .86;
+        ev.x += ev.vx; ev.y += ev.vy;
+        ev.trail.push({x: ev.x, y: ev.y, a: .7});
+        ev.trail.forEach(p => p.a -= .045);
+        ev.trail = ev.trail.filter(p => p.a > 0);
+        ev.trail.forEach(p => { tctx.beginPath(); tctx.fillStyle = "rgba(240,200,110," + p.a.toFixed(2) + ")"; tctx.arc(p.x, p.y, 2.2 * p.a, 0, 6.28); tctx.fill(); });
+        const x = ev.x, y = ev.y, R = 8;
+        const glow = tctx.createRadialGradient(x, y, R * .6, x, y, R * 2.6);
+        glow.addColorStop(0, "rgba(240,200,110,.45)"); glow.addColorStop(1, "rgba(240,200,110,0)");
+        tctx.fillStyle = glow; tctx.beginPath(); tctx.arc(x, y, R * 2.6, 0, 6.28); tctx.fill();
+        const ball = tctx.createRadialGradient(x - R * .35, y - R * .4, R * .1, x, y, R);
+        ball.addColorStop(0, "#fff7d1"); ball.addColorStop(.35, "#f3c64f"); ball.addColorStop(.8, "#c48a16"); ball.addColorStop(1, "#8a5c08");
+        tctx.fillStyle = ball; tctx.beginPath(); tctx.arc(x, y, R, 0, 6.28); tctx.fill();
+        if (k >= 1 && (x < -30 || x > W + 30)) { /* poza ekranem – koniec */ }
+        else if (k >= 1) ev.dur += 300;   // poczekaj, aż wyleci za krawędź
+      }
+      if ((now - ev.t0) / ev.dur >= 1) { ev = null; tctx.clearRect(0, 0, W, H); nextEv = now + rnd(16000, 28000); }
+    }
+    function eventsTick(now){
+      const allowed = fxOn && !reduceMotion && !document.hidden && (theme === "goose" || theme === "wizard")
+        && !document.querySelector(".ov:not([hidden])");
+      if (!allowed) { if (ev) { ev = null; tctx.clearRect(0, 0, innerWidth, innerHeight); } return; }
+      if (!ev && now >= nextEv) startEvent(now);
+      if (ev) eventFrame(now);
+    }
     function reset(){
+      nextEv = performance.now() + 1500; ev = null;
       c.hidden = !fxOn && theme !== "galaxy";   // galaktyka bez animacji: nieruchome gwiazdy
       init();
       if (!fxOn || reduceMotion) staticFrame();
@@ -1224,9 +1327,10 @@
     addEventListener("resize", () => { init(); if (!fxOn || reduceMotion) staticFrame(); });
     (function loop(t){
       if (fxOn && !reduceMotion && !document.hidden && t - last > (theme === "matrix" || theme === "neon" ? 60 : 33)) { frame(); last = t; }
+      eventsTick(t);
       requestAnimationFrame(loop);
     })(0);
-    return {reset};
+    return {reset, play: () => { nextEv = 0; }};
   })();
   applyTheme(theme);
 })();

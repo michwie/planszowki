@@ -12,6 +12,7 @@
   [hidden]{display:none!important}
   html,body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:var(--body-size);transition:background .3s}
   body{padding:calc(env(safe-area-inset-top) + 12px) 14px calc(env(safe-area-inset-bottom) + 28px);min-height:100vh}
+  #fxTop{position:fixed;inset:0;width:100%;height:100%;z-index:15;pointer-events:none}
   #rain{position:fixed;inset:0;width:100%;height:100%;z-index:0;opacity:var(--fx-opacity);pointer-events:none}
   body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:1;
     background:var(--scan)}
