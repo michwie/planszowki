@@ -81,10 +81,11 @@ service cloud.firestore {
         allow read: if member() && me() in resource.data.viewers;
         allow create: if member() && request.resource.data.createdBy == me()
           && request.resource.data.viewers is list && me() in request.resource.data.viewers;
-        allow update: if member()
-          && (resource.data.createdBy == me() || power())
-          && request.resource.data.createdBy == resource.data.createdBy
-          && request.resource.data.viewers is list;
+        allow update: if member() && request.resource.data.createdBy == resource.data.createdBy && (
+             ((resource.data.createdBy == me() || power()) && request.resource.data.viewers is list)
+          // usuwanie konta: uczestnik usuwa z wyniku tylko siebie
+          || (me() in resource.data.viewers && !(me() in request.resource.data.viewers)
+              && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['scores', 'winners', 'viewers'])));
         allow delete: if member() && (resource.data.createdBy == me() || power());
       }
 
@@ -122,7 +123,7 @@ service cloud.firestore {
       allow read: if signedIn();
       allow create, update: if signedIn() && me() == u
         && request.resource.data.keys().hasOnly(['name', 'at']);
-      allow delete: if false;
+      allow delete: if signedIn() && me() == u;
     }
 
     // Wszystko inne zamknięte

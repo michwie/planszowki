@@ -208,7 +208,6 @@
       if (!qs.metadata.fromCache) groups.forEach(g => backfillPlays(g));
       setStatus(qs.metadata.fromCache ? "Tryb offline – zmiany wyślę po połączeniu" : "Połączono ✓");
       render();
-      if (!qs.metadata.fromCache) oneTimeReset();
     }, err => { setStatus("Błąd połączenia z bazą: " + errMsg(err)); });
     startRegs(user);
     checkUpdate();
@@ -251,14 +250,6 @@
       const st = d.exists ? d.data() : {};
       const hist = (st.history || []).slice().sort((a,b) => b.at - a.at);
       stateBy[gid] = {played: st.played || {}, history: hist};
-      // jednorazowe czyszczenie (16.11.2026): z historii sprzed 13:50 zostaje tylko Scythe
-      const HIST_CUT = Date.parse("2026-11-16T12:50:00Z");
-      const flag = "pl-hist-scythe-" + me.uid + "-" + gid;
-      if (!lsGet(flag, false) && !(d.metadata && d.metadata.fromCache)) {
-        const keep = hist.filter(h => h.at >= HIST_CUT || String(h.name || "").trim().toLowerCase().startsWith("scythe"));
-        if (keep.length !== hist.length) ref.set({history: keep, updatedAt: Date.now()}, {mergeFields: ["history", "updatedAt"]}).then(() => lsSet(flag, true)).catch(() => {});
-        else lsSet(flag, true);
-      }
       if (hist.length > 60) ref.set({history: hist.slice(0, 50)}, {mergeFields: ["history"]}).catch(() => {});
       render();
     }, () => {
@@ -314,7 +305,7 @@
         name: name, ownerId: me.uid,
         members: {[me.uid]: "owner"}, memberIds: [me.uid], memberNames: {[me.uid]: me.name},
         inviteCode: code, games: [], players: [],
-        createdAtMs: Date.now(), updatedAt: Date.now(), resetV: 3
+        createdAtMs: Date.now(), updatedAt: Date.now()
       }, extra || {});
       try {
         await commitB((b, log) => {
@@ -679,6 +670,56 @@
     return false;
   };
   $("openBk").onclick = () => { bkMsg(""); openOv("bkov"); };
+  // ================= USUWANIE KONTA =================
+  $("openDelAcc").onclick = () => {
+    $("daPass").value = ""; $("daErr").textContent = ""; daArmed = false; $("daBtn").textContent = "Usuń moje konto"; $("daBtn").classList.remove("armed");
+    const owned = groups.filter(isOwner);
+    $("daOwned").textContent = owned.length ? "Twoje grupy, które zostaną usunięte: " + owned.map(g => "„" + g.name + "”").join(", ") + "." : "";
+    openOv("da");
+  };
+  let daArmed = false;
+  $("daBtn").onclick = async () => {
+    const pass = $("daPass").value;
+    if (!pass) { $("daErr").textContent = "Wpisz hasło."; return; }
+    const btn = $("daBtn");
+    if (!daArmed) { daArmed = true; btn.classList.add("armed"); btn.textContent = "Na pewno? Naciśnij jeszcze raz"; return; }
+    btn.disabled = true; btn.textContent = "Usuwanie…"; $("daErr").textContent = "";
+    const user = auth.currentUser;
+    try {
+      await user.reauthenticateWithCredential(firebase.auth.EmailAuthProvider.credential(user.email, pass));
+    } catch(e){
+      btn.disabled = false; daArmed = false; btn.classList.remove("armed"); btn.textContent = "Usuń moje konto";
+      $("daErr").textContent = authErr(e); return;
+    }
+    try {
+      const uidMe = me.uid;
+      for (const g of groups.slice()) {
+        if (isOwner(g)) { await deleteGroup(g, true); continue; }
+        // usuń mnie z wyników tej grupy
+        for (const pl of (playsBy[g.id] || [])) {
+          const scores = (pl.scores || []).filter(x => x.uid !== uidMe);
+          const viewers = (pl.viewers || []).filter(u => u !== uidMe);
+          const ref = pcol(g.id).doc(pl.id);
+          try {
+            if (!scores.length && (pl.createdBy === uidMe || canEdit(g))) await ref.delete();
+            else await ref.update({scores, viewers, winners: scores.filter(x => x.win).map(x => x.p)});
+          } catch(e){}
+        }
+        try { await scol(g.id).doc(uidMe).delete(); } catch(e){}
+        try { await lcol(g.id).doc().set(logEntry("member", "Usunięcie konta")); } catch(e){}
+        await gref(g.id).update({["members." + uidMe]: FV.delete(), memberIds: FV.arrayRemove(uidMe), ["memberNames." + uidMe]: FV.delete()});
+      }
+      try { await db.collection("registrations").doc(uidMe).delete(); } catch(e){}
+      try { Object.keys(localStorage).filter(k => k.includes(uidMe)).forEach(k => localStorage.removeItem(k)); } catch(e){}
+      stopApp();
+      await user.delete();
+      closeOv("da");
+      toast("Konto zostało usunięte");
+    } catch(e){
+      btn.disabled = false; daArmed = false; btn.classList.remove("armed"); btn.textContent = "Usuń moje konto";
+      $("daErr").textContent = "Nie udało się usunąć konta: " + errMsg(e);
+    }
+  };
   $("openChanges").onclick = () => {
     const box = $("chgList"); box.innerHTML = "";
     (window.CHANGELOG || []).forEach(v => {
@@ -841,21 +882,26 @@
     }
     toast("Nie udało się wygenerować kodu");
   }
-  async function deleteGroup(g){
+  async function deleteGroup(g, silent){
     try {
-      const ps = await pcol(g.id).get();
-      let logDocs = [];
-      try { logDocs = (await lcol(g.id).get()).docs; } catch(e){}
-      const docs = ps.docs.concat(logDocs);
-      for (let i = 0; i < docs.length; i += 400) {
-        const b = db.batch(); docs.slice(i, i + 400).forEach(d => b.delete(d.ref)); await b.commit();
+      // usuwamy to, co wolno nam odczytać: widoczne wyniki, wpisy grupy i własne wpisy prywatne, swój stan
+      const grab = async q => { try { return (await q.get()).docs; } catch(e){ return []; } };
+      const docs = []
+        .concat(await grab(pcol(g.id).where("viewers", "array-contains", me.uid)))
+        .concat(await grab(lcol(g.id).where("scope", "==", "group")))
+        .concat(await grab(lcol(g.id).where("viewers", "array-contains", me.uid)));
+      const seen = new Set();
+      const uniq = docs.filter(d => !seen.has(d.ref.path) && seen.add(d.ref.path));
+      try { await scol(g.id).doc(me.uid).delete(); } catch(e){}
+      for (let i = 0; i < uniq.length; i += 400) {
+        const b = db.batch(); uniq.slice(i, i + 400).forEach(d => b.delete(d.ref)); await b.commit();
       }
       const b = db.batch();
       if (g.inviteCode) b.delete(db.collection("invites").doc(g.inviteCode));
       b.delete(gref(g.id));
       await b.commit();
-      closeOv("gm"); ui.tab = 0; toast("Usunięto grupę: " + g.name);
-    } catch(e){ toast(errMsg(e)); }
+      if (!silent) { closeOv("gm"); ui.tab = 0; toast("Usunięto grupę: " + g.name); }
+    } catch(e){ if (silent) throw e; toast(errMsg(e)); }
   }
 
   // ---------- dołącz kodem ----------
@@ -1173,37 +1219,6 @@
       ul.appendChild(li);
     });
   }
-  // Jednorazowe czyszczenie (16.11.2026): właściciel grupy utworzonej przed tą wersją
-  // przy pierwszym uruchomieniu usuwa wyniki, listę wpisanych graczy i historię rozegranych,
-  // a z członków grupy usuwa konto o nazwie "test".
-  const RESET_V = 3, RESET_BEFORE = Date.parse("2026-11-16T11:00:00Z");
-  const resetting = new Set();
-  async function oneTimeReset(){
-    for (const g of groups) {
-      if (!isOwner(g) || (g.resetV || 0) >= RESET_V || resetting.has(g.id)) continue;
-      resetting.add(g.id);
-      try {
-        const patch = {resetV: RESET_V, updatedAt: Date.now()};
-        if ((g.resetV || 0) < 2 && (g.createdAtMs || 0) < RESET_BEFORE) {
-          // v2: wyniki, gracze, historia, konto "test"
-          const ps = await pcol(g.id).get();
-          for (let i = 0; i < ps.docs.length; i += 400) {
-            const b = db.batch(); ps.docs.slice(i, i + 400).forEach(d => b.delete(d.ref)); await b.commit();
-          }
-          patch.players = [];
-          const testers = (g.memberIds || []).filter(u => u !== me.uid && g.members[u] !== "owner"
-            && String((g.memberNames || {})[u] || "").trim().toLowerCase() === "test");
-          if (testers.length) {
-            patch.memberIds = FV.arrayRemove(...testers);
-            testers.forEach(u => { patch["members." + u] = FV.delete(); patch["memberNames." + u] = FV.delete(); });
-          }
-        }
-        // v3: rozegrane i historia przeniesione do prywatnego stanu każdego gracza – usuń wspólne pola
-        patch.played = FV.delete(); patch.history = FV.delete();
-        await gref(g.id).update(patch);
-      } catch(e){ resetting.delete(g.id); }
-    }
-  }
   $("addResult").onclick = () => openResult(null, null);
 
   // ================= CHANGE LOG =================
@@ -1351,6 +1366,7 @@
     return m ? Number(m[1]) : 0;
   }
   $("ver").textContent = "wersja " + currentVersionName();
+  $("verAuth").textContent = "wersja " + currentVersionName();
   async function checkUpdate(){
     if (!CFG.repo || CFG.repo.startsWith("__")) return;
     try {

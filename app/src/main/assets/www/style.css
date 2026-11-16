@@ -250,3 +250,4 @@
 .xrow.armed .nm,.xrow.armed .mk,.xrow.armed .br{color:#fff;text-decoration:none}
 .xtree .expadd{display:flex;align-items:center;gap:8px;margin:4px 0 0}
 .xtree .expadd .br{color:var(--muted);font-family:monospace;padding-left:2px}
+.listbtn.delacc{color:var(--red);border-color:var(--red)}
