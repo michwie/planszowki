@@ -285,3 +285,17 @@ body{padding-bottom:calc(env(safe-area-inset-bottom) + 86px)}
 span.ib.check{cursor:default}
 .codebox{margin-bottom:14px;padding-bottom:10px;border-bottom:1px dashed var(--line)}
 .codebox .link{margin-top:6px}
+/* zakładka Losuj: karta losowania na środku ekranu (tablety, duże ekrany) */
+@media (min-width:600px){
+#appView{display:flex;flex-direction:column;
+  min-height:calc(100vh - 98px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+  min-height:calc(100dvh - 98px - env(safe-area-inset-top) - env(safe-area-inset-bottom))}
+#v-draw{flex:1;display:flex;flex-direction:column;justify-content:center;padding:12px 0}
+#v-draw > .card{margin-bottom:0}
+}
+@media (min-width:700px) and (min-height:700px){
+  #v-draw > .card{padding:24px}
+  #v-draw .stage{min-height:200px}
+  #v-draw .stage .name{font-size:32px}
+  #v-draw #drawBtn{padding:18px;font-size:17px}
+}
