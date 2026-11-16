@@ -524,7 +524,7 @@
           const done = isVPlayed(g, game, r.e);
           const last = i === rows.length - 1 && !editing;
           const row = document.createElement("button"); row.type = "button";
-          const pArmed = !editing && ui.playArmed === g.id + "|" + vkey(game, r.e);
+          const pArmed = (!editing || !r.e) && ui.playArmed === g.id + "|" + vkey(game, r.e);
           row.className = "xrow" + (done ? " done" : "") + (r.e ? "" : " base") + (editing && r.e ? " edit" : "") + (r.e && ui.expArmed === r.e.id ? " armed" : "") + (pArmed ? " parmed" : "");
           row.innerHTML = '<span class="br"></span><span class="mk"></span><span class="nm"></span><span class="dt"></span>';
           row.querySelector(".br").textContent = last ? "└─" : "├─";
