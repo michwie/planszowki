@@ -502,13 +502,18 @@
       }
       const toggleVariant = exp => {
         const was = isVPlayed(g, game, exp), key = vkey(game, exp), at = Date.now();
+        // oznaczenie jako rozegrana wymaga potwierdzenia (drugie dotknięcie)
+        if (!was && ui.playArmed !== g.id + "|" + key) { ui.playArmed = g.id + "|" + key; renderGroup(); return; }
+        ui.playArmed = null;
         if (ui.drawn === game.id && (ui.drawnExp || null) === (exp ? exp.id : null)) ui.drawn = null;
         commitB((b, log, extra) => {
           extra(b => stateSet(b, g.id, me.uid, was ? {played: {[key]: FV.delete()}} : {played: {[key]: at}, history: FV.arrayUnion(histEntry(game, at, exp))}));
           log(g.id, "mark", (was ? "Oznaczenie jako nierozegrana: " : "Oznaczenie jako rozegrana: ") + q(vlabel(game, exp)), [me.uid]);
         }).catch(e => toast(errMsg(e)));
       };
-      li.querySelector(".check").onclick = () => toggleVariant(null);
+      const chk = li.querySelector(".check");
+      if (ui.playArmed === g.id + "|" + vkey(game, null)) { chk.classList.add("armed"); chk.textContent = "Rozegrana?"; }
+      chk.onclick = () => toggleVariant(null);
       // rozszerzenia: dotknięcie = rozegrane / nierozegrane (dla Ciebie); edycja listy dla właściciela i edytorów
       if (ex.length || ui.expEdit === game.id) {
         // drzewko wersji: podstawowa + rozszerzenia; dotknięcie = rozegrana / nierozegrana (dla Ciebie)
@@ -519,11 +524,12 @@
           const done = isVPlayed(g, game, r.e);
           const last = i === rows.length - 1 && !editing;
           const row = document.createElement("button"); row.type = "button";
-          row.className = "xrow" + (done ? " done" : "") + (r.e ? "" : " base") + (editing && r.e ? " edit" : "") + (r.e && ui.expArmed === r.e.id ? " armed" : "");
+          const pArmed = !editing && ui.playArmed === g.id + "|" + vkey(game, r.e);
+          row.className = "xrow" + (done ? " done" : "") + (r.e ? "" : " base") + (editing && r.e ? " edit" : "") + (r.e && ui.expArmed === r.e.id ? " armed" : "") + (pArmed ? " parmed" : "");
           row.innerHTML = '<span class="br"></span><span class="mk"></span><span class="nm"></span><span class="dt"></span>';
           row.querySelector(".br").textContent = last ? "└─" : "├─";
           row.querySelector(".mk").textContent = editing && r.e ? "✕" : (done ? "✓" : "○");
-          row.querySelector(".nm").textContent = editing && r.e && ui.expArmed === r.e.id ? "Usunąć „" + r.name + "”?" : r.name;
+          row.querySelector(".nm").textContent = editing && r.e && ui.expArmed === r.e.id ? "Usunąć „" + r.name + "”?" : (pArmed ? "Rozegrana: " + r.name + "? Dotknij ponownie" : r.name);
           if (done && !editing) row.querySelector(".dt").textContent = fmt(myPlayed(g)[vkey(game, r.e)]);
           row.onclick = () => {
             if (!editing || !r.e) { toggleVariant(r.e); return; }
@@ -535,7 +541,8 @@
         });
         if (ui.expEdit === game.id) {
           const f = document.createElement("form"); f.className = "add expadd";
-          f.innerHTML = '<span class="br">└─</span><input type="text" maxlength="60" placeholder="nazwa rozszerzenia…" autocomplete="off"><button type="submit" aria-label="Dodaj rozszerzenie">+</button>';
+          f.innerHTML = '<span class="br">└─</span><input type="text" maxlength="60" placeholder="nazwa rozszerzenia…" autocomplete="off"><button type="submit" aria-label="Dodaj rozszerzenie">+</button><button type="button" class="xdone">✓ Gotowe</button>';
+          f.querySelector(".xdone").onclick = () => { ui.expEdit = null; ui.expArmed = null; renderGroup(); };
           f.onsubmit = ev => {
             ev.preventDefault();
             const inp = f.querySelector("input"); const n = inp.value.trim().replace(/\s+/g, " ");
@@ -655,9 +662,10 @@
     setTimeout(() => { const i = groups.findIndex(g => g.id === id); if (i >= 0) { ui.tab = i; renderGroup(); const gn = $("groupName"); gn.focus(); gn.select(); } }, 400);
   }
   $("rerollBtn").onclick = () => { const f = ui.drawn && findGame(ui.drawn, ui.drawnGid); draw(f ? vkey(f.game, findExp(f.game, ui.drawnExp)) : null); };
-  $("playBtn").onclick = markPlayed;
+  $("playBtn").onclick = () => { if (confirmTap($("playBtn"), "Na pewno rozegrana? ✓")) markPlayed(); };
   document.addEventListener("click", e => {
     if (ui.armed && !e.target.closest(".del")) { ui.armed = null; renderGroup(); }
+    if (ui.playArmed && !e.target.closest(".check,.xrow")) { ui.playArmed = null; renderGroup(); }
     if (ui.resArmed && !e.target.closest(".del")) { ui.resArmed = null; renderResults(); }
   });
 

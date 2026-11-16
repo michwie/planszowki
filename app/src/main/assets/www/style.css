@@ -272,3 +272,12 @@ body{padding-bottom:calc(env(safe-area-inset-bottom) + 86px)}
 .menu .mi{width:26px;text-align:center;color:var(--glow);font-size:17px}
 .menu .mitem.danger-item,.menu .mitem.danger-item .mi{color:var(--red)}
 .menu .mitem[data-armed="1"]{color:var(--amber)}
+/* potwierdzenie "rozegrana" */
+.ib.check.armed{background:var(--amber);border-color:var(--amber);color:var(--accent-ink);width:auto;padding:0 8px;font-size:11px;letter-spacing:.5px;text-transform:uppercase}
+.xrow.parmed{background:var(--amber);color:var(--accent-ink)}
+.xrow.parmed .nm,.xrow.parmed .mk,.xrow.parmed .br{color:var(--accent-ink);text-decoration:none}
+#playBtn[data-armed="1"]{background:var(--amber);border-color:var(--amber);color:var(--accent-ink)}
+/* przycisk Gotowe w edycji rozszerzeń */
+.expadd{flex-wrap:wrap}
+.expadd .xdone{background:none;box-shadow:none;font-weight:600;flex-basis:100%;margin-top:6px;padding:8px;border:1px solid var(--glow);border-radius:4px;color:var(--glow);font-family:var(--font-head);font-size:12px;letter-spacing:2px;text-transform:uppercase}
+.expadd .xdone:active{background:var(--green-soft)}
