@@ -2,7 +2,7 @@
     --bg:#020503; --card:rgba(4,14,8,.82); --ink:#b8ffcf; --muted:#4f8f63; --line:#0f3a1f;
     --glow:#00ff66; --glow-rgb:0,255,102; --gs:1; --accent:#00ff66; --accent-ink:#011a0a; --green:#00ff66; --green-soft:rgba(0,255,102,.08);
     --amber:#ffd23f; --red:#ff3b3b; --radius:6px;
-    --font-head:"Orbitron",sans-serif; --font-body:"Share Tech Mono",ui-monospace,monospace; --body-size:16px;
+    --font-head:"Chakra Petch","Orbitron",sans-serif; --font-body:"JetBrains Mono","Share Tech Mono",ui-monospace,monospace; --body-size:15px;
     --stage-bg:rgba(0,0,0,.55); --input-bg:rgba(0,0,0,.6); --toast-bg:#000; --ov-bg:rgba(1,4,2,.94);
     --placeholder:#2f6342; --scheme:dark; --fx-opacity:.35;
     --scan:repeating-linear-gradient(0deg,rgba(0,0,0,.18) 0 1px,transparent 1px 3px);

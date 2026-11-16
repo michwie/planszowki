@@ -41,6 +41,12 @@ jobs:
           get cinzel cinzel-latin-ext-700-normal.woff2 cinzel-ext-700.woff2
           get eb-garamond eb-garamond-latin-400-normal.woff2 garamond-400.woff2
           get eb-garamond eb-garamond-latin-ext-400-normal.woff2 garamond-ext-400.woff2
+          get chakra-petch chakra-petch-latin-600-normal.woff2 chakra-600.woff2
+          get chakra-petch chakra-petch-latin-ext-600-normal.woff2 chakra-ext-600.woff2
+          get chakra-petch chakra-petch-latin-700-normal.woff2 chakra-700.woff2
+          get chakra-petch chakra-petch-latin-ext-700-normal.woff2 chakra-ext-700.woff2
+          get jetbrains-mono jetbrains-mono-latin-400-normal.woff2 jetbrains-400.woff2
+          get jetbrains-mono jetbrains-mono-latin-ext-400-normal.woff2 jetbrains-ext-400.woff2
           get nunito nunito-latin-400-normal.woff2 nunito-400.woff2
           get nunito nunito-latin-ext-400-normal.woff2 nunito-ext-400.woff2
           get nunito nunito-latin-800-normal.woff2 nunito-800.woff2

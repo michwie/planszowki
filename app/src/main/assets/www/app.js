@@ -1116,7 +1116,7 @@
 
   // ================= MOTYWY I TŁO =================
   const THEMES = [
-    {id:"matrix", name:"Matrix", desc:"Zielony terminal i deszcz znaków.", bg:"#020503", fg:"#00ff66", font:"Orbitron", light:false},
+    {id:"matrix", name:"Matrix", desc:"Zielony terminal i deszcz znaków.", bg:"#020503", fg:"#00ff66", font:"Chakra Petch", light:false},
     {id:"wizard", name:"Szkoła Magii", desc:"Pergamin, złoto i bordo, unoszące się iskry.", bg:"#24160f", fg:"#e8b84f", font:"Cinzel", light:false},
     {id:"goose", name:"Gęś Wyścigowa", desc:"Jasny, wesoły motyw z wyścigową szachownicą i piórkami.", bg:"#fbf5e8", fg:"#b94e05", font:"Nunito", light:true},
     {id:"galaxy", name:"Galaktyka", desc:"Czarny kosmos, gwiazdy i żółte napisy.", bg:"#000004", fg:"#ffd84a", font:"Exo 2", light:false},
