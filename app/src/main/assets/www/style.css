@@ -234,3 +234,19 @@
 .all li.xsub .nm{color:var(--ink)}
 .all li.xsub.base .nm{color:var(--muted);font-style:italic}
 .all li.xsub.played .nm{color:var(--muted);text-decoration:line-through;text-decoration-thickness:1px}
+/* ---- drzewko wersji w „Moje gry” ---- */
+.xtree{width:100%;padding:0 0 4px 42px;display:flex;flex-direction:column}
+.xrow{display:flex;align-items:center;gap:8px;width:100%;text-align:left;padding:5px 2px;font-size:14px;color:var(--ink);border-radius:4px}
+.xrow:active{background:var(--green-soft)}
+.xrow .br{color:var(--muted);font-family:monospace;flex:none}
+.xrow .mk{flex:none;width:16px;text-align:center;color:var(--muted)}
+.xrow .nm{flex:1;min-width:0;word-break:break-word}
+.xrow .dt{flex:none;color:var(--muted);font-size:11px}
+.xrow.base .nm{color:var(--muted);font-style:italic}
+.xrow.done .mk{color:var(--glow)}
+.xrow.done .nm{color:var(--muted);text-decoration:line-through;text-decoration-thickness:1px}
+.xrow.edit .mk{color:var(--red)}
+.xrow.armed{background:var(--red);color:#fff}
+.xrow.armed .nm,.xrow.armed .mk,.xrow.armed .br{color:#fff;text-decoration:none}
+.xtree .expadd{display:flex;align-items:center;gap:8px;margin:4px 0 0}
+.xtree .expadd .br{color:var(--muted);font-family:monospace;padding-left:2px}

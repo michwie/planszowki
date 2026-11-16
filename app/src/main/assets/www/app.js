@@ -251,6 +251,14 @@
       const st = d.exists ? d.data() : {};
       const hist = (st.history || []).slice().sort((a,b) => b.at - a.at);
       stateBy[gid] = {played: st.played || {}, history: hist};
+      // jednorazowe czyszczenie (16.11.2026): z historii sprzed 13:50 zostaje tylko Scythe
+      const HIST_CUT = Date.parse("2026-11-16T12:50:00Z");
+      const flag = "pl-hist-scythe-" + me.uid + "-" + gid;
+      if (!lsGet(flag, false) && !(d.metadata && d.metadata.fromCache)) {
+        const keep = hist.filter(h => h.at >= HIST_CUT || String(h.name || "").trim().toLowerCase().startsWith("scythe"));
+        if (keep.length !== hist.length) ref.set({history: keep, updatedAt: Date.now()}, {mergeFields: ["history", "updatedAt"]}).then(() => lsSet(flag, true)).catch(() => {});
+        else lsSet(flag, true);
+      }
       if (hist.length > 60) ref.set({history: hist.slice(0, 50)}, {mergeFields: ["history"]}).catch(() => {});
       render();
     }, () => {
@@ -509,29 +517,31 @@
       li.querySelector(".check").onclick = () => toggleVariant(null);
       // rozszerzenia: dotknięcie = rozegrane / nierozegrane (dla Ciebie); edycja listy dla właściciela i edytorów
       if (ex.length || ui.expEdit === game.id) {
-        const box = document.createElement("div"); box.className = "expbox";
-        if (ex.length) {
-          const base = document.createElement("button"); base.className = "xchip" + (baseDone ? " done" : "");
-          base.textContent = (baseDone ? "✓ " : "") + "podstawowa"; base.title = "Wersja podstawowa";
-          base.onclick = () => toggleVariant(null); box.appendChild(base);
-        }
-        ex.forEach(e => {
-          const c = document.createElement("button");
-          const done = isVPlayed(g, game, e);
-          const editing = ui.expEdit === game.id;
-          c.className = "xchip" + (done ? " done" : "") + (editing ? " edit" : "") + (ui.expArmed === e.id ? " armed" : "");
-          c.textContent = editing ? (ui.expArmed === e.id ? "Usunąć „" + e.name + "”?" : e.name + "  ✕") : ((done ? "✓ " : "+ ") + e.name);
-          c.onclick = () => {
-            if (!editing) { toggleVariant(e); return; }
-            if (ui.expArmed !== e.id) { ui.expArmed = e.id; renderGroup(); return; }
+        // drzewko wersji: podstawowa + rozszerzenia; dotknięcie = rozegrana / nierozegrana (dla Ciebie)
+        const box = document.createElement("div"); box.className = "xtree";
+        const editing = ui.expEdit === game.id;
+        const rows = ex.length ? [{e: null, name: "wersja podstawowa"}].concat(ex.map(e => ({e, name: e.name}))) : [];
+        rows.forEach((r, i) => {
+          const done = isVPlayed(g, game, r.e);
+          const last = i === rows.length - 1 && !editing;
+          const row = document.createElement("button"); row.type = "button";
+          row.className = "xrow" + (done ? " done" : "") + (r.e ? "" : " base") + (editing && r.e ? " edit" : "") + (r.e && ui.expArmed === r.e.id ? " armed" : "");
+          row.innerHTML = '<span class="br"></span><span class="mk"></span><span class="nm"></span><span class="dt"></span>';
+          row.querySelector(".br").textContent = last ? "└─" : "├─";
+          row.querySelector(".mk").textContent = editing && r.e ? "✕" : (done ? "✓" : "○");
+          row.querySelector(".nm").textContent = editing && r.e && ui.expArmed === r.e.id ? "Usunąć „" + r.name + "”?" : r.name;
+          if (done && !editing) row.querySelector(".dt").textContent = fmt(myPlayed(g)[vkey(game, r.e)]);
+          row.onclick = () => {
+            if (!editing || !r.e) { toggleVariant(r.e); return; }
+            if (ui.expArmed !== r.e.id) { ui.expArmed = r.e.id; renderGroup(); return; }
             ui.expArmed = null;
-            saveGame(g, Object.assign({}, game, {exps: ex.filter(x => x.id !== e.id)}), "Usunięcie rozszerzenia " + q(e.name) + " z gry " + q(game.name));
+            saveGame(g, Object.assign({}, game, {exps: ex.filter(x => x.id !== r.e.id)}), "Usunięcie rozszerzenia " + q(r.name) + " z gry " + q(game.name));
           };
-          box.appendChild(c);
+          box.appendChild(row);
         });
         if (ui.expEdit === game.id) {
           const f = document.createElement("form"); f.className = "add expadd";
-          f.innerHTML = '<input type="text" maxlength="60" placeholder="nazwa rozszerzenia…" autocomplete="off"><button type="submit" aria-label="Dodaj rozszerzenie">+</button>';
+          f.innerHTML = '<span class="br">└─</span><input type="text" maxlength="60" placeholder="nazwa rozszerzenia…" autocomplete="off"><button type="submit" aria-label="Dodaj rozszerzenie">+</button>';
           f.onsubmit = ev => {
             ev.preventDefault();
             const inp = f.querySelector("input"); const n = inp.value.trim().replace(/\s+/g, " ");
@@ -1197,7 +1207,8 @@
   $("addResult").onclick = () => openResult(null, null);
 
   // ================= CHANGE LOG =================
-  let logGroup = "all", logLimit = 30;
+  let logGroup = "all";
+  const LOG_MAX = 5;   // Change Log pokazuje najwyżej 5 najnowszych wpisów
   function renderLog(){
     if (!me) return;
     const fEl = $("logFilter"); fEl.innerHTML = ""; fEl.hidden = groups.length < 2;
@@ -1205,7 +1216,7 @@
     [{id:"all", name:"Wszystko"}].concat(groups.map(g => ({id:g.id, name:g.name}))).forEach(o => {
       const b = document.createElement("button");
       b.className = "chip" + (logGroup === o.id ? " on" : ""); b.textContent = o.name;
-      b.onclick = () => { logGroup = o.id; logLimit = 30; renderLog(); };
+      b.onclick = () => { logGroup = o.id; renderLog(); };
       fEl.appendChild(b);
     });
     let items = Object.values(logsBy).flat();
@@ -1216,7 +1227,7 @@
     items.sort((a,b) => b.at - a.at);
     const ul = $("logList"); ul.innerHTML = "";
     if (!items.length) ul.innerHTML = '<li class="empty" style="justify-content:center">Brak wpisów.</li>';
-    items.slice(0, logLimit).forEach(e => {
+    items.slice(0, LOG_MAX).forEach(e => {
       const li = document.createElement("li");
       li.innerHTML = '<div class="lh"><b></b><span></span></div><div class="lt"></div>';
       li.querySelector("b").textContent = e.name || "?";
@@ -1225,9 +1236,7 @@
       li.querySelector(".lt").textContent = e.text;
       ul.appendChild(li);
     });
-    const more = $("logMore");
-    more.hidden = items.length <= logLimit;
-    more.onclick = () => { logLimit += 30; renderLog(); };
+    $("logMore").hidden = true;
   }
 
   // ================= KOPIA ZAPASOWA / IMPORT =================
