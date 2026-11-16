@@ -77,11 +77,14 @@ service cloud.firestore {
         function member() { return signedIn() && me() in g().memberIds; }
         function power() { return g().members.get(me(), '') in ['owner', 'editor']; }
 
-        allow read: if member();
-        allow create: if member() && request.resource.data.createdBy == me();
+        // wynik widzą tylko osoby z listy "viewers" (gracze z kontem + osoba wpisująca)
+        allow read: if member() && me() in resource.data.viewers;
+        allow create: if member() && request.resource.data.createdBy == me()
+          && request.resource.data.viewers is list && me() in request.resource.data.viewers;
         allow update: if member()
           && (resource.data.createdBy == me() || power())
-          && request.resource.data.createdBy == resource.data.createdBy;
+          && request.resource.data.createdBy == resource.data.createdBy
+          && request.resource.data.viewers is list;
         allow delete: if member() && (resource.data.createdBy == me() || power());
       }
 
@@ -89,13 +92,28 @@ service cloud.firestore {
       match /log/{lid} {
         function ga() { return getAfter(/databases/$(database)/documents/groups/$(gid)).data; }
         function gb() { return get(/databases/$(database)/documents/groups/$(gid)).data; }
-        allow read: if signedIn() && me() in gb().memberIds;
+        // wpisy "group" widzi cała grupa, wpisy "private" tylko osoby z listy "viewers"
+        allow read: if signedIn() && me() in gb().memberIds
+          && (resource.data.scope == 'group' || me() in resource.data.viewers);
         allow create: if signedIn() && me() in ga().memberIds
           && request.resource.data.by == me()
-          && request.resource.data.keys().hasOnly(['at', 'by', 'name', 'type', 'text'])
-          && request.resource.data.text is string && request.resource.data.text.size() <= 300;
+          && request.resource.data.keys().hasOnly(['at', 'by', 'name', 'type', 'text', 'scope', 'viewers'])
+          && request.resource.data.text is string && request.resource.data.text.size() <= 300
+          && (request.resource.data.scope == 'group'
+              || (request.resource.data.scope == 'private' && request.resource.data.viewers is list
+                  && me() in request.resource.data.viewers));
         allow update: if false;
         allow delete: if signedIn() && gb().members.get(me(), '') == 'owner';
+      }
+
+      // Prywatny stan gracza (rozegrane gry, historia): czyta tylko on sam,
+      // zapisywać mogą członkowie grupy (np. wpisując wynik, w którym grał)
+      match /userState/{u} {
+        function gs() { return get(/databases/$(database)/documents/groups/$(gid)).data; }
+        allow read: if signedIn() && me() == u && me() in gs().memberIds;
+        allow create, update: if signedIn() && me() in gs().memberIds && u in gs().memberIds
+          && request.resource.data.keys().hasOnly(['played', 'history', 'updatedAt']);
+        allow delete: if signedIn() && me() == u;
       }
     }
 
