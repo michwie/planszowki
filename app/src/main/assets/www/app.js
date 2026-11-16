@@ -1114,31 +1114,119 @@
     } catch(e){}
   }
 
-  // ================= TŁO: deszcz znaków =================
-  (function(){
-    const c = $("rain"); const ctx = c.getContext("2d"); if (!ctx) return;
-    const reduce = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const chars = "アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホ0123456789";
-    let cols, drops, fs = 16; const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    function size(){
-      c.width = innerWidth * dpr; c.height = innerHeight * dpr; ctx.setTransform(dpr,0,0,dpr,0,0);
-      cols = Math.ceil(innerWidth / fs); drops = Array.from({length: cols}, () => Math.random() * -innerHeight / fs);
-      ctx.fillStyle = "#020503"; ctx.fillRect(0,0,innerWidth,innerHeight);
+  // ================= MOTYWY I TŁO =================
+  const THEMES = [
+    {id:"matrix", name:"Matrix", desc:"Zielony terminal i deszcz znaków.", bg:"#020503", fg:"#00ff66", font:"Orbitron", light:false},
+    {id:"wizard", name:"Szkoła Magii", desc:"Pergamin, złoto i bordo, unoszące się iskry.", bg:"#24160f", fg:"#e8b84f", font:"Cinzel", light:false},
+    {id:"goose", name:"Gęś Wyścigowa", desc:"Jasny, wesoły motyw z wyścigową szachownicą i piórkami.", bg:"#fbf5e8", fg:"#b94e05", font:"Fredoka", light:true},
+    {id:"galaxy", name:"Galaktyka", desc:"Czarny kosmos, gwiazdy i żółte napisy.", bg:"#000004", fg:"#ffd84a", font:"Exo 2", light:false},
+    {id:"neon", name:"Neon", desc:"Niebieski neon z różowymi akcentami.", bg:"#030616", fg:"#18e3ff", font:"Audiowide", light:false}
+  ];
+  let theme = lsGet("pl-theme", "matrix");
+  if (!THEMES.some(t => t.id === theme)) theme = "matrix";
+  const reduceMotion = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+  let fxOn = lsGet("pl-fx", !reduceMotion);
+  function applyTheme(id){
+    theme = id; lsSet("pl-theme", id);
+    const t = THEMES.find(x => x.id === id);
+    if (id === "matrix") delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = id;
+    $("themeName").textContent = t.name;
+    const meta = document.querySelector('meta[name="theme-color"]'); if (meta) meta.content = t.bg;
+    if (Android && Android.setBars) try { Android.setBars(t.bg, t.light); } catch(e){}
+    fx.reset();
+  }
+  function renderThemes(){
+    const box = $("themeList"); box.innerHTML = "";
+    THEMES.forEach(t => {
+      const b = document.createElement("button");
+      b.className = "theme-opt" + (theme === t.id ? " on" : "");
+      b.innerHTML = '<span class="sw"></span><span><span class="tn"></span><span class="td"></span></span>';
+      const sw = b.querySelector(".sw"); sw.style.background = t.bg; sw.style.color = t.fg; sw.style.fontFamily = '"' + t.font + '"'; sw.textContent = "Aa";
+      b.querySelector(".tn").textContent = t.name + (theme === t.id ? "  ✓" : "");
+      b.querySelector(".td").textContent = t.desc;
+      b.onclick = () => { applyTheme(t.id); renderThemes(); };
+      box.appendChild(b);
+    });
+    $("fxToggle").classList.toggle("on", fxOn);
+    $("fxToggle").setAttribute("aria-checked", fxOn ? "true" : "false");
+  }
+  $("openTheme").onclick = () => { renderThemes(); openOv("th"); };
+  $("fxToggle").onclick = () => { fxOn = !fxOn; lsSet("pl-fx", fxOn); fx.reset(); renderThemes(); };
+
+  // Animowane tło – osobny efekt dla każdego motywu, delikatny, pod kartami.
+  const fx = (function(){
+    const c = $("rain"); const ctx = c.getContext("2d");
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    let W = 0, H = 0, parts = [], drops = [], last = 0;
+    const KANA = "アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホ0123456789";
+    const rnd = (a, b) => a + Math.random() * (b - a);
+    function size(){ W = innerWidth; H = innerHeight; c.width = W * dpr; c.height = H * dpr; ctx.setTransform(dpr,0,0,dpr,0,0); }
+    function init(){
+      size(); ctx.clearRect(0, 0, W, H); parts = [];
+      const fs = 16, cols = Math.ceil(W / fs);
+      drops = Array.from({length: cols}, () => rnd(-H / fs, 0));
+      if (theme === "wizard") for (let i = 0; i < 45; i++) parts.push({x: rnd(0, W), y: rnd(0, H), r: rnd(.8, 2.4), v: rnd(.15, .5), p: rnd(0, 6.28)});
+      if (theme === "goose") for (let i = 0; i < 14; i++) parts.push({x: rnd(0, W), y: rnd(-H, H), s: rnd(10, 20), v: rnd(.3, .7), a: rnd(0, 6.28), w: rnd(.005, .015)});
+      if (theme === "galaxy") for (let i = 0; i < 160; i++) parts.push({x: rnd(-1, 1), y: rnd(-1, 1), z: rnd(.05, 1)});
     }
-    size(); addEventListener("resize", size);
-    function step(){
-      ctx.fillStyle = "rgba(2,5,3,0.09)"; ctx.fillRect(0,0,innerWidth,innerHeight);
-      ctx.font = fs + "px 'Share Tech Mono', monospace";
-      for (let i = 0; i < cols; i++){
-        const y = drops[i] * fs;
-        ctx.fillStyle = Math.random() < .04 ? "#d6ffe3" : "#00c853";
-        ctx.fillText(chars[Math.floor(Math.random()*chars.length)], i * fs, y);
-        if (y > innerHeight && Math.random() > .975) drops[i] = 0;
-        drops[i] += 1;
+    function frame(){
+      if (theme === "matrix" || theme === "neon") {
+        const fs = 16;
+        ctx.fillStyle = theme === "neon" ? "rgba(3,6,22,0.12)" : "rgba(2,5,3,0.09)"; ctx.fillRect(0, 0, W, H);
+        ctx.font = fs + "px monospace";
+        for (let i = 0; i < drops.length; i++) {
+          if (theme === "neon" && i % 2) continue;   // neon: rzadszy deszcz
+          const y = drops[i] * fs;
+          ctx.fillStyle = theme === "neon" ? (Math.random() < .12 ? "#ff5fd9" : "#18b8ff") : (Math.random() < .04 ? "#d6ffe3" : "#00c853");
+          ctx.fillText(KANA[Math.floor(Math.random() * KANA.length)], i * fs, y);
+          if (y > H && Math.random() > .975) drops[i] = 0;
+          drops[i] += 1;
+        }
+      } else if (theme === "wizard") {
+        ctx.clearRect(0, 0, W, H);
+        parts.forEach(p => {
+          p.y -= p.v; p.p += .04; p.x += Math.sin(p.p) * .25;
+          if (p.y < -5) { p.y = H + 5; p.x = rnd(0, W); }
+          const a = .35 + .35 * Math.sin(p.p * 1.7);
+          ctx.beginPath(); ctx.fillStyle = "rgba(240,200,110," + a.toFixed(2) + ")";
+          ctx.arc(p.x, p.y, p.r, 0, 6.28); ctx.fill();
+        });
+      } else if (theme === "goose") {
+        ctx.clearRect(0, 0, W, H);
+        parts.forEach(p => {
+          p.y += p.v; p.a += p.w; p.x += Math.sin(p.a) * .6;
+          if (p.y > H + 30) { p.y = -30; p.x = rnd(0, W); }
+          ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(Math.sin(p.a) * .8);
+          ctx.fillStyle = "rgba(190,170,140,.35)"; ctx.strokeStyle = "rgba(150,130,100,.45)"; ctx.lineWidth = 1;
+          ctx.beginPath(); ctx.moveTo(0, -p.s); ctx.quadraticCurveTo(p.s * .45, 0, 0, p.s); ctx.quadraticCurveTo(-p.s * .45, 0, 0, -p.s); ctx.fill();
+          ctx.beginPath(); ctx.moveTo(0, -p.s); ctx.lineTo(0, p.s * 1.15); ctx.stroke();
+          ctx.restore();
+        });
+      } else if (theme === "galaxy") {
+        ctx.clearRect(0, 0, W, H);
+        const cx = W / 2, cy = H / 2;
+        parts.forEach(p => {
+          p.z -= .0025; if (p.z <= .02) { p.x = rnd(-1, 1); p.y = rnd(-1, 1); p.z = 1; }
+          const k = 0.5 / p.z, x = cx + p.x * cx * k, y = cy + p.y * cy * k;
+          if (x < 0 || x > W || y < 0 || y > H) { p.z = 1; p.x = rnd(-1, 1); p.y = rnd(-1, 1); return; }
+          const r = Math.max(.4, (1 - p.z) * 2.2);
+          ctx.beginPath(); ctx.fillStyle = "rgba(235,240,255," + Math.min(1, (1 - p.z) + .2).toFixed(2) + ")";
+          ctx.arc(x, y, r, 0, 6.28); ctx.fill();
+        });
       }
     }
-    if (reduce) { for (let k = 0; k < 60; k++) step(); return; }
-    let last = 0;
-    (function loop(t){ if (!document.hidden && t - last > 60) { step(); last = t; } requestAnimationFrame(loop); })(0);
+    function staticFrame(){ for (let k = 0; k < 60; k++) frame(); }
+    function reset(){
+      c.hidden = !fxOn && theme !== "galaxy";   // galaktyka bez animacji: nieruchome gwiazdy
+      init();
+      if (!fxOn || reduceMotion) staticFrame();
+    }
+    addEventListener("resize", () => { init(); if (!fxOn || reduceMotion) staticFrame(); });
+    (function loop(t){
+      if (fxOn && !reduceMotion && !document.hidden && t - last > (theme === "matrix" || theme === "neon" ? 60 : 33)) { frame(); last = t; }
+      requestAnimationFrame(loop);
+    })(0);
+    return {reset};
   })();
+  applyTheme(theme);
 })();

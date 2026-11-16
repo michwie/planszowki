@@ -36,6 +36,21 @@ jobs:
           curl -fsSL "$F/orbitron@5/files/orbitron-latin-600-normal.woff2" -o $D/fonts/orbitron-600.woff2 || true
           curl -fsSL "$F/orbitron@5/files/orbitron-latin-800-normal.woff2" -o $D/fonts/orbitron-800.woff2 || true
           curl -fsSL "$F/share-tech-mono@5/files/share-tech-mono-latin-400-normal.woff2" -o $D/fonts/sharetechmono-400.woff2 || true
+          get(){ curl -fsSL "$F/$1@5/files/$2" -o "$D/fonts/$3" || echo "::warning::brak czcionki $2"; }
+          get cinzel cinzel-latin-700-normal.woff2 cinzel-700.woff2
+          get cinzel cinzel-latin-ext-700-normal.woff2 cinzel-ext-700.woff2
+          get eb-garamond eb-garamond-latin-400-normal.woff2 garamond-400.woff2
+          get eb-garamond eb-garamond-latin-ext-400-normal.woff2 garamond-ext-400.woff2
+          get fredoka fredoka-latin-400-normal.woff2 fredoka-400.woff2
+          get fredoka fredoka-latin-ext-400-normal.woff2 fredoka-ext-400.woff2
+          get fredoka fredoka-latin-600-normal.woff2 fredoka-600.woff2
+          get fredoka fredoka-latin-ext-600-normal.woff2 fredoka-ext-600.woff2
+          get exo-2 exo-2-latin-400-normal.woff2 exo2-400.woff2
+          get exo-2 exo-2-latin-ext-400-normal.woff2 exo2-ext-400.woff2
+          get exo-2 exo-2-latin-800-normal.woff2 exo2-800.woff2
+          get exo-2 exo-2-latin-ext-800-normal.woff2 exo2-ext-800.woff2
+          get audiowide audiowide-latin-400-normal.woff2 audiowide-400.woff2
+          get audiowide audiowide-latin-ext-400-normal.woff2 audiowide-ext-400.woff2
           ls -la $D $D/fonts
 
       - name: Wpisz wersję i repozytorium

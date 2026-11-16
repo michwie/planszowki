@@ -1,0 +1,91 @@
+/* ============ MOTYWY ============
+   Każdy motyw ustawia tylko zmienne. Kontrast tekstu do tła sprawdzony (≥ 4.5:1 dla zwykłego tekstu). */
+
+/* 2) Szkoła Magii – ciepły pergamin, złoto i bordo, szeryfowe litery */
+:root[data-theme="wizard"]{
+  --bg:#140c0a; --card:rgba(36,22,16,.94); --ink:#f3e6c8; --muted:#c2a882; --line:#4d3524;
+  --glow:#e8b84f; --glow-rgb:232,184,79; --gs:.45; --accent:#e8b84f; --accent-ink:#2a1606; --green-soft:rgba(232,184,79,.12);
+  --amber:#f08f6e; --red:#ff7a66;
+  --font-head:"Cinzel",Georgia,serif; --font-body:"EB Garamond",Georgia,serif; --body-size:17px;
+  --stage-bg:rgba(20,10,6,.6); --input-bg:#1c110c; --toast-bg:#2a1a10; --ov-bg:rgba(18,10,7,.96);
+  --placeholder:#8f7656; --scheme:dark; --fx-opacity:.55; --scan:none;
+  --sub-prefix:"✦ "; --sub-cursor:""; --h2-prefix:"✦ ";
+}
+:root[data-theme="wizard"] .card{border-color:#6b4a2c;box-shadow:inset 0 0 0 3px rgba(20,10,6,.5),inset 0 0 0 4px rgba(232,184,79,.25)}
+:root[data-theme="wizard"] .card::before,:root[data-theme="wizard"] .card::after{border-color:#e8b84f;opacity:.6}
+:root[data-theme="wizard"] h1{letter-spacing:2px}
+:root[data-theme="wizard"] .chip,:root[data-theme="wizard"] .tab,:root[data-theme="wizard"] .fl,
+:root[data-theme="wizard"] .gname small,:root[data-theme="wizard"] .count{letter-spacing:.5px}
+
+/* 3) Gęś Wyścigowa – jasny motyw: kremowe tło, pomarańczowy dziób, wyścigowe paski */
+:root[data-theme="goose"]{
+  --bg:#fbf5e8; --card:#ffffff; --ink:#2b2520; --muted:#665a4d; --line:#e3d6bf;
+  --glow:#b94e05; --glow-rgb:185,78,5; --gs:0; --accent:#b94e05; --accent-ink:#ffffff; --green-soft:rgba(185,78,5,.10);
+  --amber:#145f7a; --red:#c0262d;
+  --font-head:"Fredoka",system-ui,sans-serif; --font-body:"Fredoka",system-ui,sans-serif; --body-size:16px;
+  --stage-bg:#fff6e6; --input-bg:#ffffff; --toast-bg:#2b2520; --ov-bg:rgba(251,245,232,.98);
+  --placeholder:#9c8f80; --scheme:light; --fx-opacity:.5; --scan:none;
+  --sub-prefix:"🏁 "; --sub-cursor:""; --h2-prefix:"";
+  --radius:14px;
+}
+:root[data-theme="goose"] .card{border:2px solid #2b2520;box-shadow:4px 4px 0 #2b2520;border-radius:14px}
+:root[data-theme="goose"] .card::before{content:"";top:0;left:0;right:0;width:auto;height:8px;border:0;opacity:1;border-radius:12px 12px 0 0;
+  background:repeating-linear-gradient(90deg,#2b2520 0 8px,#fff 8px 16px)}
+:root[data-theme="goose"] .card::after{display:none}
+:root[data-theme="goose"] .card h2{margin-top:6px}
+:root[data-theme="goose"] .big,:root[data-theme="goose"] .ok,:root[data-theme="goose"] .add button,:root[data-theme="goose"] .chip.on{
+  background:#b94e05;color:#fff;border:2px solid #2b2520;box-shadow:3px 3px 0 #2b2520;text-shadow:none;border-radius:10px}
+:root[data-theme="goose"] .big:active,:root[data-theme="goose"] .ok:active{transform:translate(2px,2px);box-shadow:1px 1px 0 #2b2520}
+:root[data-theme="goose"] .ghost,:root[data-theme="goose"] .listbtn,:root[data-theme="goose"] .ovclose,
+:root[data-theme="goose"] .gearb,:root[data-theme="goose"] .delg{border:2px solid #2b2520;border-radius:10px;background:#fff;color:#2b2520}
+:root[data-theme="goose"] .listbtn{box-shadow:3px 3px 0 #2b2520}
+:root[data-theme="goose"] .chip{border-radius:999px;border-width:2px}
+:root[data-theme="goose"] .stage{border:2px dashed #d8c6a5;border-radius:12px}
+:root[data-theme="goose"] .stage .name{color:#2b2520}
+:root[data-theme="goose"] h1{color:#2b2520;letter-spacing:1px}
+:root[data-theme="goose"] h1::after{content:" 🪿"}
+:root[data-theme="goose"] .toast{color:#fff;border-color:#2b2520}
+:root[data-theme="goose"] input,:root[data-theme="goose"] select,:root[data-theme="goose"] textarea{border-width:2px;border-radius:10px}
+:root[data-theme="goose"] .code{border-width:2px;color:#2b2520}
+:root[data-theme="goose"] .rank tr.top td{color:#b94e05}
+:root[data-theme="goose"] .ib.del.armed,:root[data-theme="goose"] .danger.armed,:root[data-theme="goose"] .delg.armed{color:#fff}
+
+/* 4) Galaktyka – czarny kosmos, gwiazdy, żółte napisy, niebieskie akcenty */
+:root[data-theme="galaxy"]{
+  --bg:#000004; --card:rgba(8,10,20,.9); --ink:#e9ecff; --muted:#98a0c4; --line:#272d4b;
+  --glow:#ffd84a; --glow-rgb:255,216,74; --gs:.35; --accent:#ffd84a; --accent-ink:#1a1400; --green-soft:rgba(255,216,74,.10);
+  --amber:#74d3ff; --red:#ff6262;
+  --font-head:"Exo 2","Orbitron",sans-serif; --font-body:"Exo 2",system-ui,sans-serif; --body-size:16px;
+  --stage-bg:rgba(0,0,8,.6); --input-bg:#070a16; --toast-bg:#070a16; --ov-bg:rgba(0,0,6,.96);
+  --placeholder:#5d6589; --scheme:dark; --fx-opacity:.9; --scan:none;
+  --sub-prefix:"◆ "; --sub-cursor:""; --h2-prefix:"◆ ";
+}
+:root[data-theme="galaxy"] h1,:root[data-theme="galaxy"] h2,:root[data-theme="galaxy"] .big,:root[data-theme="galaxy"] .stage .name{font-weight:800}
+:root[data-theme="galaxy"] h1{letter-spacing:4px}
+:root[data-theme="galaxy"] .card::before,:root[data-theme="galaxy"] .card::after{border-color:#74d3ff;opacity:.7}
+
+/* 5) Neon – niebieski neon z różowymi akcentami */
+:root[data-theme="neon"]{
+  --bg:#030616; --card:rgba(7,12,36,.88); --ink:#d9f5ff; --muted:#7f9cc6; --line:#1d2c5e;
+  --glow:#18e3ff; --glow-rgb:24,227,255; --gs:1; --accent:#18e3ff; --accent-ink:#00141a; --green-soft:rgba(24,227,255,.10);
+  --amber:#ff5fd9; --red:#ff5a7a;
+  --font-head:"Audiowide","Orbitron",sans-serif; --font-body:"Exo 2",system-ui,sans-serif; --body-size:16px;
+  --stage-bg:rgba(0,2,14,.6); --input-bg:#050a20; --toast-bg:#050a20; --ov-bg:rgba(3,6,22,.96);
+  --placeholder:#4f6898; --scheme:dark; --fx-opacity:.55;
+  --scan:repeating-linear-gradient(0deg,rgba(0,0,0,.12) 0 1px,transparent 1px 4px);
+  --sub-prefix:"› "; --sub-cursor:"_"; --h2-prefix:"› ";
+}
+:root[data-theme="neon"] .card::before,:root[data-theme="neon"] .card::after{border-color:#ff5fd9}
+
+/* ---- wybór motywu ---- */
+.themes{display:grid;gap:12px;padding:6px 0}
+.theme-opt{display:flex;gap:12px;align-items:center;text-align:left;padding:12px;border:1px solid var(--line);border-radius:var(--radius);background:var(--card);color:var(--ink)}
+.theme-opt.on{border-color:var(--glow);box-shadow:0 0 0 2px var(--glow)}
+.theme-opt .sw{flex:none;width:64px;height:64px;border-radius:10px;display:grid;place-items:center;font-size:22px;font-weight:800;border:2px solid rgba(128,128,128,.4)}
+.theme-opt .tn{font-size:15px;font-weight:600;display:block}
+.theme-opt .td{font-size:12px;color:var(--muted);display:block;margin-top:3px;line-height:1.4}
+.fxrow{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 2px;border-top:1px solid var(--line);margin-top:8px;font-size:14px}
+.switch{width:52px;height:30px;border-radius:999px;border:1px solid var(--line);background:var(--input-bg);position:relative;flex:none}
+.switch::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:var(--muted);transition:.2s}
+.switch.on{background:var(--glow);border-color:var(--glow)}
+.switch.on::after{left:25px;background:var(--accent-ink)}

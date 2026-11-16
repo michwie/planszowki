@@ -36,13 +36,14 @@ public class MainActivity extends Activity {
     private static final String START_URL = "https://" + HOST + "/assets/www/index.html";
 
     private WebView web;
+    private FrameLayout root;
 
     @SuppressLint({"SetJavaScriptEnabled", "AddJavascriptInterface"})
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        FrameLayout root = new FrameLayout(this);
+        root = new FrameLayout(this);
         root.setBackgroundColor(Color.rgb(2, 5, 3));
         web = new WebView(this);
         web.setBackgroundColor(Color.rgb(2, 5, 3));
@@ -148,6 +149,33 @@ public class MainActivity extends Activity {
             runOnUiThread(() -> {
                 ClipboardManager cm = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
                 if (cm != null) cm.setPrimaryClip(ClipData.newPlainText("Planszówki", text));
+            });
+        }
+
+        /** Kolor pasków systemowych dopasowany do motywu (light = jasne tło, ciemne ikony). */
+        @JavascriptInterface
+        public void setBars(String hex, boolean light) {
+            runOnUiThread(() -> {
+                try {
+                    int c = Color.parseColor(hex);
+                    root.setBackgroundColor(c);
+                    web.setBackgroundColor(c);
+                    getWindow().setStatusBarColor(c);
+                    getWindow().setNavigationBarColor(c);
+                    if (Build.VERSION.SDK_INT >= 30) {
+                        android.view.WindowInsetsController ic = getWindow().getInsetsController();
+                        if (ic != null) {
+                            int mask = android.view.WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS
+                                    | android.view.WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS;
+                            ic.setSystemBarsAppearance(light ? mask : 0, mask);
+                        }
+                    } else {
+                        View d = getWindow().getDecorView();
+                        int f = d.getSystemUiVisibility();
+                        int mask = View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR | View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR;
+                        d.setSystemUiVisibility(light ? (f | mask) : (f & ~mask));
+                    }
+                } catch (Exception ignored) { }
             });
         }
 
