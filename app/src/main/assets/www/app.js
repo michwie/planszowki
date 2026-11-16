@@ -183,7 +183,7 @@
         name: name, ownerId: me.uid,
         members: {[me.uid]: "owner"}, memberIds: [me.uid], memberNames: {[me.uid]: me.name},
         inviteCode: code, games: [], played: {}, history: [], players: [],
-        createdAtMs: Date.now(), updatedAt: Date.now(), resetV: 1
+        createdAtMs: Date.now(), updatedAt: Date.now(), resetV: 2
       }, extra || {});
       const b = db.batch();
       b.set(ref, data);
@@ -877,8 +877,9 @@
     });
   }
   // Jednorazowe czyszczenie (16.11.2026): właściciel grupy utworzonej przed tą wersją
-  // przy pierwszym uruchomieniu usuwa listę wpisanych graczy i wszystkie wyniki tej grupy.
-  const RESET_V = 1, RESET_BEFORE = Date.parse("2026-11-16T12:00:00Z");
+  // przy pierwszym uruchomieniu usuwa wyniki, listę wpisanych graczy i historię rozegranych,
+  // a z członków grupy usuwa konto o nazwie "test".
+  const RESET_V = 2, RESET_BEFORE = Date.parse("2026-11-16T11:00:00Z");
   const resetting = new Set();
   async function oneTimeReset(){
     for (const g of groups) {
@@ -889,7 +890,14 @@
         for (let i = 0; i < ps.docs.length; i += 400) {
           const b = db.batch(); ps.docs.slice(i, i + 400).forEach(d => b.delete(d.ref)); await b.commit();
         }
-        await gref(g.id).update({players: [], resetV: RESET_V, updatedAt: Date.now()});
+        const patch = {players: [], history: [], resetV: RESET_V, updatedAt: Date.now()};
+        const testers = (g.memberIds || []).filter(u => u !== me.uid && g.members[u] !== "owner"
+          && String((g.memberNames || {})[u] || "").trim().toLowerCase() === "test");
+        if (testers.length) {
+          patch.memberIds = FV.arrayRemove(...testers);
+          testers.forEach(u => { patch["members." + u] = FV.delete(); patch["memberNames." + u] = FV.delete(); });
+        }
+        await gref(g.id).update(patch);
       } catch(e){ resetting.delete(g.id); }
     }
   }
