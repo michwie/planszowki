@@ -121,7 +121,7 @@
   function setAuthMode(m){
     authMode = m;
     document.querySelectorAll("#authTabs .tab").forEach(b => b.classList.toggle("on", b.dataset.mode === m));
-    $("aName").hidden = m !== "register";
+    $("aNames").hidden = m !== "register";
     $("aSubmit").textContent = m === "register" ? "Załóż konto" : "Zaloguj";
     $("aPass").autocomplete = m === "register" ? "new-password" : "current-password";
     $("aErr").textContent = "";
@@ -139,9 +139,11 @@
   }
   $("authForm").addEventListener("submit", async e => {
     e.preventDefault();
-    const email = $("aEmail").value.trim(), pass = $("aPass").value, name = $("aName").value.trim();
+    const email = $("aEmail").value.trim(), pass = $("aPass").value;
+    const first = $("aName").value.trim().replace(/\s+/g, " "), last = $("aSurname").value.trim().replace(/\s+/g, " ");
+    const name = (first + " " + last).trim().slice(0, 60);
     $("aErr").textContent = "";
-    if (authMode === "register" && !name) { $("aErr").textContent = "Podaj imię."; return; }
+    if (authMode === "register" && (!first || !last)) { $("aErr").textContent = "Podaj imię i nazwisko."; return; }
     $("aSubmit").disabled = true;
     try {
       if (authMode === "register") {

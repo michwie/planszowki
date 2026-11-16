@@ -3,7 +3,8 @@ window.CHANGELOG = [
   {
     version: "1.0.6", date: "16.11.2026 14:48",
     items: [
-      ["Dodano", "Uruchomienie oraz udostępnienie aplikacji do testów."]
+      ["Dodano", "Uruchomienie oraz udostępnienie aplikacji do testów."],
+      ["Zmieniono", "Rejestracja wymaga podania imienia i nazwiska."]
     ]
   }
 ];
