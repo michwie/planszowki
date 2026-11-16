@@ -1253,7 +1253,7 @@
       if (theme === "goose") ev = {type: "goose", t0: now, dur: 5200, fin: W - 46, y: H - 34, burst: null};
       else if (theme === "wizard") {
         const fromLeft = Math.random() < .5;
-        ev = {type: "ball", t0: now, dur: 6000, x: fromLeft ? -20 : W + 20, y: rnd(H * .2, H * .7),
+        ev = {type: "ball", t0: now, dur: 6000, dur0: 6000, x: fromLeft ? -20 : W + 20, y: rnd(H * .2, H * .7),
               dir: fromLeft ? 1 : -1, vx: 0, vy: 0, tx: 0, ty: 0, retarget: 0, trail: []};
       }
     }
@@ -1287,7 +1287,7 @@
         // złota piłeczka: krótkie, szybkie zrywy w losowych kierunkach, ogólnie w poprzek ekranu
         if (now > ev.retarget) {
           const prog = Math.min(1, k * 1.15);
-          const baseX = ev.dir > 0 ? -20 + (W + 40) * prog : W + 20 - (W + 40) * prog;
+          const baseX = ev.dir > 0 ? -20 + (W + 120) * prog : W + 20 - (W + 120) * prog;
           ev.tx = baseX + rnd(-W * .25, W * .25) * (1 - prog);
           ev.ty = Math.max(40, Math.min(H - 60, ev.y + rnd(-160, 160)));
           ev.retarget = now + rnd(250, 700);
@@ -1307,9 +1307,13 @@
         ball.addColorStop(0, "#fff7d1"); ball.addColorStop(.35, "#f3c64f"); ball.addColorStop(.8, "#c48a16"); ball.addColorStop(1, "#8a5c08");
         tctx.fillStyle = ball; tctx.beginPath(); tctx.arc(x, y, R, 0, 6.28); tctx.fill();
         if (k >= 1 && (x < -30 || x > W + 30)) { /* poza ekranem – koniec */ }
-        else if (k >= 1) ev.dur += 300;   // poczekaj, aż wyleci za krawędź
+        else if (k >= 1 && now - ev.t0 < ev.dur0 * 1.6) ev.dur += 300;   // poczekaj, aż wyleci za krawędź (maks. +60%)
       }
-      if ((now - ev.t0) / ev.dur >= 1) { ev = null; tctx.clearRect(0, 0, W, H); nextEv = now + rnd(16000, 28000); }
+      if ((now - ev.t0) / ev.dur >= 1) {
+        // gęś startuje co 8 s (licząc od startu poprzedniego biegu), piłeczka ok. co 10 s
+        nextEv = ev.type === "goose" ? Math.max(ev.t0 + 8000, now + 300) : now + rnd(3000, 5000);
+        ev = null; tctx.clearRect(0, 0, W, H);
+      }
     }
     function eventsTick(now){
       const allowed = fxOn && !reduceMotion && !document.hidden && (theme === "goose" || theme === "wizard")
