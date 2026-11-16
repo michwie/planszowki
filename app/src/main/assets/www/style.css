@@ -226,3 +226,11 @@
 .chgv .k-dodano{color:var(--glow);border-color:var(--glow)}
 .chgv .k-zmieniono{color:var(--amber);border-color:var(--amber)}
 .chgv .k-poprawiono{color:var(--red);border-color:var(--red)}
+/* ---- drzewko rozszerzeń na liście gier ---- */
+.all li.hasx{border-bottom:0;padding-bottom:4px}
+.all li.xsub{padding:3px 2px 3px 6px;border-bottom:0;gap:6px;font-size:14px}
+.all li.xsub.last{border-bottom:1px solid var(--line);padding-bottom:10px}
+.all li.xsub .br{color:var(--muted);font-family:monospace;flex:none}
+.all li.xsub .nm{color:var(--ink)}
+.all li.xsub.base .nm{color:var(--muted);font-style:italic}
+.all li.xsub.played .nm{color:var(--muted);text-decoration:line-through;text-decoration-thickness:1px}

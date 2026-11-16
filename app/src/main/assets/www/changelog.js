@@ -1,6 +1,13 @@
 // Historia zmian wyświetlana pod przyciskiem „Zmiany!”. Najnowsza wersja na górze.
 window.CHANGELOG = [
   {
+    version: "1.0.3", date: "16.11.2026 13:27",
+    items: [
+      ["Zmieniono", "Lista gier pokazuje rozszerzenia w drzewku pod grą, razem z wersją podstawową. Rozegrane wersje są przekreślone."],
+      ["Dodano", "Wyszukiwanie na liście gier działa także po nazwie rozszerzenia."]
+    ]
+  },
+  {
     version: "1.0.2", date: "16.11.2026 13:19",
     items: [
       ["Dodano", "Rozszerzenia gier: przy grze przycisk ⊕ pozwala dopisać jej rozszerzenia (właściciel i edytorzy)."],
@@ -8,19 +15,6 @@ window.CHANGELOG = [
       ["Dodano", "W wynikach można zaznaczyć, w jakiej wersji graliście (podstawowa lub z wybranymi rozszerzeniami)."],
       ["Dodano", "Przycisk „Zmiany!” z historią wersji aplikacji."],
       ["Zmieniono", "„Moje gry” pokazują postęp „Rozegrane wersje: X / Y” dla gier z rozszerzeniami, a lista gier – liczbę rozszerzeń."]
-    ]
-  },
-  {
-    version: "1.0.1", date: "16.11.2026 13:01",
-    items: [
-      ["Zmieniono", "W stopce i w instrukcji „@2026” zastąpiono znakiem praw autorskich „© 2026”."]
-    ]
-  },
-  {
-    version: "1.0", date: "16.11.2026 12:58",
-    items: [
-      ["Dodano", "Na początku instrukcji informacja, że aplikacja działa w trybie testowym, z prośbą o zgłaszanie błędów."],
-      ["Dodano", "Na końcu instrukcji hasło aplikacji i podpis autora."]
     ]
   },
   {

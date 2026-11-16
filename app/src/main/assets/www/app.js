@@ -704,7 +704,8 @@
     const q = $("ovSearch").value.trim().toLowerCase();
     const items = [];
     groups.forEach(g => { if (ovFilter === "all" || ovFilter === g.id) (g.games || []).forEach(game => items.push({game, group:g})); });
-    const shown = items.filter(x => !q || x.game.name.toLowerCase().includes(q)).sort((a,b) => cmp(a.game.name, b.game.name));
+    const shown = items.filter(x => !q || x.game.name.toLowerCase().includes(q) || exps(x.game).some(e => e.name.toLowerCase().includes(q)))
+      .sort((a,b) => cmp(a.game.name, b.game.name));
     const ul = $("allList"); ul.innerHTML = "";
     if (!shown.length) ul.innerHTML = '<li class="empty" style="justify-content:center;border:0">' + (items.length ? "Brak wyników." : "Nie masz jeszcze żadnych gier.") + '</li>';
     let last = "";
@@ -714,10 +715,23 @@
       const li = document.createElement("li");
       li.className = isPlayed(x.group, x.game) ? "played" : "";
       li.innerHTML = '<span class="nm"></span><span class="tag"></span>';
-      li.querySelector(".nm").textContent = x.game.name + (exps(x.game).length ? "  (+" + exps(x.game).length + " rozszerz.)" : "");
-      if (exps(x.game).length) li.querySelector(".nm").title = exps(x.game).map(e => e.name).join(", ");
+      li.querySelector(".nm").textContent = x.game.name;
       if (groups.length > 1) li.querySelector(".tag").textContent = x.group.name; else li.querySelector(".tag").remove();
       ul.appendChild(li);
+      // rozszerzenia w drzewku pod grą
+      const ex = exps(x.game);
+      if (ex.length) {
+        li.classList.add("hasx");
+        const rows = [{e: null, name: "wersja podstawowa"}].concat(ex.map(e => ({e, name: e.name})));
+        rows.forEach((r, i) => {
+          const sub = document.createElement("li");
+          sub.className = "xsub" + (isVPlayed(x.group, x.game, r.e) ? " played" : "") + (r.e ? "" : " base") + (i === rows.length - 1 ? " last" : "");
+          sub.innerHTML = '<span class="br"></span><span class="nm"></span>';
+          sub.querySelector(".br").textContent = i === rows.length - 1 ? "└─" : "├─";
+          sub.querySelector(".nm").textContent = r.name;
+          ul.appendChild(sub);
+        });
+      }
     });
     const played = items.filter(x => isPlayed(x.group, x.game)).length;
     $("ovSum").textContent = items.length ? ("Razem: " + items.length + " · rozegrane: " + played + " · do zagrania: " + (items.length - played)) : "";
