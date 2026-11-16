@@ -41,10 +41,10 @@ jobs:
           get cinzel cinzel-latin-ext-700-normal.woff2 cinzel-ext-700.woff2
           get eb-garamond eb-garamond-latin-400-normal.woff2 garamond-400.woff2
           get eb-garamond eb-garamond-latin-ext-400-normal.woff2 garamond-ext-400.woff2
-          get fredoka fredoka-latin-400-normal.woff2 fredoka-400.woff2
-          get fredoka fredoka-latin-ext-400-normal.woff2 fredoka-ext-400.woff2
-          get fredoka fredoka-latin-600-normal.woff2 fredoka-600.woff2
-          get fredoka fredoka-latin-ext-600-normal.woff2 fredoka-ext-600.woff2
+          get nunito nunito-latin-400-normal.woff2 nunito-400.woff2
+          get nunito nunito-latin-ext-400-normal.woff2 nunito-ext-400.woff2
+          get nunito nunito-latin-800-normal.woff2 nunito-800.woff2
+          get nunito nunito-latin-ext-800-normal.woff2 nunito-ext-800.woff2
           get exo-2 exo-2-latin-400-normal.woff2 exo2-400.woff2
           get exo-2 exo-2-latin-ext-400-normal.woff2 exo2-ext-400.woff2
           get exo-2 exo-2-latin-800-normal.woff2 exo2-800.woff2
@@ -52,6 +52,25 @@ jobs:
           get audiowide audiowide-latin-400-normal.woff2 audiowide-400.woff2
           get audiowide audiowide-latin-ext-400-normal.woff2 audiowide-ext-400.woff2
           ls -la $D $D/fonts
+
+      - name: Sprawdź polskie znaki w czcionkach
+        run: |
+          pip install --quiet fonttools brotli
+          python3 - <<'PY'
+          import glob, os
+          from fontTools.ttLib import TTFont
+          D = "app/src/main/assets/www/vendor/fonts"
+          PL = "ąćęłńóśźżĄĆĘŁŃÓŚŹŻ"
+          fams = {}
+          for f in glob.glob(D + "/*.woff2"):
+              base = os.path.basename(f).replace("-ext", "").rsplit("-", 1)[0] + "-" + os.path.basename(f).rsplit("-", 1)[1]
+              fams.setdefault(base, set()).update(TTFont(f).getBestCmap().keys())
+          for fam, cm in sorted(fams.items()):
+              miss = "".join(c for c in PL if ord(c) not in cm)
+              print(fam.ljust(24), "brak:" if miss else "OK", miss)
+              if miss and not fam.startswith(("orbitron", "sharetechmono")):
+                  print(f"::warning::Czcionka {fam} nie ma polskich znaków: {miss}")
+          PY
 
       - name: Wpisz wersję i repozytorium
         run: |

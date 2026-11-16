@@ -22,7 +22,7 @@
   --bg:#fbf5e8; --card:#ffffff; --ink:#2b2520; --muted:#665a4d; --line:#e3d6bf;
   --glow:#b94e05; --glow-rgb:185,78,5; --gs:0; --accent:#b94e05; --accent-ink:#ffffff; --green-soft:rgba(185,78,5,.10);
   --amber:#145f7a; --red:#c0262d;
-  --font-head:"Fredoka",system-ui,sans-serif; --font-body:"Fredoka",system-ui,sans-serif; --body-size:16px;
+  --font-head:"Nunito",system-ui,sans-serif; --font-body:"Nunito",system-ui,sans-serif; --body-size:16px;
   --stage-bg:#fff6e6; --input-bg:#ffffff; --toast-bg:#2b2520; --ov-bg:rgba(251,245,232,.98);
   --placeholder:#9c8f80; --scheme:light; --fx-opacity:.5; --scan:none;
   --sub-prefix:"🏁 "; --sub-cursor:""; --h2-prefix:"";
@@ -42,7 +42,8 @@
 :root[data-theme="goose"] .chip{border-radius:999px;border-width:2px}
 :root[data-theme="goose"] .stage{border:2px dashed #d8c6a5;border-radius:12px}
 :root[data-theme="goose"] .stage .name{color:#2b2520}
-:root[data-theme="goose"] h1{color:#2b2520;letter-spacing:1px}
+:root[data-theme="goose"] h1{color:#2b2520;letter-spacing:1px;font-weight:800}
+:root[data-theme="goose"] h2,:root[data-theme="goose"] .big,:root[data-theme="goose"] .stage .name,:root[data-theme="goose"] .row2 button{font-weight:800}
 :root[data-theme="goose"] h1::after{content:" 🪿"}
 :root[data-theme="goose"] .toast{color:#fff;border-color:#2b2520}
 :root[data-theme="goose"] input,:root[data-theme="goose"] select,:root[data-theme="goose"] textarea{border-width:2px;border-radius:10px}
