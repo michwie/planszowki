@@ -149,17 +149,25 @@
         .sort((a,b) => (a.createdAtMs || 0) - (b.createdAtMs || 0));
       const ids = new Set(groups.map(g => g.id));
       Object.keys(playSubs).forEach(k => { if (!ids.has(k)) { playSubs[k](); delete playSubs[k]; delete playsBy[k]; } });
-      groups.forEach(g => {
-        if (playSubs[g.id]) return;
-        playSubs[g.id] = pcol(g.id).orderBy("at", "desc").limit(500).onSnapshot(ps => {
-          playsBy[g.id] = ps.docs.map(d => Object.assign({}, d.data(), {id: d.id, groupId: g.id}));
-          renderResults();
-        }, () => {});
-      });
+      groups.forEach(g => subPlays(g.id, 0));
       setStatus(qs.metadata.fromCache ? "Tryb offline – zmiany wyślę po połączeniu" : "Połączono ✓");
       render();
+      if (!qs.metadata.fromCache) oneTimeReset();
     }, err => { setStatus("Błąd połączenia z bazą: " + errMsg(err)); });
     checkUpdate();
+  }
+
+  // Wyniki grupy. Nowo utworzona grupa może jeszcze nie istnieć na serwerze, gdy zaczynamy
+  // słuchać jej wyników – serwer wtedy odmawia, więc ponawiamy po chwili.
+  function subPlays(gid, attempt){
+    if (playSubs[gid]) return;
+    playSubs[gid] = pcol(gid).orderBy("at", "desc").limit(500).onSnapshot(ps => {
+      playsBy[gid] = ps.docs.map(d => Object.assign({}, d.data(), {id: d.id, groupId: gid}));
+      renderResults();
+    }, () => {
+      delete playSubs[gid];
+      if (attempt < 8) setTimeout(() => { if (me && groupById(gid)) subPlays(gid, attempt + 1); }, 1500 * (attempt + 1));
+    });
   }
 
   // ================= ZAPIS =================
@@ -175,7 +183,7 @@
         name: name, ownerId: me.uid,
         members: {[me.uid]: "owner"}, memberIds: [me.uid], memberNames: {[me.uid]: me.name},
         inviteCode: code, games: [], played: {}, history: [], players: [],
-        createdAtMs: Date.now(), updatedAt: Date.now()
+        createdAtMs: Date.now(), updatedAt: Date.now(), resetV: 1
       }, extra || {});
       const b = db.batch();
       b.set(ref, data);
@@ -607,8 +615,20 @@
   $("jnCode").addEventListener("keydown", e => { if (e.key === "Enter") $("jnBtn").click(); });
 
   // ================= WYNIKI =================
+  // Gracz w wyniku to albo konto w aplikacji ("u:<uid>"), albo wpisane imię ("n:<imię>").
   const MODES = [{id:"max", name:"Najwięcej pkt"}, {id:"min", name:"Najmniej pkt"}, {id:"coop", name:"Kooperacja"}];
   let rf = null;
+  function accounts(){
+    const m = new Map();
+    groups.forEach(g => Object.entries(g.memberNames || {}).forEach(([u, n]) => { if ((g.memberIds || []).includes(u) && n) m.set(u, n); }));
+    return m;
+  }
+  const scoreKey = s => s.uid ? "u:" + s.uid : "n:" + s.p;
+  const scoreWon = (pl, s) => s.win !== undefined ? !!s.win : (pl.winners || []).includes(s.p);
+  function labelOf(key, fallback){
+    if (key.startsWith("u:")) { const n = accounts().get(key.slice(2)); return n || fallback || (rf && rf.labels[key]) || "?"; }
+    return key.slice(2);
+  }
   function allGamesSorted(){
     const out = [];
     groups.forEach(g => (g.games || []).forEach(game => out.push({game, group: g})));
@@ -623,15 +643,15 @@
     games.forEach(x => { const o = document.createElement("option"); o.value = optVal(x.group.id, x.game.id); o.textContent = x.game.name + (groups.length > 1 ? "  ·  " + x.group.name : ""); sel.appendChild(o); });
     if (edit) {
       rf = { editId: edit.id, orig: edit, gid: edit.groupId, gameId: edit.gameId, mode: edit.mode || "max", coopWin: edit.coopWin !== false,
-             list: (edit.scores || []).map(x => x.p), pts: {} };
-      (edit.scores || []).forEach(x => { if (x.pts !== undefined) rf.pts[x.p] = String(x.pts); });
+             list: [], pts: {}, labels: {} };
+      (edit.scores || []).forEach(x => { const k = scoreKey(x); rf.list.push(k); rf.labels[k] = x.p; if (x.pts !== undefined) rf.pts[k] = String(x.pts); });
       if (!findGame(edit.gameId, edit.groupId)) { const o = document.createElement("option"); o.value = optVal(edit.groupId, edit.gameId); o.textContent = edit.gameName + " (usunięta z listy)"; sel.insertBefore(o, sel.firstChild); }
       sel.value = optVal(edit.groupId, edit.gameId);
       $("rfDate").value = dateStr(edit.at);
       $("rfTitle").textContent = "Edytuj wynik"; $("rfSave").textContent = "Zapisz zmiany";
     } else {
       const pick = (gameId && findGame(gameId, gid)) || games[0];
-      rf = { gid: pick.group.id, gameId: pick.game.id, mode: lastModeFor(pick.game.id), coopWin: true, list: [], pts: {} };
+      rf = { gid: pick.group.id, gameId: pick.game.id, mode: lastModeFor(pick.game.id), coopWin: true, list: [], pts: {}, labels: {} };
       sel.value = optVal(rf.gid, rf.gameId);
       $("rfDate").value = todayStr();
       $("rfTitle").textContent = "Nowy wynik"; $("rfSave").textContent = "Zapisz wynik";
@@ -639,19 +659,19 @@
     $("rfErr").textContent = ""; $("rfManageList").hidden = true;
     renderRF(); openOv("rf");
   }
-  function computeWinners(){
+  function computeWinners(){   // zwraca klucze zwycięzców
     const chosen = rf.list.slice();
     if (rf.mode === "coop") return rf.coopWin ? chosen : [];
-    const nums = chosen.map(p => ({p, v: parseFloat(String(rf.pts[p] ?? "").replace(",", "."))})).filter(x => !isNaN(x.v));
+    const nums = chosen.map(k => ({k, v: parseFloat(String(rf.pts[k] ?? "").replace(",", "."))})).filter(x => !isNaN(x.v));
     if (!nums.length || nums.length < chosen.length) return null;
     const best = rf.mode === "min" ? Math.min(...nums.map(x => x.v)) : Math.max(...nums.map(x => x.v));
-    return nums.filter(x => x.v === best).map(x => x.p);
+    return nums.filter(x => x.v === best).map(x => x.k);
   }
   function updatePreview(){
     const chosen = rf.list.slice(); const w = computeWinners(); let t = "";
     if (!chosen.length) t = "";
-    else if (rf.mode === "coop") t = rf.coopWin ? "🏆 Wygrana drużyny: " + chosen.join(", ") : "Przegrana – nikt nie dostaje zwycięstwa";
-    else if (w) t = "🏆 Wygrywa: " + w.join(", ") + (w.length > 1 ? " (remis)" : "");
+    else if (rf.mode === "coop") t = rf.coopWin ? "🏆 Wygrana drużyny: " + chosen.map(k => labelOf(k)).join(", ") : "Przegrana – nikt nie dostaje zwycięstwa";
+    else if (w) t = "🏆 Wygrywa: " + w.map(k => labelOf(k)).join(", ") + (w.length > 1 ? " (remis)" : "");
     $("rfPreview").textContent = t;
   }
   function renderRF(){
@@ -663,24 +683,34 @@
     $("rfPlLabel").textContent = rf.mode === "coop" ? "Kto grał (punkty opcjonalnie)" : "Gracze i punkty";
     const box = $("rfPlayers"); box.innerHTML = "";
     if (!rf.list.length) box.innerHTML = '<div class="empty" style="text-align:left;padding:4px 0">Nikt jeszcze nie dodany – wybierz gracza z listy poniżej albo wpisz nowego.</div>';
-    rf.list.forEach(p => {
+    rf.list.forEach(k => {
       const row = document.createElement("div"); row.className = "pl on";
       row.innerHTML = '<span class="tg"></span><input type="number" inputmode="decimal" step="any" placeholder="pkt"><button type="button" class="ib rm" aria-label="Usuń z tej rozgrywki">✕</button>';
-      row.querySelector(".tg").textContent = p;
-      const inp = row.querySelector("input"); inp.value = rf.pts[p] ?? ""; inp.setAttribute("aria-label", "Punkty: " + p);
-      inp.oninput = () => { rf.pts[p] = inp.value; updatePreview(); };
-      row.querySelector(".rm").onclick = () => { rf.list = rf.list.filter(x => x !== p); delete rf.pts[p]; renderRF(); };
+      row.querySelector(".tg").textContent = labelOf(k) + (k.startsWith("u:") ? " ◉" : "");
+      const inp = row.querySelector("input"); inp.value = rf.pts[k] ?? ""; inp.setAttribute("aria-label", "Punkty: " + labelOf(k));
+      inp.oninput = () => { rf.pts[k] = inp.value; updatePreview(); };
+      row.querySelector(".rm").onclick = () => { rf.list = rf.list.filter(x => x !== k); delete rf.pts[k]; renderRF(); };
       box.appendChild(row);
     });
-    const players = allPlayers();
+    // lista wyboru: najpierw konta w aplikacji, potem wpisani gracze
+    const acc = [...accounts().entries()].filter(([u]) => !rf.list.includes("u:" + u)).sort((a,b) => cmp(a[1], b[1]));
+    const names = allPlayers().filter(p => !rf.list.includes("n:" + p));
     const ps = $("rfPick"); ps.innerHTML = "";
-    const avail = players.filter(p => !rf.list.includes(p));
     const o0 = document.createElement("option"); o0.value = "";
-    o0.textContent = avail.length ? "wybierz gracza z listy…" : (players.length ? "wszyscy z listy już dodani" : "lista graczy jest pusta");
+    o0.textContent = (acc.length || names.length) ? "wybierz gracza z listy…" : "wszyscy z listy już dodani";
     ps.appendChild(o0);
-    avail.forEach(p => { const o = document.createElement("option"); o.value = p; o.textContent = p; ps.appendChild(o); });
-    ps.disabled = !avail.length;
-    $("rfManage").hidden = !players.length;
+    if (acc.length) {
+      const og = document.createElement("optgroup"); og.label = "Konta w aplikacji";
+      acc.forEach(([u, n]) => { const o = document.createElement("option"); o.value = "u:" + u; o.textContent = n + (u === me.uid ? " (Ty)" : ""); og.appendChild(o); });
+      ps.appendChild(og);
+    }
+    if (names.length) {
+      const og = document.createElement("optgroup"); og.label = "Inni gracze";
+      names.forEach(p => { const o = document.createElement("option"); o.value = "n:" + p; o.textContent = p; og.appendChild(o); });
+      ps.appendChild(og);
+    }
+    ps.disabled = !(acc.length || names.length);
+    $("rfManage").hidden = !allPlayers().length;
     if (!$("rfManageList").hidden) renderManage();
     updatePreview();
   }
@@ -690,19 +720,21 @@
     if (!rf.editId) rf.mode = lastModeFor(gameId);
     renderRF();
   };
-  function addToGame(name){
-    if (!rf.list.includes(name)) rf.list.push(name);
+  function addToGame(key){
+    if (!rf.list.includes(key)) rf.list.push(key);
     renderRF();
-    const rows = $("rfPlayers").querySelectorAll(".pl"); const r = rows[rf.list.indexOf(name)];
+    const rows = $("rfPlayers").querySelectorAll(".pl"); const r = rows[rf.list.indexOf(key)];
     if (r && rf.mode !== "coop") r.querySelector("input").focus();
   }
   $("rfPick").onchange = () => { const v = $("rfPick").value; if (v) addToGame(v); };
   $("rfAddPl").addEventListener("submit", e => {
     e.preventDefault();
     const n = $("rfNewPl").value.trim().replace(/\s+/g, " "); if (!n) return;
-    const ex = allPlayers().find(p => p.toLowerCase() === n.toLowerCase());
     $("rfNewPl").value = "";
-    addToGame(ex || n);
+    const accMatch = [...accounts().entries()].filter(([, an]) => an.toLowerCase() === n.toLowerCase());
+    if (accMatch.length === 1) { addToGame("u:" + accMatch[0][0]); return; }
+    const ex = allPlayers().find(p => p.toLowerCase() === n.toLowerCase());
+    addToGame("n:" + (ex || n));
   });
   let plArmed = null;
   function renderManage(){
@@ -724,8 +756,8 @@
   $("rfSave").onclick = async () => {
     const chosen = rf.list.slice();
     if (!chosen.length) { $("rfErr").textContent = "Dodaj graczy, którzy grali."; return; }
-    const winners = computeWinners();
-    if (rf.mode !== "coop" && !winners) { $("rfErr").textContent = "Wpisz punkty każdego gracza."; return; }
+    const win = computeWinners();
+    if (rf.mode !== "coop" && !win) { $("rfErr").textContent = "Wpisz punkty każdego gracza."; return; }
     const f = findGame(rf.gameId, rf.gid);
     const keepOld = !f && rf.editId && rf.gameId === rf.orig.gameId && rf.gid === rf.orig.groupId;
     if (!f && !keepOld) { $("rfErr").textContent = "Wybierz grę."; return; }
@@ -733,9 +765,17 @@
     let at = Date.now();
     if (rf.editId && dStr === dateStr(rf.orig.at)) at = rf.orig.at;
     else if (dStr && dStr !== todayStr()) { const d = new Date(dStr + "T20:00:00"); if (!isNaN(d)) at = d.getTime(); }
-    const scores = chosen.map(p => { const v = parseFloat(String(rf.pts[p] ?? "").replace(",", ".")); return isNaN(v) ? {p} : {p, pts: v}; });
+    const winSet = new Set(win || []);
+    const scores = chosen.map(k => {
+      const sc = {p: labelOf(k), win: winSet.has(k)};
+      if (k.startsWith("u:")) sc.uid = k.slice(2);
+      const v = parseFloat(String(rf.pts[k] ?? "").replace(",", "."));
+      if (!isNaN(v)) sc.pts = v;
+      return sc;
+    });
     const gid = rf.gid;
-    const play = { gameId: rf.gameId, gameName: f ? f.game.name : rf.orig.gameName, at, mode: rf.mode, scores, winners: winners || [],
+    const play = { gameId: rf.gameId, gameName: f ? f.game.name : rf.orig.gameName, at, mode: rf.mode, scores,
+                   winners: scores.filter(x => x.win).map(x => x.p),
                    createdBy: rf.editId ? (rf.orig.createdBy || me.uid) : me.uid, createdByName: rf.editId ? (rf.orig.createdByName || me.name) : me.name };
     if (rf.mode === "coop") play.coopWin = rf.coopWin;
     const g = groupById(gid);
@@ -748,9 +788,9 @@
       } else {
         b.set(pcol(gid).doc(rf.editId || uid()), play);
       }
-      // nowe imiona trafiają na listę graczy grupy; nowy wynik oznacza grę jako rozegraną
+      // wpisane imiona trafiają na listę graczy grupy; nowy wynik oznacza grę jako rozegraną
       const gp = {updatedAt: Date.now()};
-      const newNames = chosen.filter(p => !(g.players || []).includes(p));
+      const newNames = chosen.filter(k => k.startsWith("n:")).map(k => k.slice(2)).filter(p => !(g.players || []).includes(p));
       if (newNames.length) gp.players = FV.arrayUnion(...newNames);
       if (!rf.editId && f) {
         if (!isPlayed(g, f.game)) gp["played." + f.game.id] = at;
@@ -779,13 +819,14 @@
       rfEl.appendChild(b);
     });
     const shown = ui.rankGroup === "all" ? plays : plays.filter(p => p.groupId === ui.rankGroup);
+    const acc = accounts();
     const stats = {};
-    shown.forEach(pl => {
-      (pl.scores || []).forEach(s => { stats[s.p] = stats[s.p] || {w:0, g:0}; stats[s.p].g++; });
-      (pl.winners || []).forEach(w => { stats[w] = stats[w] || {w:0, g:0}; stats[w].w++; });
-    });
-    const rows = Object.keys(stats).map(p => Object.assign({p}, stats[p]))
-      .sort((a,b) => b.w - a.w || (b.g ? b.w/b.g : 0) - (a.g ? a.w/a.g : 0) || cmp(a.p, b.p));
+    shown.forEach(pl => (pl.scores || []).forEach(s => {
+      const k = scoreKey(s);
+      const st = stats[k] = stats[k] || {w:0, g:0, label: s.uid ? (acc.get(s.uid) || s.p) : s.p, account: !!s.uid};
+      st.g++; if (scoreWon(pl, s)) st.w++;
+    }));
+    const rows = Object.values(stats).sort((a,b) => b.w - a.w || (b.g ? b.w/b.g : 0) - (a.g ? a.w/a.g : 0) || cmp(a.label, b.label));
     const t = $("rank");
     if (!shown.length) t.innerHTML = '<tr><td class="empty" style="text-align:center;border:0">' + (plays.length ? "Brak wyników w tej grupie." : "Brak wyników. Dodaj pierwszy po rozgrywce.") + '</td></tr>';
     else {
@@ -795,7 +836,7 @@
         const tr = document.createElement("tr");
         if (r.w && r.w === top) tr.className = "top";
         tr.innerHTML = "<td></td><td class='w'></td><td></td><td></td>";
-        tr.children[0].textContent = (r.w && r.w === top ? "👑 " : "") + r.p;
+        tr.children[0].textContent = (r.w && r.w === top ? "👑 " : "") + r.label;
         tr.children[1].textContent = r.w; tr.children[2].textContent = r.g;
         tr.children[3].textContent = r.g ? Math.round(100 * r.w / r.g) + "%" : "–";
         t.appendChild(tr);
@@ -815,9 +856,9 @@
       const sorted = (pl.scores || []).slice().sort((a,b) => (pl.mode === "min" ? 1 : -1) * ((a.pts ?? -Infinity) - (b.pts ?? -Infinity)));
       sorted.forEach((sc, i) => {
         const sp = document.createElement("span");
-        const won = (pl.winners || []).includes(sc.p);
+        const won = scoreWon(pl, sc);
         if (won) sp.className = "win";
-        sp.textContent = (won ? "🏆 " : "") + sc.p + (sc.pts !== undefined ? " " + sc.pts : "");
+        sp.textContent = (won ? "🏆 " : "") + (sc.uid ? (acc.get(sc.uid) || sc.p) : sc.p) + (sc.pts !== undefined ? " " + sc.pts : "");
         rs.appendChild(sp);
         if (i < sorted.length - 1) rs.appendChild(document.createTextNode(" · "));
       });
@@ -834,6 +875,23 @@
       }
       ul.appendChild(li);
     });
+  }
+  // Jednorazowe czyszczenie (16.11.2026): właściciel grupy utworzonej przed tą wersją
+  // przy pierwszym uruchomieniu usuwa listę wpisanych graczy i wszystkie wyniki tej grupy.
+  const RESET_V = 1, RESET_BEFORE = Date.parse("2026-11-16T12:00:00Z");
+  const resetting = new Set();
+  async function oneTimeReset(){
+    for (const g of groups) {
+      if (!isOwner(g) || (g.resetV || 0) >= RESET_V || (g.createdAtMs || 0) >= RESET_BEFORE || resetting.has(g.id)) continue;
+      resetting.add(g.id);
+      try {
+        const ps = await pcol(g.id).get();
+        for (let i = 0; i < ps.docs.length; i += 400) {
+          const b = db.batch(); ps.docs.slice(i, i + 400).forEach(d => b.delete(d.ref)); await b.commit();
+        }
+        await gref(g.id).update({players: [], resetV: RESET_V, updatedAt: Date.now()});
+      } catch(e){ resetting.delete(g.id); }
+    }
   }
   $("addResult").onclick = () => openResult(null, null);
 
