@@ -525,7 +525,7 @@
       stage.querySelector(".name").textContent = vlabel(jp.game, findExp(jp.game, ui.justPlayed.exp));
       stage.querySelector(".stagebtn").onclick = () => openResult(jp.game.id, jp.group.id, null, ui.justPlayed.exp);
     } else if (!groups.length) stage.innerHTML = '<div class="hint">Utwórz grupę albo dołącz do grupy znajomych.</div>';
-    else if (!groups.some(canEdit)) stage.innerHTML = '<div class="hint">Jesteś graczem w swoich grupach – gry losuje właściciel lub edytor. Swoje wyniki zobaczysz w zakładce Wyniki.</div>';
+    else if (!groups.some(canEdit)) stage.innerHTML = '<div class="hint">Jesteś graczem w swoich grupach – gry losuje właściciel lub Mistrz Gry. Swoje wyniki zobaczysz w zakładce Wyniki.</div>';
     else if (!pool.length) stage.innerHTML = '<div class="hint">Dodaj gry w zakładce Gry, a potem losuj.</div>';
     else if (!left) stage.innerHTML = '<div class="hint">Cała pula rozegrana. Misja zakończona.</div>';
     else stage.innerHTML = '<div class="hint">oczekuję na polecenie…</div>';
@@ -566,7 +566,7 @@
     $("addForm").hidden = !edit;
     const rn = $("roleNote");
     rn.hidden = edit;
-    if (!edit) rn.innerHTML = "Jesteś <b>graczem</b> w tej grupie – nie widzisz jej gier. Widzisz wyniki rozgrywek, w których grasz (zakładka Wyniki). Gry i wyniki dodają właściciel i edytorzy.";
+    if (!edit) rn.innerHTML = "Jesteś <b>graczem</b> w tej grupie – nie widzisz jej gier. Widzisz wyniki rozgrywek, w których grasz (zakładka Wyniki). Gry i wyniki dodają właściciel i Mistrzowie Gry.";
     $("list").hidden = !edit; $("tools").hidden = !edit;
     if (!edit) { $("list").innerHTML = ""; $("tools").innerHTML = ""; return; }
 
@@ -898,7 +898,7 @@
   // ================= GRUPA: członkowie, kod =================
   let gmGid = null, gmArmed = null;
   $("openGm").onclick = () => { const g = groups[ui.tab]; if (!g) return; gmGid = g.id; gmArmed = null; renderGm(); openOv("gm"); };
-  const ROLE_PL = {owner: "właściciel", editor: "edytor", player: "gracz"};
+  const ROLE_PL = {owner: "właściciel", editor: "Mistrz Gry", player: "gracz"};
   function renderGm(){
     const g = groupById(gmGid);
     const body = $("gmBody");
@@ -909,7 +909,7 @@
     add('<span class="fl">Twoja rola</span><p class="rolenote"><span class="role ' + role(g) + '">' + ROLE_PL[role(g)] + '</span></p>');
     if (canEdit(g)) {
       // dwa kody: dla edytora (widzi gry, wpisuje wyniki) i dla gracza (tylko bierze udział w rozgrywkach)
-      [["editor", "Kod dla edytora", "Edytor widzi gry grupy, dodaje i usuwa gry oraz wpisuje wyniki."],
+      [["editor", "Kod dla Mistrza Gry", "Mistrz Gry widzi gry grupy, dodaje i usuwa gry oraz wpisuje wyniki."],
        ["player", "Kod dla gracza", "Gracz nie widzi gier grupy – bierze udział w rozgrywkach i widzi swoje wyniki."]].forEach(([r, label, note]) => {
         const code = g.shelf ? (r === "editor" ? g.editorCode : g.playerCode) : (r === "player" ? g.inviteCode : "");
         const wrap = document.createElement("div"); wrap.className = "codebox";
@@ -919,7 +919,7 @@
         wrap.querySelector(".fl").textContent = label;
         wrap.querySelector(".code").textContent = code || "—";
         wrap.querySelector(".rolenote").textContent = note;
-        const shareText = "Dołącz do grupy „" + g.name + "” w aplikacji Planszomat jako " + ROLE_PL[r].toLowerCase() + ". Kod: " + code;
+        const shareText = "Dołącz do grupy „" + g.name + "” w aplikacji Planszomat jako " + (r === "editor" ? "Mistrz Gry" : "gracz") + ". Kod: " + code;
         wrap.querySelector(".cp").onclick = async () => {
           if (!code) return;
           if (Android && Android.copy) { Android.copy(code); toast("Skopiowano kod"); return; }
@@ -953,7 +953,7 @@
         if (isOwner(g) && r !== "owner") {
           const sel = document.createElement("select");
           sel.setAttribute("aria-label", "Rola");
-          sel.innerHTML = '<option value="player">gracz</option><option value="editor">edytor</option><option value="__remove">usuń z grupy</option>';
+          sel.innerHTML = '<option value="player">gracz</option><option value="editor">Mistrz Gry</option><option value="__remove">usuń z grupy</option>';
           sel.value = r;
           sel.onchange = async () => {
             if (sel.value === "__remove") {
@@ -996,7 +996,7 @@
         if (g[field]) b.delete(db.collection("invites").doc(g[field]));
         b.update(sref(g.id), {[field]: code, updatedAt: Date.now()});
         b.set(db.collection("invites").doc(code), {groupId: g.id, role: r, createdBy: me.uid, createdAt: Date.now()});
-        log(g.id, "invite", "Wygenerowanie nowego kodu zaproszenia (" + ROLE_PL[r].toLowerCase() + ")");
+        log(g.id, "invite", "Wygenerowanie nowego kodu zaproszenia (" + (r === "editor" ? "Mistrz Gry" : "gracz") + ")");
       }); toast("Nowy kod: " + code); return; }
       catch(e){ if (!String(e.code).includes("permission-denied")) { toast(errMsg(e)); return; } }
     }
@@ -1038,7 +1038,7 @@
       if (groupById(gid)) { $("jnErr").textContent = "Już należysz do tej grupy."; return; }
       await gref(gid).update({["members." + me.uid]: r, memberIds: FV.arrayUnion(me.uid), ["memberNames." + me.uid]: me.name, joinCode: code});
       lcol(gid).doc().set(logEntry("member", "Dołączenie do grupy (kodem zaproszenia)")).catch(() => {});
-      closeOv("jn"); toast(r === "editor" ? "Dołączono do grupy jako edytor!" : "Dołączono do grupy jako gracz – zobaczysz wyniki, w których grasz.");
+      closeOv("jn"); toast(r === "editor" ? "Dołączono do grupy jako Mistrz Gry!" : "Dołączono do grupy jako gracz – zobaczysz wyniki, w których grasz.");
     } catch(e){ $("jnErr").textContent = String(e.code).includes("permission-denied") ? "Ten kod jest już nieaktualny – poproś o nowy." : errMsg(e); }
     finally { $("jnBtn").disabled = false; }
   };

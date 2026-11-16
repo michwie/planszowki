@@ -19,7 +19,7 @@
 
 <!-- ================= LOGOWANIE ================= -->
 <div class="wrap auth" id="authView" hidden>
-  <h1>W co dziś gramy!</h1>
+  <h1>W co dziś gramy?</h1>
   <div class="sub">zaloguj się, aby zacząć</div>
   <section class="card">
     <div class="tabs" id="authTabs">
@@ -49,7 +49,7 @@
 
 <!-- ================= APLIKACJA ================= -->
 <div class="wrap" id="appView" hidden>
-  <h1>W co dziś gramy!</h1>
+  <h1>W co dziś gramy?</h1>
   <div class="sub">losowanie bez powtórek do końca kolekcji</div>
   <div class="acct"><span>zalogowano: <b id="meName"></b></span></div>
   <div class="banner" id="updBanner" hidden><span id="updText">Dostępna nowa wersja</span><button id="updBtn">Pobierz</button></div>
@@ -308,17 +308,17 @@
         <li><b>+ grupa</b> tworzy nową grupę – jesteś jej <b>właścicielem</b>.</li>
         <li>Grupa to <b>szafa z grami</b> – lista gier, które macie.</li>
         <li><b>Właściciel</b> może wszystko: zmieniać gry, wpisywać wyniki, nadawać role, zmieniać kody, usuwać osoby i całą grupę.</li>
-        <li><b>Edytor</b> widzi wszystko w grupie: dodaje, usuwa i przenosi gry, losuje, wpisuje, poprawia i usuwa wyniki, zmienia nazwę grupy.</li>
+        <li><b>Mistrz Gry</b> widzi wszystko w grupie: dodaje, usuwa i przenosi gry, losuje, wpisuje, poprawia i usuwa wyniki, zmienia nazwę grupy.</li>
         <li><b>Gracz</b> tylko bierze udział w rozgrywkach: <b>nie widzi gier grupy</b> ani jej zmian, nie losuje i nie wpisuje wyników. Widzi wyniki rozgrywek, w których grał, ranking i swoje „Ostatnio rozegrane”.</li>
         <li>Ikona <b>⚙</b> obok nazwy grupy otwiera listę członków i kody zaproszeń.</li>
       </ul>
 
       <h3>Zapraszanie</h3>
       <ul>
-        <li>Każda grupa ma <b>dwa kody</b>: <b>Kod dla edytora</b> i <b>Kod dla gracza</b>. Wybierając kod, decydujesz, kim będzie nowa osoba.</li>
-        <li>Właściciel lub edytor otwiera <b>⚙</b> i wysyła wybrany kod (przycisk <b>Udostępnij</b> albo <b>Kopiuj</b>).</li>
-        <li>Znajomy w zakładce <b>Gry</b> naciska <b>⇥ kod</b>, wpisuje kod i dołącza jako edytor albo gracz – zależnie od kodu.</li>
-        <li>Właściciel może potem zmienić rolę (gracz ↔ edytor) albo usunąć osobę z grupy.</li>
+        <li>Każda grupa ma <b>dwa kody</b>: <b>Kod dla Mistrza Gry</b> i <b>Kod dla gracza</b>. Wybierając kod, decydujesz, kim będzie nowa osoba.</li>
+        <li>Właściciel lub Mistrz Gry otwiera <b>⚙</b> i wysyła wybrany kod (przycisk <b>Udostępnij</b> albo <b>Kopiuj</b>).</li>
+        <li>Znajomy w zakładce <b>Gry</b> naciska <b>⇥ kod</b>, wpisuje kod i dołącza jako Mistrz Gry albo gracz – zależnie od kodu.</li>
+        <li>Właściciel może potem zmienić rolę (gracz ↔ Mistrz Gry) albo usunąć osobę z grupy.</li>
         <li><b>Nowy kod</b> (tylko właściciel) unieważnia stary – przydaje się, gdy kod trafił do niewłaściwej osoby.</li>
         <li>Chcesz losować z gier znajomych? Poproś ich o kod do ich grupy.</li>
       </ul>
@@ -327,13 +327,13 @@
       <ul>
         <li>Grę dodajesz, wpisując tytuł i naciskając <b>+</b>. Gry układają się alfabetycznie.</li>
         <li><b>⇄</b> przenosi grę do innej grupy (w której też możesz edytować), <b>🗑</b> ją usuwa – naciśnij dwa razy.</li>
-        <li><b>Rozszerzenia:</b> przycisk <b>⊕</b> przy grze (właściciel i edytorzy) pozwala dopisać rozszerzenie albo je usunąć (✕ przy rozszerzeniu, dwa naciśnięcia). Wpisz nazwę i naciśnij <b>✓ Gotowe</b> – rozszerzenie zostanie dodane, a edycja zamknięta (kolejne dodasz, naciskając znów ⊕). <b>Anuluj</b> porzuca wpisaną nazwę. Pod nazwą gry widać drzewko: „wersja podstawowa” i nazwy rozszerzeń, przy każdej wersji ✓ z datą (rozegrana) albo ○ (do zagrania).</li>
+        <li><b>Rozszerzenia:</b> przycisk <b>⊕</b> przy grze (właściciel i Mistrzowie Gry) pozwala dopisać rozszerzenie albo je usunąć (✕ przy rozszerzeniu, dwa naciśnięcia). Wpisz nazwę i naciśnij <b>✓ Gotowe</b> – rozszerzenie zostanie dodane, a edycja zamknięta (kolejne dodasz, naciskając znów ⊕). <b>Anuluj</b> porzuca wpisaną nazwę. Pod nazwą gry widać drzewko: „wersja podstawowa” i nazwy rozszerzeń, przy każdej wersji ✓ z datą (rozegrana) albo ○ (do zagrania).</li>
         <li>Kwadracik przy grze pokazuje ✓, gdy gra jest rozegrana – przy grze z rozszerzeniami dopiero wtedy, gdy rozegrane są <b>wszystkie wersje</b> (podstawowa i każde rozszerzenie). <b>Gry nie oznacza się ręcznie</b> – staje się rozegrana dopiero po <b>wpisaniu wyniku</b>, u każdego gracza z kontem, który jest w tym wyniku. <b>Stan rozegranych dotyczy tylko Ciebie</b> – każdy członek grupy ma własny stan rozegranych gier.</li>
       </ul>
 
       <h3>Losowanie</h3>
       <ul>
-        <li>Losujesz tylko z grup, w których jesteś <b>właścicielem</b> lub <b>edytorem</b>.</li>
+        <li>Losujesz tylko z grup, w których jesteś <b>właścicielem</b> lub <b>Mistrzem Gry</b>.</li>
         <li>Nad losowaniem wybierz, z których grup losować: <b>Wszystkie grupy</b> albo dowolne konkretne (można zaznaczyć kilka, np. Waszą i znajomych). Telefon zapamiętuje wybór.</li>
         <li><b>Losuj grę</b> wybiera tytuł spośród gier, których <b>Ty</b> jeszcze nie rozegrałeś w bieżącym cyklu.</li>
         <li>Gry z rozszerzeniami losują się w wariantach: <b>wersja podstawowa</b> i każde rozszerzenie osobno. Rozegrany wariant wypada z puli, więc tę samą grę możesz wylosować później z innym rozszerzeniem. Gra znika z losowania dopiero po rozegraniu wszystkich jej wersji.</li>
@@ -352,7 +352,7 @@
         <li><b>Prywatność:</b> wynik widzą tylko gracze z kontem, którzy w nim wystąpili, oraz osoba, która go wpisała. Ranking liczy się z wyników, które widzisz – czyli z Twoich rozgrywek.</li>
         <li>Zwycięzca wybiera się sam na podstawie punktów. Przy remisie wygrywa każdy z najlepszym wynikiem.</li>
         <li>Osoby z kontem w aplikacji (członkowie Twoich grup) są na liście graczy od razu po dołączeniu do grupy – nie trzeba ich wpisywać.</li>
-        <li><b>✎</b> poprawia wynik, <b>🗑</b> go usuwa (dwa naciśnięcia). Wyniki wpisują, zmieniają i usuwają właściciel i edytorzy grupy.</li>
+        <li><b>✎</b> poprawia wynik, <b>🗑</b> go usuwa (dwa naciśnięcia). Wyniki wpisują, zmieniają i usuwają właściciel i Mistrzowie Gry.</li>
         <li><b>Usunięcie wyniku</b> przywraca grę (wersję z tego wyniku) do losowania u graczy z kontem, którzy w nim byli – chyba że ta sama wersja jest jeszcze w innym ich wyniku.</li>
       </ul>
 
@@ -377,7 +377,7 @@
       <ul>
         <li>Sekcja <b>Change Log</b> (zakładka <b>Więcej</b>) pokazuje, kto i kiedy coś zrobił: imię, datę z godziną i opis zmiany.</li>
         <li>Zapisywane są m.in.: rejestracja konta, utworzenie grupy, dołączenie do grupy, dodanie, usunięcie i przeniesienie gry, dodanie, zmiana i usunięcie wyniku, zmiana ról, nowy kod zaproszenia, nowy cykl losowania.</li>
-        <li>Wydarzenia grupy (gry, członkowie, nazwa, kody zaproszeń) widzą właściciel i edytorzy – gracze ich nie widzą. Wpis o wyniku widzi każdy gracz z kontem, który był w tej rozgrywce, oraz osoba, która go wpisała.</li>
+        <li>Wydarzenia grupy (gry, członkowie, nazwa, kody zaproszeń) widzą właściciel i Mistrzowie Gry – gracze ich nie widzą. Wpis o wyniku widzi każdy gracz z kontem, który był w tej rozgrywce, oraz osoba, która go wpisała.</li>
         <li>Przy kilku grupach możesz wybrać, z której grupy pokazać wpisy. Rejestracje kont widać w widoku „Wszystko”.</li>
         <li>Widać <b>5 najnowszych wpisów</b> (w wybranym widoku). Wpisów nie da się edytować ani usuwać.</li>
       </ul>
