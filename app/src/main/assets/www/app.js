@@ -580,7 +580,7 @@
       const baseDone = isVPlayed(g, game, null);
       const li = document.createElement("li");
       li.className = "game" + (played ? " played" : "");
-      li.innerHTML = '<span class="ib check" title="' + (baseDone ? "Rozegrana" : "Do zagrania") + '">' + (baseDone ? "✓" : "") + '</span>' +
+      li.innerHTML = '<span class="ib check" title="' + (played ? "Rozegrane wszystkie wersje" : "Do zagrania") + '">' + (played ? "✓" : "") + '</span>' +
         '<div class="gname"><b></b><small></small></div>' +
         (edit ? '<button class="ib xed" title="Rozszerzenia">⊕</button>' : '') +
         (edit && moveTargets.length ? '<button class="ib move" title="Przenieś do innej grupy">⇄</button>' : '') +
