@@ -195,7 +195,7 @@
     Object.keys(stateSubs).forEach(k => { stateSubs[k](); delete stateSubs[k]; delete stateBy[k]; });
     Object.keys(shelfSubs).forEach(k => { shelfSubs[k](); delete shelfSubs[k]; delete shelfBy[k]; });
     groupDocs = [];
-    backfilled.clear();
+    backfilled.clear(); loadedP.clear(); loadedS.clear(); reconciled.clear();
     if (regsUnsub) { regsUnsub(); regsUnsub = null; } regs = {};
     if (prefsUnsub) { prefsUnsub(); prefsUnsub = null; }
     groups = [];
@@ -285,6 +285,7 @@
     if (playSubs[gid]) return;
     playSubs[gid] = pcol(gid).where("viewers", "array-contains", me.uid).onSnapshot(ps => {
       playsBy[gid] = ps.docs.map(d => Object.assign({}, d.data(), {id: d.id, groupId: gid})).sort((a,b) => b.at - a.at);
+      if (!ps.metadata.fromCache) { loadedP.add(gid); reconcileMine(gid); }
       renderResults();
     }, () => {
       delete playSubs[gid];
@@ -316,6 +317,7 @@
       const st = d.exists ? d.data() : {};
       const hist = (st.history || []).slice().sort((a,b) => b.at - a.at);
       stateBy[gid] = {played: st.played || {}, history: hist};
+      if (!d.metadata.fromCache) { loadedS.add(gid); reconcileMine(gid); }
       if (hist.length > 60) ref.set({history: hist.slice(0, 50)}, {mergeFields: ["history"]}).catch(() => {});
       render();
     }, () => {
@@ -323,6 +325,27 @@
       if (attempt < 8) setTimeout(() => { if (me && groupById(gid)) subState(gid, attempt + 1); }, 1500 * (attempt + 1));
     });
   }
+  // Jednorazowo po starcie: moje "rozegrane" muszą wynikać z wyników, w których jestem.
+  // Oznaczenia bez wyniku (np. po starszej edycji wyniku albo z dawnego „Gramy!”) usuwam – gra wraca do losowania.
+  const loadedP = new Set(), loadedS = new Set(), reconciled = new Set();
+  function reconcileMine(gid){
+    if (reconciled.has(gid) || !loadedP.has(gid) || !loadedS.has(gid)) return;
+    reconciled.add(gid);
+    const st = stateBy[gid] || {played: {}, history: []};
+    const ok = new Set();
+    (playsBy[gid] || []).filter(pl => (pl.scores || []).some(sc => sc.uid === me.uid)).forEach(pl => {
+      ((pl.exps && pl.exps.length) ? pl.exps.map(e => e.id) : [null]).forEach(id => ok.add(id ? pl.gameId + "__" + id : pl.gameId));
+    });
+    const old = Date.now() - 5 * 60 * 1000;   // świeże oznaczenia zostawiam (wynik mógł jeszcze nie dotrzeć)
+    const drop = Object.keys(st.played).filter(k => !ok.has(k) && st.played[k] < old);
+    const dropH = st.history.filter(h => !ok.has(h.id) && h.at < old);
+    if (!drop.length && !dropH.length) return;
+    const played = {}; drop.forEach(k => played[k] = FV.delete());
+    const data = {played, updatedAt: Date.now()};
+    if (dropH.length) data.history = FV.arrayRemove(...dropH);
+    scol(gid).doc(me.uid).set(data, {merge: true}).catch(() => {});
+  }
+
   // Jednorazowo: starym wynikom (bez "viewers") dopisz, kto może je widzieć. Działa, dopóki obowiązują stare reguły.
   const backfilled = new Set();
   async function backfillPlays(g){
@@ -1224,16 +1247,25 @@
       // wpisane imiona trafiają na listę graczy grupy
       const newNames = chosen.filter(k => k.startsWith("n:")).map(k => k.slice(2)).filter(p => !(g.players || []).includes(p));
       if (newNames.length) b.update(gdoc(g), {players: FV.arrayUnion(...newNames), updatedAt: Date.now()});
-      // gra rozegrana dla każdego gracza z kontem, który jest w tej grupie (w jego prywatnym stanie);
-      // przy edycji – tylko dla nowo dopisanych graczy
-      const origUids = new Set(editId ? (rf.orig.scores || []).filter(x => x.uid).map(x => x.uid) : []);
-      const markUids = accountUids.filter(u => (g.memberIds || []).includes(u) && !origUids.has(u));
-      if (f && markUids.length) {
-        const vs = selExps.length ? selExps : [null];
-        const playedMap = {}; vs.forEach(e => playedMap[vkey(f.game, e)] = at);
-        const hist = vs.map(e => histEntry(f.game, at, e));
-        extra(b => markUids.forEach(u => stateSet(b, gid, u, {played: Object.assign({}, playedMap), history: FV.arrayUnion(...hist)})));
+      // gra (wybrane wersje) rozegrana dla każdego gracza z kontem, który jest w tej grupie (w jego prywatnym stanie).
+      // Przy edycji: to, co zniknęło z wyniku (gracz, rozszerzenie, gra, data), wraca do losowania, a to, co doszło – jest oznaczane.
+      const newU = accountUids.filter(u => (g.memberIds || []).includes(u));
+      const newIds = selExps.length ? selExps.map(e => e.id) : [null];
+      let skipNew = () => false;
+      if (editId) {
+        const o = rf.orig, og = groupById(origGid);
+        const oU = [...new Set((o.scores || []).filter(x => x.uid).map(x => x.uid))].filter(u => og && (og.memberIds || []).includes(u));
+        const oIds = (o.exps && o.exps.length) ? o.exps.map(e => e.id) : [null];
+        const sameCtx = origGid === gid && o.gameId === rf.gameId && o.at === at;
+        extra(b => unmarkPlay(b, o, (u, id) => sameCtx && newU.includes(u) && newIds.includes(id)));
+        skipNew = (u, id) => sameCtx && oU.includes(u) && oIds.includes(id);
       }
+      if (f) extra(b => newU.forEach(u => {
+        const vs = newIds.filter(id => !skipNew(u, id)).map(id => id ? findExp(f.game, id) : null);
+        if (!vs.length) return;
+        const playedMap = {}; vs.forEach(e => playedMap[vkey(f.game, e)] = at);
+        stateSet(b, gid, u, {played: playedMap, history: FV.arrayUnion(...vs.map(e => histEntry(f.game, at, e)))});
+      }));
       const summary = q(playLabel(play)) + " – " + scores.map(x => (x.win ? "🏆 " : "") + x.p + (x.pts !== undefined ? " " + x.pts : "")).join(", ")
         + (play.mode === "coop" ? (play.coopWin ? " (kooperacja – wygrana)" : " (kooperacja – przegrana)") : "");
       log(gid, "result", (editId ? "Zmiana wyniku: " : "Dodanie wyniku: ") + summary, play.viewers);
@@ -1324,7 +1356,7 @@
   $("addResult").onclick = () => openResult(null, null);
   // Usunięcie wyniku: gra (wersje z tego wyniku) wraca do losowania u graczy z kontem, którzy w nim byli –
   // chyba że ta sama wersja jest jeszcze w innym wyniku z ich udziałem.
-  function unmarkPlay(b, pl){
+  function unmarkPlay(b, pl, keepFn){
     const g = groupById(pl.groupId); if (!g) return;
     const f = findGame(pl.gameId, pl.groupId);
     const game = f ? f.game : {id: pl.gameId, name: pl.gameName, exps: pl.exps || []};
@@ -1335,7 +1367,7 @@
       const keep = new Set();
       others.filter(x => (x.scores || []).some(sc => sc.uid === u))
         .forEach(x => ((x.exps && x.exps.length) ? x.exps.map(e => e.id) : [null]).forEach(id => keep.add(id)));
-      const drop = vs.filter(e => !keep.has(e ? e.id : null));
+      const drop = vs.filter(e => !keep.has(e ? e.id : null) && !(keepFn && keepFn(u, e ? e.id : null)));
       if (!drop.length) return;
       const played = {}; drop.forEach(e => played[vkey(game, e)] = FV.delete());
       stateSet(b, pl.groupId, u, {played, history: FV.arrayRemove(...drop.map(e => histEntry(game, pl.at, e)))});
