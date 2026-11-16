@@ -21,9 +21,9 @@ android {
             def ks = System.getenv("KEYSTORE_FILE")
             if (ks) {
                 storeFile file(ks)
-                storePassword System.getenv("KEYSTORE_PASSWORD")
+                storePassword System.getenv("KEYSTORE_PASSWORD")?.trim()
                 keyAlias System.getenv("KEY_ALIAS") ?: "planszowki"
-                keyPassword System.getenv("KEYSTORE_PASSWORD")
+                keyPassword System.getenv("KEYSTORE_PASSWORD")?.trim()
             }
         }
     }

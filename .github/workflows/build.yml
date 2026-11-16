@@ -52,7 +52,7 @@ jobs:
             echo "::warning::Brak sekretu KEYSTORE_BASE64 – buduję wersję testową bez publikowania"
             echo "signed=false" >> "$GITHUB_OUTPUT"
           else
-            echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/planszowki.jks"
+            echo "$KEYSTORE_BASE64" | tr -d " \r\n" | base64 -d > "$RUNNER_TEMP/planszowki.jks"
             echo "signed=true" >> "$GITHUB_OUTPUT"
           fi
 
