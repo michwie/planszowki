@@ -1720,12 +1720,66 @@
       const url = asset ? asset.browser_download_url : ("https://github.com/" + CFG.repo + "/releases/latest");
       $("updText").textContent = "Dostępna nowa wersja " + String(rel.name || "").replace(/^Wersja\s*/i, "");
       $("updBanner").hidden = false;
+      const verName = String(rel.name || "").replace(/^Wersja\s*/i, "");
       $("updBtn").onclick = () => {
+        // nowa wersja aplikacji: pobieranie i instalacja w oknie aplikacji
+        if (asset && Android && Android.downloadUpdate) { startUpdate(url, verName); return; }
         if (Android && Android.openUrl) Android.openUrl(url); else window.open(url, "_blank");
         toast("Pobieranie… po zakończeniu otwórz plik i potwierdź instalację");
       };
     } catch(e){}
   }
+
+  // ---------- okno aktualizacji ----------
+  let updBusy = false, updArgs = null;
+  function updState(o){
+    if (o.pct !== undefined) { $("updFill").classList.remove("indet"); $("updFill").style.width = o.pct + "%"; }
+    if (o.indet) { $("updFill").classList.add("indet"); $("updFill").style.width = "100%"; }
+    if (o.text !== undefined) $("updSt").textContent = o.text;
+    if (o.icon) $("updIcon").textContent = o.icon;
+    $("updIcon").classList.toggle("spin", !!o.spin);
+    $("updRetry").hidden = !o.retry;
+    $("updClose").hidden = !!o.lock;
+  }
+  function startUpdate(url, verName){
+    updArgs = [url, verName];
+    $("updVer").textContent = "Wersja " + verName;
+    updState({pct: 0, text: "Pobieranie… 0%", icon: "⟳", spin: true, lock: false});
+    openOv("updOv");
+    if (updBusy) return;
+    updBusy = true;
+    Android.downloadUpdate(url);
+  }
+  $("updRetry").onclick = () => { updBusy = false; if (updArgs) startUpdate(updArgs[0], updArgs[1]); };
+  // postęp z Androida: 0–99 pobieranie, 100 instalacja, liczby ujemne – stany szczególne
+  window.updProgress = p => {
+    if (p >= 0 && p < 100) updState({pct: p, text: "Pobieranie… " + p + "%", spin: true});
+    else if (p === 100) updState({indet: true, text: "Instalowanie… aplikacja uruchomi się ponownie", icon: "⟳", spin: true, lock: true});
+    else if (p === -2) updState({text: "Zezwól Planszomatowi na instalowanie aplikacji i wróć – instalacja ruszy sama.", icon: "🔒"});
+    else if (p === -3) updState({indet: true, text: "Potwierdź instalację w oknie systemowym.", icon: "⟳", spin: true});
+    else if (p === -5) { updBusy = false; updState({pct: 100, text: "Zainstalowano. Uruchom aplikację ponownie.", icon: "✓"}); }
+    else if (p === -6) { updBusy = false; updState({pct: 0, text: "Instalacja anulowana.", icon: "✕", retry: true}); }
+    else { updBusy = false; updState({pct: 0, text: p === -4 ? "Instalacja się nie powiodła." : "Nie udało się pobrać aktualizacji. Sprawdź internet.", icon: "!", retry: true}); }
+  };
+  // po aktualizacji: okno „Aplikacja zaktualizowana” przez 6 sekund
+  function showUpdated(){
+    const b = currentBuild(); if (!b) return;
+    let prev = lsGet("pl-build", 0);
+    // starsze wersje nie zapisywały numeru kompilacji – jeśli aplikacja była już używana, to jest aktualizacja
+    if (!prev && localStorage.getItem("pl-theme") !== null) prev = 1;
+    lsSet("pl-build", b);
+    if (!prev || prev >= b) return;
+    const v = currentVersionName();
+    $("updDoneVer").textContent = v ? "Wersja " + v : "";
+    const news = $("updNews"); news.innerHTML = "";
+    const c = (window.CHANGELOG || [])[0];
+    if (c && c.version === v) (c.items || []).slice(0, 4).forEach(([k, t]) => { const li = document.createElement("li"); li.textContent = t; news.appendChild(li); });
+    news.hidden = !news.children.length;
+    openOv("updDone");
+    const tm = $("updTimer"); tm.style.animation = "none"; void tm.offsetWidth; tm.style.animation = "";
+    setTimeout(() => closeOv("updDone"), 6000);
+  }
+  setTimeout(showUpdated, 600);
 
   // ================= MOTYWY I TŁO =================
   const THEMES = [

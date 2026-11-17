@@ -11,6 +11,7 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.VibrationEffect;
+import android.provider.Settings;
 import android.os.Vibrator;
 import android.view.View;
 import android.view.WindowInsets;
@@ -23,7 +24,19 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.FrameLayout;
 
+import android.app.PendingIntent;
+import android.content.pm.PackageInstaller;
+
 import androidx.webkit.WebViewAssetLoader;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.lang.ref.WeakReference;
+import java.net.HttpURLConnection;
+import java.net.URL;
 
 /**
  * Cała aplikacja to strona z folderu assets/www, wyświetlana w WebView.
@@ -37,11 +50,16 @@ public class MainActivity extends Activity {
 
     private WebView web;
     private FrameLayout root;
+    static WeakReference<MainActivity> current = new WeakReference<>(null);   // dla odbiornika statusu instalacji
+    private File pendingApk;          // pobrana aktualizacja czekająca na instalację
+    private boolean waitingPermission; // czekamy, aż użytkownik zezwoli na instalowanie aplikacji
 
     @SuppressLint({"SetJavaScriptEnabled", "AddJavascriptInterface"})
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        cleanupUpdates();   // po instalacji (lub porzuceniu) aktualizacji plik jest usuwany przy następnym starcie
+        current = new WeakReference<>(this);
 
         root = new FrameLayout(this);
         root.setBackgroundColor(Color.rgb(2, 5, 3));
@@ -107,6 +125,69 @@ public class MainActivity extends Activity {
             i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             startActivity(i);
         } catch (Exception ignored) { }
+    }
+
+    private File updatesDir() { return new File(getCacheDir(), "updates"); }
+
+    private void cleanupUpdates() {
+        File[] files = updatesDir().listFiles();
+        if (files != null) for (File f : files) //noinspection ResultOfMethodCallIgnored
+            f.delete();
+    }
+
+    void js(String code) {
+        runOnUiThread(() -> { if (web != null) web.evaluateJavascript(code, null); });
+    }
+
+    /**
+     * Instaluje pobrany plik przez PackageInstaller. Gdy Planszomat sam zainstalował poprzednią wersję
+     * (Android 12+), aktualizacja przechodzi bez pytania; za pierwszym razem system pokaże okno potwierdzenia.
+     * Po przekazaniu pliku do instalatora kopia w pamięci aplikacji jest od razu usuwana.
+     */
+    private void installApk(File f) {
+        pendingApk = f;
+        if (!getPackageManager().canRequestPackageInstalls()) {
+            waitingPermission = true;
+            js("window.updProgress&&updProgress(-2)");
+            try {
+                startActivity(new Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:" + getPackageName())));
+            } catch (Exception ignored) { }
+            return;
+        }
+        js("window.updProgress&&updProgress(100)");
+        new Thread(() -> {
+            try {
+                PackageInstaller pi = getPackageManager().getPackageInstaller();
+                PackageInstaller.SessionParams params = new PackageInstaller.SessionParams(PackageInstaller.SessionParams.MODE_FULL_INSTALL);
+                params.setAppPackageName(getPackageName());
+                if (Build.VERSION.SDK_INT >= 31) params.setRequireUserAction(PackageInstaller.SessionParams.USER_ACTION_NOT_REQUIRED);
+                int id = pi.createSession(params);
+                try (PackageInstaller.Session session = pi.openSession(id)) {
+                    try (InputStream in = new FileInputStream(f); OutputStream out = session.openWrite("planszomat.apk", 0, f.length())) {
+                        byte[] buf = new byte[64 * 1024]; int n;
+                        while ((n = in.read(buf)) > 0) out.write(buf, 0, n);
+                        session.fsync(out);
+                    }
+                    int flags = PendingIntent.FLAG_UPDATE_CURRENT | (Build.VERSION.SDK_INT >= 31 ? PendingIntent.FLAG_MUTABLE : 0);
+                    PendingIntent status = PendingIntent.getBroadcast(this, id, new Intent(this, InstallReceiver.class), flags);
+                    session.commit(status.getIntentSender());
+                }
+                //noinspection ResultOfMethodCallIgnored
+                f.delete();
+                pendingApk = null;
+            } catch (Exception e) {
+                js("window.updProgress&&updProgress(-1)");
+            }
+        }).start();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (waitingPermission && pendingApk != null && getPackageManager().canRequestPackageInstalls()) {
+            waitingPermission = false;
+            installApk(pendingApk);
+        }
     }
 
     @Override
@@ -180,6 +261,58 @@ public class MainActivity extends Activity {
                     }
                 } catch (Exception ignored) { }
             });
+        }
+
+        /** Pobiera aktualizację do pamięci aplikacji i uruchamia instalację. Plik znika przy następnym starcie. */
+        @JavascriptInterface
+        public void downloadUpdate(String url) {
+            if (url == null || !url.startsWith("https://")) return;
+            new Thread(() -> {
+                File dir = updatesDir();
+                //noinspection ResultOfMethodCallIgnored
+                dir.mkdirs();
+                cleanupUpdates();
+                File f = new File(dir, "Planszomat-update.apk");
+                HttpURLConnection c = null;
+                try {
+                    URL u = new URL(url);
+                    for (int hop = 0; hop < 5; hop++) {   // GitHub przekierowuje do serwera z plikami
+                        c = (HttpURLConnection) u.openConnection();
+                        c.setInstanceFollowRedirects(false);
+                        c.setConnectTimeout(15000); c.setReadTimeout(30000);
+                        int code = c.getResponseCode();
+                        if (code >= 300 && code < 400) {
+                            String loc = c.getHeaderField("Location");
+                            c.disconnect();
+                            if (loc == null) throw new Exception("redirect");
+                            u = new URL(u, loc);
+                            if (!"https".equals(u.getProtocol())) throw new Exception("not https");
+                            continue;
+                        }
+                        if (code != 200) throw new Exception("http " + code);
+                        break;
+                    }
+                    long total = c.getContentLengthLong();
+                    long done = 0; int lastPct = -1;
+                    try (InputStream in = c.getInputStream(); OutputStream out = new FileOutputStream(f)) {
+                        byte[] buf = new byte[64 * 1024]; int n;
+                        while ((n = in.read(buf)) > 0) {
+                            out.write(buf, 0, n); done += n;
+                            if (total > 0) {
+                                int pct = (int) (done * 100 / total);
+                                if (pct != lastPct && pct < 100) { lastPct = pct; js("window.updProgress&&updProgress(" + pct + ")"); }
+                            }
+                        }
+                    }
+                    runOnUiThread(() -> installApk(f));
+                } catch (Exception e) {
+                    //noinspection ResultOfMethodCallIgnored
+                    f.delete();
+                    js("window.updProgress&&updProgress(-1)");
+                } finally {
+                    if (c != null) c.disconnect();
+                }
+            }).start();
         }
 
         @JavascriptInterface

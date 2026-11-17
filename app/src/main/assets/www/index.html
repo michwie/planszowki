@@ -52,7 +52,7 @@
   <h1>W co dziś gramy?</h1>
   <div class="sub">losowanie bez powtórek do końca kolekcji</div>
   <div class="acct"><span>zalogowano: <b id="meName"></b></span></div>
-  <div class="banner" id="updBanner" hidden><span id="updText">Dostępna nowa wersja</span><button id="updBtn">Pobierz</button></div>
+  <div class="banner" id="updBanner" hidden><span id="updText">Dostępna nowa wersja</span><button id="updBtn">Aktualizuj</button></div>
 
   <!-- ===== zakładka: Losuj ===== -->
   <div class="view" id="v-draw">
@@ -274,6 +274,31 @@
   </div>
 </div>
 
+<!-- ================= AKTUALIZACJA ================= -->
+<div class="ov updov" id="updOv" hidden role="dialog" aria-modal="true" aria-label="Aktualizacja">
+  <div class="ovin">
+    <div class="ovhead"><h2>Aktualizacja</h2><button class="ovclose" id="updClose" data-close="updOv" aria-label="Zamknij">✕</button></div>
+    <div class="updbody">
+      <div class="updicon" id="updIcon">⟳</div>
+      <div class="updver" id="updVer"></div>
+      <div class="updbar"><div class="updfill" id="updFill"></div></div>
+      <div class="updst" id="updSt"></div>
+      <button class="big" id="updRetry" hidden>Spróbuj ponownie</button>
+    </div>
+  </div>
+</div>
+<div class="ov updov" id="updDone" hidden role="dialog" aria-modal="true" aria-label="Aplikacja zaktualizowana">
+  <div class="ovin">
+    <div class="updbody">
+      <div class="updicon done">✓</div>
+      <div class="updver">Aplikacja zaktualizowana</div>
+      <div class="updst" id="updDoneVer"></div>
+      <ul class="updnews" id="updNews"></ul>
+      <div class="updbar thin"><div class="updfill timer" id="updTimer"></div></div>
+    </div>
+  </div>
+</div>
+
 <!-- ================= INFORMACJE O GRZE ================= -->
 <div class="ov" id="gi" hidden role="dialog" aria-modal="true" aria-label="Informacje o grze">
   <div class="ovin">
@@ -471,10 +496,16 @@
       </ul>
       <h4>Instalowanie aktualizacji</h4>
       <ol>
-        <li>Naciśnij <b>Pobierz</b> na pasku aktualizacji.</li>
-        <li>Otwórz pobrany plik i potwierdź instalację.</li>
-        <li>Jeśli Android poprosi o zgodę na instalowanie aplikacji z tego źródła, zezwól na nią.</li>
+        <li>Naciśnij <b>Aktualizuj</b> na pasku aktualizacji.</li>
+        <li>W oknie <b>Aktualizacja</b> widać postęp pobierania. Po pobraniu instalacja uruchamia się sama.</li>
+        <li>Po instalacji aplikacja uruchamia się ponownie i przez kilka sekund wyświetla okno <b>Aplikacja zaktualizowana</b> z listą zmian.</li>
       </ol>
+      <ul>
+        <li>Przy pierwszej aktualizacji Android może poprosić o zgodę na instalowanie aplikacji z Planszomatu. Zezwól na nią i wróć do aplikacji, a instalacja uruchomi się sama.</li>
+        <li>Przy pierwszej aktualizacji tym sposobem system wyświetli też okno potwierdzenia instalacji. Na Androidzie 12 i nowszym kolejne aktualizacje instalują się bez pytania.</li>
+        <li>Jeśli telefon nie uruchomi aplikacji ponownie, otwórz ją ikoną. Okno <b>Aplikacja zaktualizowana</b> pojawi się wtedy.</li>
+        <li>Plik aktualizacji jest zapisywany w pamięci aplikacji, a nie w folderze Pobrane, i usuwany po instalacji.</li>
+      </ul>
       <p>Dane są przechowywane w chmurze, więc aktualizacja niczego nie usuwa.</p>
 
       <h3>15. Usuwanie konta</h3>

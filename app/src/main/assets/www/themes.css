@@ -178,3 +178,10 @@
   0%{opacity:0;transform:translate(var(--dx),var(--dy)) scale(var(--s)) rotate(var(--r));filter:blur(3px)}
   30%{opacity:1}
   100%{opacity:1;transform:none;filter:none}}
+/* okno aktualizacji w motywach */
+:root[data-theme="goose"] .updov .ovin{border:2px solid #2b2520;box-shadow:6px 6px 0 #2b2520}
+:root[data-theme="goose"] .updfill{background:repeating-conic-gradient(#2b2520 0 25%,#fff 0 50%) 0 0/12px 12px;box-shadow:none}
+:root[data-theme="goose"] .updicon{border-color:#2b2520}
+:root[data-theme="wizard"] .updfill{background:linear-gradient(90deg,#8a5a12,#e8b84f,#fff1c2,#e8b84f)}
+:root[data-theme="wizard"] .updver{font-family:"Cinzel",serif}
+:root[data-theme="neon"] .updov .ovin{border-color:rgba(var(--glow-rgb),.6)}

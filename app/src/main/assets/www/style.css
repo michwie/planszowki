@@ -332,3 +332,27 @@ dl.gi .gil b{font-weight:400;color:var(--glow);flex:none;white-space:nowrap}
 .ginote{color:var(--muted);font-size:12px;line-height:1.5}
 .ib.info{color:var(--muted);font-size:17px}
 .all li .info{margin-left:6px;width:30px;height:30px}
+/* okna aktualizacji (kolory z motywu) */
+.updov{justify-content:center}
+.updov .ovin{flex:none;margin:auto;max-width:min(420px,92vw);background:var(--card);border:1px solid var(--line);border-radius:var(--radius,8px);padding:14px 16px 18px;
+  box-shadow:0 0 30px rgba(var(--glow-rgb),calc(.35*var(--gs))),0 10px 40px rgba(0,0,0,.5)}
+.updbody{text-align:center;padding:6px 4px 0}
+.updicon{font-size:42px;line-height:1;color:var(--glow);margin:6px auto 10px;width:64px;height:64px;display:grid;place-items:center;border-radius:50%;
+  border:2px solid var(--glow);text-shadow:0 0 12px rgba(var(--glow-rgb),calc(.8*var(--gs)));box-shadow:0 0 18px rgba(var(--glow-rgb),calc(.5*var(--gs)))}
+.updicon.spin{animation:updSpin 1.2s linear infinite}
+.updicon.done{font-size:36px;animation:updPop .5s cubic-bezier(.3,1.5,.5,1)}
+@keyframes updSpin{to{transform:rotate(360deg)}}
+@keyframes updPop{0%{transform:scale(.3);opacity:0}100%{transform:none;opacity:1}}
+.updver{font-family:var(--font-head);font-weight:800;font-size:20px;color:var(--glow);letter-spacing:1px;margin-bottom:12px}
+.updbar{height:12px;border-radius:6px;background:var(--input-bg);border:1px solid var(--line);overflow:hidden;margin:6px 0 10px}
+.updbar.thin{height:5px;margin:14px 0 0}
+.updfill{height:100%;width:0;background:var(--glow);box-shadow:0 0 12px rgba(var(--glow-rgb),calc(.9*var(--gs)));transition:width .25s}
+.updfill.indet{background:repeating-linear-gradient(-45deg,var(--glow) 0 12px,rgba(var(--glow-rgb),.45) 12px 24px);background-size:34px 34px;animation:updStripes .8s linear infinite}
+@keyframes updStripes{to{background-position:34px 0}}
+.updfill.timer{width:100%;animation:updTimer 6s linear forwards}
+@keyframes updTimer{to{width:0}}
+.updst{color:var(--muted);font-size:14px;min-height:20px}
+.updnews{list-style:none;padding:0;margin:12px 0 0;text-align:left}
+.updnews li{font-size:14px;color:var(--ink);padding:5px 0 5px 18px;position:relative;border-top:1px solid var(--line)}
+.updnews li::before{content:"✦";position:absolute;left:0;color:var(--glow);font-size:11px;top:7px}
+#updRetry{margin-top:12px}
