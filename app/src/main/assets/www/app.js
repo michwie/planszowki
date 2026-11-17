@@ -1156,6 +1156,7 @@
         }
         box.appendChild(row);
       });
+    if (canEdit(g) && (g.players || []).length) renderMergeSection(g, add);
     if (isOwner(g)) {
       add('<button class="danger" id="gmDelete"></button>');
       const n = (g.games || []).length;
@@ -1175,6 +1176,98 @@
         if (ok) { closeOv("gm"); toast("Opuszczono grupę: " + g.name); }
       };
     }
+  }
+  // ---------- gracze bez konta: połączenie z kontem ----------
+  let gmMerge = null;   // {name, uid, armed}
+  const normName = t => String(t || "").trim().toLocaleLowerCase("pl");
+  // wyniki tej grupy (widoczne dla mnie), w których gracz występuje tylko z imienia
+  const playsWithName = (gid, name) => (playsBy[gid] || []).filter(pl => (pl.scores || []).some(sc => !sc.uid && sc.p === name));
+  function renderMergeSection(g, add){
+    add('<span class="fl">Gracze bez konta (' + g.players.length + ')</span><div id="gmPlayers"></div>' +
+        '<p class="rolenote" style="margin-top:6px">Gdy gracz wpisywany z imienia założy konto i dołączy do grupy, połącz go z kontem – jego dotychczasowe wyniki przejdą na konto.</p>');
+    const box = $("gmPlayers");
+    const accs = (g.memberIds || []).map(u => [u, (g.memberNames || {})[u] || "?"]).sort((a,b) => cmp(a[1], b[1]));
+    g.players.slice().sort(cmp).forEach(name => {
+      const row = document.createElement("div"); row.className = "mem";
+      row.innerHTML = '<span class="mn"></span><button class="link mg">Połącz z kontem</button>';
+      row.querySelector(".mn").textContent = name + " · " + plural(playsWithName(g.id, name).length, "wynik", "wyniki", "wyników");
+      row.querySelector(".mg").onclick = () => { gmMerge = gmMerge && gmMerge.name === name ? null : {name, uid: "", armed: false}; renderGm(); };
+      box.appendChild(row);
+      if (!gmMerge || gmMerge.name !== name) return;
+      const f = document.createElement("div"); f.className = "mergebox";
+      f.innerHTML = '<select aria-label="Konto"></select><p class="mergeinfo"></p><button class="ok mgo">Połącz</button>';
+      const sel = f.querySelector("select");
+      sel.innerHTML = '<option value="">wybierz konto…</option>' + accs.map(([u, n]) => '<option value="' + u + '"></option>').join("");
+      [...sel.options].slice(1).forEach((o, i) => o.textContent = accs[i][1]);
+      sel.value = gmMerge.uid;
+      sel.onchange = () => { gmMerge.uid = sel.value; gmMerge.armed = false; renderGm(); };
+      const n = playsWithName(g.id, name).length, accName = (g.memberNames || {})[gmMerge.uid] || "";
+      f.querySelector(".mergeinfo").textContent = gmMerge.uid ? ("Znaleziono " + plural(n, "wynik", "wyniki", "wyników") + " z graczem „" + name + "”. Zostaną przypisane do konta „" + accName + "”, a „" + name + "” zniknie z listy graczy bez konta.") : "";
+      const go = f.querySelector(".mgo");
+      go.disabled = !gmMerge.uid;
+      go.textContent = gmMerge.armed ? "Na pewno połączyć?" : "Połącz";
+      go.classList.toggle("armed", gmMerge.armed);
+      go.onclick = () => { if (!gmMerge.armed) { gmMerge.armed = true; renderGm(); return; } mergePlayer(g, name, gmMerge.uid); };
+      box.appendChild(f);
+    });
+  }
+  async function mergePlayer(g, name, u){
+    const accName = (g.memberNames || {})[u] || name;
+    const plays = playsWithName(g.id, name).filter(pl => !(pl.scores || []).some(sc => sc.uid === u));   // konto już w wyniku – pomijam
+    gmMerge = null;
+    try {
+      const played = {}, hist = [];
+      for (let i = 0; i < plays.length || i === 0; i += 300) {
+        const chunk = plays.slice(i, i + 300);
+        await commitB((b, log, extra) => {
+          chunk.forEach(pl => {
+            const scores = pl.scores.map(sc => (!sc.uid && sc.p === name) ? Object.assign({}, sc, {uid: u, p: accName}) : sc);
+            const winners = (pl.winners || []).map(w => w === name ? accName : w);
+            const viewers = [...new Set((pl.viewers || []).concat(u))];
+            b.update(pcol(g.id).doc(pl.id), {scores, winners, viewers});
+            // gra rozegrana także na koncie tej osoby
+            const f = findGame(pl.gameId, g.id);
+            if (f) ((pl.exps && pl.exps.length) ? pl.exps.map(e => findExp(f.game, e.id) || e) : [null]).forEach(e => {
+              const k = vkey(f.game, e); if (!played[k] || played[k] < pl.at) played[k] = pl.at;
+              hist.push(histEntry(f.game, pl.at, e));
+            });
+          });
+          if (i === 0) {
+            b.update(gdoc(g), {players: FV.arrayRemove(name), updatedAt: Date.now()});
+            log(g.id, "player", "Połączenie gracza „" + name + "” z kontem „" + accName + "” (" + plural(plays.length, "wynik", "wyniki", "wyników") + ")");
+          }
+          if (i + 300 >= plays.length && Object.keys(played).length) extra(b => stateSet(b, g.id, u, {played, history: FV.arrayUnion(...hist.slice(-50))}));
+        });
+        if (!plays.length) break;
+      }
+      lsSet("pl-nomerge-" + g.id + "-" + normName(name) + "-" + u, true);
+      toast("Połączono „" + name + "” z kontem „" + accName + "”");
+    } catch(e){ toast(errMsg(e)); }
+    renderGm(); renderResults();
+  }
+  // podpowiedź: nowa osoba w grupie ma takie samo imię jak gracz bez konta
+  function mergeSuggestion(){
+    for (const g of groups) {
+      if (!canEdit(g) || !(g.players || []).length) continue;
+      for (const u of (g.memberIds || [])) {
+        if (u === me.uid) continue;
+        const full = (g.memberNames || {})[u] || "", first = full.split(/\s+/)[0];
+        const name = g.players.find(p => [normName(full), normName(first)].includes(normName(p)));
+        if (!name || lsGet("pl-nomerge-" + g.id + "-" + normName(name) + "-" + u, false)) continue;
+        if (!playsWithName(g.id, name).length) continue;
+        return {g, u, name, full};
+      }
+    }
+    return null;
+  }
+  function renderMergeHint(){
+    const el = $("mergeHint"); const s = me && mergeSuggestion();
+    if (!s) { el.hidden = true; el.innerHTML = ""; return; }
+    el.hidden = false;
+    el.innerHTML = '<p></p><div class="row2"><button class="ghost mno">Nie</button><button class="ok myes">Połącz</button></div>';
+    el.querySelector("p").textContent = "Czy " + s.full + " to gracz „" + s.name + "” z wyników" + (groups.length > 1 ? " w grupie „" + s.g.name + "”" : "") + "? Po połączeniu dotychczasowe wyniki przejdą na konto.";
+    el.querySelector(".mno").onclick = () => { lsSet("pl-nomerge-" + s.g.id + "-" + normName(s.name) + "-" + s.u, true); renderMergeHint(); };
+    el.querySelector(".myes").onclick = () => mergePlayer(s.g, s.name, s.u);
   }
   async function regenCode(g, r){
     const field = r === "editor" ? "editorCode" : "playerCode";
@@ -1469,6 +1562,7 @@
 
   function renderResults(){
     if (!me) return;
+    renderMergeHint();
     const plays = allPlays();
     const rfEl = $("rankFilter"); rfEl.innerHTML = "";
     if (ui.rankGroup !== "all" && !groupById(ui.rankGroup)) ui.rankGroup = "all";

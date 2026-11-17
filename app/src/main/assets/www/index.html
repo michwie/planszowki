@@ -96,6 +96,7 @@
 
   <!-- ===== zakładka: Wyniki ===== -->
   <div class="view" id="v-results" hidden>
+  <section class="card mergehint" id="mergeHint" hidden></section>
   <section class="card">
     <h2>Wyniki</h2>
     <button class="big" id="addResult">+ Dodaj wynik</button>
@@ -447,6 +448,21 @@
         <li><b>✎</b> otwiera wynik do edycji. Po zmianie gry, wersji, daty lub graczy oznaczenia rozegranych gier są poprawiane automatycznie.</li>
         <li><b>🗑</b> usuwa wynik (naciśnij dwa razy). Gra wraca wtedy do losowania u graczy z tego wyniku, chyba że ta sama wersja jest w innym ich wyniku.</li>
       </ul>
+      <h4>Łączenie gracza bez konta z kontem</h4>
+      <p>Jeśli ktoś był wpisywany do wyników z imienia, a później założył konto i dołączył do grupy, można przenieść jego dotychczasowe wyniki na konto.</p>
+      <ol>
+        <li>W zakładce <b>Gry</b> naciśnij <b>⚙</b> przy nazwie grupy.</li>
+        <li>W sekcji <b>Gracze bez konta</b> naciśnij <b>Połącz z kontem</b> przy imieniu gracza.</li>
+        <li>Wybierz konto z listy członków grupy.</li>
+        <li>Sprawdź liczbę znalezionych wyników i dwa razy naciśnij <b>Połącz</b>.</li>
+      </ol>
+      <ul>
+        <li>Wyniki przechodzą na konto, a ranking i statystyki liczą stare i nowe wyniki razem. Osoba widzi od tej chwili także swoje wcześniejsze wyniki.</li>
+        <li>Imię znika z listy graczy bez konta.</li>
+        <li>Gdy do grupy dołączy osoba o takim samym imieniu jak gracz bez konta, w zakładce <b>Wyniki</b> pojawi się podpowiedź z przyciskiem <b>Połącz</b>.</li>
+        <li>Łączone są wyniki, które widzisz. Jeśli część wyników z tą osobą wpisał ktoś inny bez Twojego udziału, on również musi wykonać połączenie u siebie.</li>
+      </ul>
+      <p>Łączenie wykonuje właściciel lub Mistrz Gry.</p>
       <h4>Kto widzi wynik</h4>
       <p>Wynik widzą gracze z kontem, którzy brali udział w rozgrywce, oraz osoba, która go wpisała.</p>
 

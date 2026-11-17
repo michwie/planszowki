@@ -356,3 +356,11 @@ dl.gi .gil b{font-weight:400;color:var(--glow);flex:none;white-space:nowrap}
 .updnews li{font-size:14px;color:var(--ink);padding:5px 0 5px 18px;position:relative;border-top:1px solid var(--line)}
 .updnews li::before{content:"✦";position:absolute;left:0;color:var(--glow);font-size:11px;top:7px}
 #updRetry{margin-top:12px}
+/* łączenie gracza bez konta z kontem */
+.mergebox{padding:4px 0 12px}
+.mergebox select{margin-bottom:8px}
+.mergeinfo{font-size:13px;color:var(--muted);margin:0 0 8px}
+.mergebox .ok{width:100%;padding:11px;border-radius:4px}
+.mergebox .ok.armed{background:var(--amber);border-color:var(--amber);color:var(--accent-ink)}
+.mergehint p{margin:0 0 10px;font-size:14px;line-height:1.5}
+.mergehint{border-color:var(--amber)}
