@@ -603,20 +603,26 @@
     $("giTitle").textContent = game.name;
     const body = $("giBody"); body.innerHTML = "";
     const dl = document.createElement("dl"); dl.className = "gi";
-    const row = (k, v) => { const dt = document.createElement("dt"), dd = document.createElement("dd"); dt.textContent = k; dd.textContent = v; dl.append(dt, dd); };
+    // etykieta nad wartością; wartość może mieć kilka linii [[nazwa, wartość], ...]
+    const row = (k, v) => {
+      const dt = document.createElement("dt"), dd = document.createElement("dd"); dt.textContent = k;
+      if (Array.isArray(v)) v.forEach(([a, b]) => { const l = document.createElement("div"); l.className = "gil"; l.innerHTML = "<span></span><b></b>"; l.firstChild.textContent = a; l.lastChild.textContent = b; dd.appendChild(l); });
+      else dd.textContent = v;
+      dl.append(dt, dd);
+    };
     if (groups.length > 1) row("Grupa", g.name);
     const ad = addedAt(g, game);
     row("Data dodania gry", ad ? fmt(ad) : "brak danych");
-    exps(game).forEach(e => { const ea = expAddedAt(g, game, e); row("Data dodania (" + e.name + ")", ea ? fmt(ea) : "brak danych"); });
+    if (exps(game).length) row("Data dodania rozszerzeń", exps(game).map(e => { const ea = expAddedAt(g, game, e); return [e.name, ea ? fmt(ea) : "brak danych"]; }));
     row("Ostatnia rozgrywka", ps.length ? fmt(Math.max(...ps.map(p => p.at))) : "jeszcze nie grana");
     row("Rozegrane partie", String(ps.length));
     const ex = exps(game);
     if (ex.length && ps.length) {
       const per = [{e: null, name: "wersja podstawowa"}].concat(ex.map(e => ({e, name: e.name}))).map(r => {
         const n = ps.filter(p => r.e ? (p.exps || []).some(x => x.id === r.e.id) : !(p.exps || []).length).length;
-        return r.name + ": " + n;
+        return [r.name, String(n)];
       });
-      row("Partie według wersji", per.join(" · "));
+      row("Partie według wersji", per);
     }
     const tw = topWinners(ps);
     row("Najczęściej wygrywa", tw ? tw.names.join(", ") + " (" + plural(tw.wins, "wygrana", "wygrane", "wygranych") + ")" : "—");

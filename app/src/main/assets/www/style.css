@@ -319,9 +319,13 @@ span.ib.check{cursor:default}
 .statcard .scount{color:var(--muted);font-size:12px;margin-top:6px;letter-spacing:.5px}
 @media (min-width:600px){ #drawStats{grid-template-columns:1fr 1fr} }
 /* okno informacji o grze */
-dl.gi{display:grid;grid-template-columns:auto 1fr;gap:10px 16px;margin:8px 0 14px;font-size:15px}
-dl.gi dt{color:var(--muted);font-size:12px;letter-spacing:.5px;text-transform:uppercase;padding-top:2px}
-dl.gi dd{margin:0;color:var(--ink);word-break:break-word}
+dl.gi{margin:4px 0 14px;font-size:16px}
+dl.gi dt{color:var(--muted);font-size:11px;letter-spacing:1px;text-transform:uppercase;margin-top:14px}
+dl.gi dt:first-child{margin-top:4px}
+dl.gi dd{margin:4px 0 0;padding-bottom:12px;border-bottom:1px solid var(--line);color:var(--ink);overflow-wrap:anywhere}
+dl.gi .gil{display:flex;justify-content:space-between;gap:12px;padding:3px 0}
+dl.gi .gil span{min-width:0;overflow-wrap:break-word}
+dl.gi .gil b{font-weight:400;color:var(--glow);flex:none;white-space:nowrap}
 .ginote{color:var(--muted);font-size:12px;line-height:1.5}
 .ib.info{color:var(--muted);font-size:17px}
 .all li .info{margin-left:6px;width:30px;height:30px}
