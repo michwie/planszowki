@@ -518,7 +518,7 @@
       let maxD = 0;
       spans.forEach(sp => { const d = Math.random() * 700; maxD = Math.max(maxD, d); sp.style.animationDelay = Math.round(d) + "ms"; sp.style.animationDuration = "800ms"; });
       setTimeout(() => finish(false), maxD + 880);
-    }, 2400);
+    }, 4800);
   }
   const GOOSE_SVG = '<svg viewBox="-30 -36 76 58" aria-hidden="true"><g stroke-linecap="round" stroke-linejoin="round">' +
     '<path d="M-4 2L-4 18L2 18M4 2L4 18L10 18" fill="none" stroke="#e07a1a" stroke-width="3"/>' +

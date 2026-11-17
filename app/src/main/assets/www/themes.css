@@ -169,7 +169,7 @@
 .stage .name.rv-crawl{position:absolute;inset:0;perspective:180px;overflow:hidden;
   -webkit-mask-image:linear-gradient(to top,#000 55%,transparent 95%);mask-image:linear-gradient(to top,#000 55%,transparent 95%)}
 .rv-crawl .plane{position:absolute;left:8%;right:8%;top:0;bottom:0;transform-origin:50% 100%;transform:rotateX(32deg)}
-.rv-crawl .ctext{position:absolute;left:0;right:0;top:100%;animation:rvCrawl 2.6s linear forwards;
+.rv-crawl .ctext{position:absolute;left:0;right:0;top:100%;animation:rvCrawl 5.2s linear forwards;
   font-family:var(--font-body);font-weight:700;font-size:15px;line-height:1.35;color:var(--glow);text-align:center}
 .rv-crawl .ctext p{margin:0 0 12px}
 @keyframes rvCrawl{0%{transform:translateY(0)}100%{transform:translateY(-185%)}}
