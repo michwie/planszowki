@@ -310,12 +310,14 @@ span.ib.check{cursor:default}
 .help ol{list-style:none;padding:0;margin:0 0 8px;counter-reset:krok}
 .help ol li{counter-increment:krok;position:relative;padding-left:26px}
 .help ol li::before{content:counter(krok) ".";position:absolute;left:2px;top:0;color:var(--glow);font-weight:600}
-/* statystyki pod losowaniem */
-.dstats{margin-top:12px;border-top:1px dashed var(--line);padding-top:8px}
-.ds{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap;padding:4px 0;font-size:14px}
-.ds .dl{color:var(--muted);font-size:11px;letter-spacing:1px;text-transform:uppercase;flex:none;min-width:130px}
-.ds .dn{color:var(--glow);background:none;border:0;padding:0;font:inherit;text-align:left;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:3px;cursor:pointer}
-.ds .dc{color:var(--muted);font-size:12px;margin-left:auto}
+/* statystyki pod losowaniem: dwa osobne bloki */
+#drawStats{display:grid;grid-template-columns:1fr;gap:14px;margin-top:14px}
+#drawStats .statcard{margin:0;display:flex;flex-direction:column;min-width:0}
+#drawStats .statcard h2{margin-bottom:10px}
+.statcard .sname{background:none;border:0;padding:0;text-align:left;cursor:pointer;font-family:var(--font-head);font-weight:800;font-size:20px;line-height:1.25;color:var(--glow);word-break:break-word;
+  text-shadow:0 0 8px rgba(var(--glow-rgb),calc(.5*var(--gs)))}
+.statcard .scount{color:var(--muted);font-size:12px;margin-top:6px;letter-spacing:.5px}
+@media (min-width:600px){ #drawStats{grid-template-columns:1fr 1fr} }
 /* okno informacji o grze */
 dl.gi{display:grid;grid-template-columns:auto 1fr;gap:10px 16px;margin:8px 0 14px;font-size:15px}
 dl.gi dt{color:var(--muted);font-size:12px;letter-spacing:.5px;text-transform:uppercase;padding-top:2px}

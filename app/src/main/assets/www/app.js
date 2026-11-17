@@ -550,6 +550,12 @@
     const e = (logsBy[g.id] || []).filter(x => x.type === "game-add" && x.text === t).sort((a,b) => a.at - b.at)[0];
     return e ? e.at : null;
   }
+  function expAddedAt(g, game, e){
+    if (e.added) return e.added;
+    const t = "Dodanie rozszerzenia " + q(e.name) + " do gry " + q(game.name);
+    const x = (logsBy[g.id] || []).filter(l => l.text === t).sort((a,b) => a.at - b.at)[0];
+    return x ? x.at : null;
+  }
   function topWinners(plays){
     const cnt = new Map(), acc = accounts();
     plays.forEach(pl => (pl.scores || []).forEach(sc => {
@@ -567,20 +573,23 @@
     const rows = poolGames().map(x => { const ps = gamePlays(x.group.id, x.game.id); return {x, n: ps.length, last: ps.reduce((m, p) => Math.max(m, p.at), 0)}; });
     if (rows.length < 2) { el.hidden = true; el.innerHTML = ""; return; }
     el.hidden = false; el.innerHTML = "";
-    const line = (label, r, ties) => {
-      const d = document.createElement("div"); d.className = "ds";
-      d.innerHTML = '<span class="dl"></span><button class="dn" type="button"></button><span class="dc"></span>';
-      d.querySelector(".dl").textContent = label;
-      d.querySelector(".dn").textContent = r.x.game.name;
-      d.querySelector(".dn").onclick = () => openGameInfo(r.x.group.id, r.x.game.id);
-      d.querySelector(".dc").textContent = partii(r.n) + (ties > 0 ? " · i " + plural(ties, "inna", "inne", "innych") : "");
-      el.appendChild(d);
+    // dwa osobne bloki (karty), jak blok losowania
+    const card = (title, r, ties) => {
+      const c = document.createElement("section"); c.className = "card statcard";
+      c.innerHTML = '<h2></h2><button class="sname" type="button"></button><div class="scount"></div>';
+      c.querySelector("h2").textContent = title;
+      const nb = c.querySelector(".sname");
+      if (r) {
+        nb.textContent = r.x.game.name;
+        nb.onclick = () => openGameInfo(r.x.group.id, r.x.game.id);
+        c.querySelector(".scount").textContent = partii(r.n) + (ties > 0 ? " · tyle samo: " + plural(ties, "inna gra", "inne gry", "innych gier") : "");
+      } else { nb.remove(); c.querySelector(".scount").textContent = "Brak zapisanych wyników."; }
+      el.appendChild(c);
     };
     const most = rows.slice().sort((a,b) => (b.n - a.n) || (b.last - a.last) || cmp(a.x.game.name, b.x.game.name))[0];
-    if (most.n) line("Najczęściej grana", most, rows.filter(r => r.n === most.n).length - 1);
-    else { const d = document.createElement("div"); d.className = "ds"; d.innerHTML = '<span class="dl">Najczęściej grana</span><span class="dc">brak wyników</span>'; el.appendChild(d); }
+    card("Najczęściej grana", most.n ? most : null, rows.filter(r => r.n === most.n).length - 1);
     const least = rows.slice().sort((a,b) => (a.n - b.n) || (a.last - b.last) || cmp(a.x.game.name, b.x.game.name))[0];
-    line("Najrzadziej grana", least, rows.filter(r => r.n === least.n).length - 1);
+    card("Najrzadziej grana", least, rows.filter(r => r.n === least.n).length - 1);
   }
   // okno ⓘ z informacjami o grze
   let giKey = null;
@@ -597,7 +606,8 @@
     const row = (k, v) => { const dt = document.createElement("dt"), dd = document.createElement("dd"); dt.textContent = k; dd.textContent = v; dl.append(dt, dd); };
     if (groups.length > 1) row("Grupa", g.name);
     const ad = addedAt(g, game);
-    row("Data dodania", ad ? fmt(ad) : "brak danych");
+    row("Data dodania gry", ad ? fmt(ad) : "brak danych");
+    exps(game).forEach(e => { const ea = expAddedAt(g, game, e); row("Data dodania (" + e.name + ")", ea ? fmt(ea) : "brak danych"); });
     row("Ostatnia rozgrywka", ps.length ? fmt(Math.max(...ps.map(p => p.at))) : "jeszcze nie grana");
     row("Rozegrane partie", String(ps.length));
     const ex = exps(game);
@@ -707,7 +717,7 @@
             if (!n) { closeEdit(); return; }
             if (ex.some(x => x.name.toLowerCase() === n.toLowerCase())) { toast("To rozszerzenie już jest"); return; }
             ui.expEdit = null; ui.expArmed = null;
-            saveGame(g, Object.assign({}, game, {exps: ex.concat({id: uid(), name: n})}), "Dodanie rozszerzenia " + q(n) + " do gry " + q(game.name));
+            saveGame(g, Object.assign({}, game, {exps: ex.concat({id: uid(), name: n, added: Date.now()})}), "Dodanie rozszerzenia " + q(n) + " do gry " + q(game.name));
             renderGroup();
           };
           box.appendChild(f);

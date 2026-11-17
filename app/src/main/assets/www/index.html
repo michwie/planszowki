@@ -66,8 +66,8 @@
       <button class="ok" id="playBtn">Gramy! ✓</button>
     </div>
     <div class="count" id="count"></div>
-    <div class="dstats" id="drawStats" hidden></div>
   </section>
+  <div id="drawStats" hidden></div>
   </div>
 
   <!-- ===== zakładka: Gry ===== -->
@@ -368,12 +368,12 @@
       <h4>Informacje o grze</h4>
       <p>Przycisk <b>ⓘ</b> przy tytule (w zakładce <b>Gry</b> i na liście wszystkich gier) otwiera okno z informacjami o grze:</p>
       <ul>
-        <li>data dodania gry,</li>
+        <li>data dodania gry oraz osobno data dodania każdego rozszerzenia,</li>
         <li>data ostatniej rozgrywki,</li>
         <li>liczba rozegranych partii (przy grze z rozszerzeniami także podział na wersje),</li>
         <li>osoba, która najczęściej wygrywa, z liczbą wygranych.</li>
       </ul>
-      <p>Statystyki są liczone z wyników, które widzisz: rozgrywek z Twoim udziałem i wyników wpisanych przez Ciebie. Dla gier dodanych przed wersją 1.3 data dodania pochodzi z Change Logu i może być niedostępna.</p>
+      <p>Statystyki są liczone z wyników, które widzisz: rozgrywek z Twoim udziałem i wyników wpisanych przez Ciebie. Dla gier dodanych przed wersją 1.3 daty dodania gry i rozszerzeń pochodzą z Change Logu i mogą być niedostępne.</p>
       <h4>Stan rozegranych gier</h4>
       <ul>
         <li>Gra jest oznaczana jako rozegrana automatycznie, po zapisaniu wyniku. Nie można jej oznaczyć ręcznie.</li>
@@ -394,7 +394,7 @@
         <li>Losowane są tylko gry, których jeszcze nie rozegrałeś w bieżącym cyklu.</li>
         <li>Gra z rozszerzeniami jest losowana w wersjach: osobno wersja podstawowa i każde rozszerzenie.</li>
         <li>Wersja gry wypada z losowania po zapisaniu wyniku. Samo naciśnięcie <b>Gramy!</b> niczego nie zapisuje.</li>
-        <li>Pod przyciskiem <b>Losuj grę</b> widać najczęściej i najrzadziej graną grę z wybranych grup oraz liczbę partii. Liczą się wszystkie zapisane wyniki, także partie rozegrane bez losowania. Dotknięcie tytułu otwiera informacje o grze.</li>
+        <li>Pod blokiem losowania są dwa bloki: <b>Najczęściej grana</b> i <b>Najrzadziej grana</b>. Pokazują grę z wybranych grup i liczbę jej partii. Liczą się wszystkie zapisane wyniki, także partie rozegrane bez losowania. Dotknięcie tytułu otwiera informacje o grze.</li>
         <li>Gdy wszystkie gry zostaną rozegrane, pojawi się przycisk <b>Zacznij nowy cykl</b>. Przycisk <b>Wyzeruj moje rozegrane</b> pod listą gier robi to samo dla jednej grupy. Obie opcje dotyczą tylko Ciebie.</li>
       </ul>
 
