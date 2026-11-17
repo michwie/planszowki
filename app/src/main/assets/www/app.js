@@ -460,14 +460,65 @@
       tick();
       return;
     }
-    // Gęś Wyścigowa: najpierw kręcą się gąski, potem wpadają litery
-    if (theme === "goose") {
-      nameEl.className = "name rv-geese";
-      nameEl.innerHTML = '<span class="gg">' + GOOSE_SVG + '</span><span class="gg">' + GOOSE_SVG + '</span><span class="gg">' + GOOSE_SVG + '</span>';
-      setTimeout(() => revealLetters(nameEl, target, finish), 1100);
-      return;
-    }
+    if (theme === "goose") { gooseReveal(nameEl, target, finish); return; }
+    if (theme === "galaxy") { galaxyReveal(nameEl, target, finish); return; }
     revealLetters(nameEl, target, finish);
+  }
+  // litery tytułu w słowach (słowa nie łamią się w środku); fn(span, i) tworzy zawartość litery
+  function buildLetters(box, target, fn){
+    let word = null, i = 0;
+    const out = [];
+    [...target].forEach(c => {
+      if (c === " ") { box.appendChild(document.createTextNode(" ")); word = null; return; }
+      if (!word) { word = document.createElement("span"); word.className = "w"; box.appendChild(word); }
+      const sp = document.createElement("span"); sp.className = "ch"; fn(sp, c, i++); word.appendChild(sp); out.push(sp);
+    });
+    return out;
+  }
+  const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+  // Gęś Wyścigowa: gąski się kręcą, zza nich wyskakują litery i lecą na swoje miejsca; na koniec gąski się rozbiegają
+  function gooseReveal(nameEl, target, finish){
+    nameEl.className = "name rv-goose2";
+    nameEl.innerHTML = '<div class="gt"></div><div class="gq"><span class="gg">' + GOOSE_SVG + '</span><span class="gg">' + GOOSE_SVG + '</span><span class="gg">' + GOOSE_SVG + '</span></div>';
+    const gq = nameEl.querySelector(".gq"), gt = nameEl.querySelector(".gt");
+    const spans = buildLetters(gt, target, (sp, c) => { sp.textContent = c; });
+    const geese = [...gq.querySelectorAll(".gg")];
+    // start każdej litery: środek losowej gąski (litera chowa się za nią)
+    spans.forEach(sp => {
+      const g = geese[Math.floor(Math.random() * geese.length)].getBoundingClientRect(), r = sp.getBoundingClientRect();
+      sp.style.setProperty("--dx", Math.round(g.left + g.width / 2 - (r.left + r.width / 2)) + "px");
+      sp.style.setProperty("--dy", Math.round(g.top + g.height / 2 - (r.top + r.height / 2)) + "px");
+    });
+    const order = shuffle(spans.slice());
+    const step = Math.min(110, 1500 / Math.max(1, order.length));
+    const t0 = 900;   // najpierw same gąski się kręcą
+    order.forEach((sp, k) => setTimeout(() => sp.classList.add("jump"), t0 + k * step));
+    const tEnd = t0 + (order.length - 1) * step + 650;
+    setTimeout(() => gq.classList.add("run"), tEnd);                 // ostatnia litera na miejscu – gąski uciekają
+    setTimeout(() => finish(false), tEnd + 800);
+  }
+  // Galaktyka: napisy płynące w głąb kosmosu, potem litery tytułu nadlatują z różnych stron
+  const CRAWL = [["Rada Planszówkowa", "zebrała się", "na tajnym posiedzeniu."], ["Kości zostały rzucone,", "karty przetasowane…"], ["Los wskazał grę", "na dzisiejszy wieczór:"]];
+  function galaxyReveal(nameEl, target, finish){
+    nameEl.className = "name rv-crawl";
+    nameEl.innerHTML = '<div class="plane"><div class="ctext"></div></div>';
+    const ct = nameEl.querySelector(".ctext");
+    CRAWL.forEach(par => { const p = document.createElement("p"); p.textContent = par.join(" "); ct.appendChild(p); });
+    setTimeout(() => {
+      nameEl.className = "name rv rv-galaxy2";
+      nameEl.textContent = "";
+      const spans = buildLetters(nameEl, target, (sp, c) => {
+        sp.textContent = c;
+        const ang = Math.random() * Math.PI * 2, dist = 120 + Math.random() * 160;
+        sp.style.setProperty("--dx", Math.round(Math.cos(ang) * dist) + "px");
+        sp.style.setProperty("--dy", Math.round(Math.sin(ang) * dist * 0.6) + "px");
+        sp.style.setProperty("--s", (Math.random() < .5 ? 0.2 + Math.random() * .4 : 2.5 + Math.random() * 2.5).toFixed(2));
+        sp.style.setProperty("--r", Math.round(Math.random() * 360 - 180) + "deg");
+      });
+      let maxD = 0;
+      spans.forEach(sp => { const d = Math.random() * 700; maxD = Math.max(maxD, d); sp.style.animationDelay = Math.round(d) + "ms"; sp.style.animationDuration = "800ms"; });
+      setTimeout(() => finish(false), maxD + 880);
+    }, 2400);
   }
   const GOOSE_SVG = '<svg viewBox="-30 -36 76 58" aria-hidden="true"><g stroke-linecap="round" stroke-linejoin="round">' +
     '<path d="M-4 2L-4 18L2 18M4 2L4 18L10 18" fill="none" stroke="#e07a1a" stroke-width="3"/>' +
