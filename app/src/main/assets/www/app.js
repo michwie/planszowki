@@ -1013,7 +1013,7 @@
   };
   $("openChanges").onclick = () => {
     const box = $("chgList"); box.innerHTML = "";
-    (window.CHANGELOG || []).forEach(v => {
+    (window.CHANGELOG || []).slice(0, 1).forEach(v => {   // tylko najnowszy wpis
       const sec = document.createElement("section"); sec.className = "chgv";
       sec.innerHTML = '<div class="chgh"><b></b><span></span></div><ul></ul>';
       sec.querySelector("b").textContent = "v" + v.version;
