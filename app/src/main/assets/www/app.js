@@ -440,22 +440,60 @@
     spinning = true; ui.drawn = null; ui.justPlayed = null; renderDraw();
     const nameEl = document.querySelector("#stage .name");
     const target = pick.game.name;
-    const glyphs = "アイウエオカキクケコサシスセソタチツテトナニヌネノ0123456789#$%&*+<>";
-    const total = 26; let frame = 0;
-    const tick = () => {
-      frame++;
-      const revealed = Math.floor(target.length * Math.max(0, (frame - 8) / (total - 8)));
-      let out = "";
-      for (let i = 0; i < target.length; i++) { const c = target[i]; out += (i < revealed || c === " ") ? c : glyphs[Math.floor(Math.random()*glyphs.length)]; }
-      nameEl.textContent = out;
-      if (frame < total) setTimeout(tick, 55);
-      else {
-        spinning = false; ui.drawn = pick.game.id; ui.drawnGid = pick.group.id; ui.drawnExp = pick.exp ? pick.exp.id : null; renderDraw();
-        const el = document.querySelector("#stage .name"); if (el) el.classList.add("pop");
-        if (Android && Android.vibrate) try { Android.vibrate(30); } catch(e){}
-      }
+    const finish = popIt => {
+      spinning = false; ui.drawn = pick.game.id; ui.drawnGid = pick.group.id; ui.drawnExp = pick.exp ? pick.exp.id : null; renderDraw();
+      const el = document.querySelector("#stage .name"); if (el && popIt) el.classList.add("pop");
+      if (Android && Android.vibrate) try { Android.vibrate(30); } catch(e){}
     };
-    tick();
+    // Matrix: litery „przewijają się” znakami z deszczu kodu
+    if (theme === "matrix") {
+      const glyphs = "アイウエオカキクケコサシスセソタチツテトナニヌネノ0123456789#$%&*+<>";
+      const total = 26; let frame = 0;
+      const tick = () => {
+        frame++;
+        const revealed = Math.floor(target.length * Math.max(0, (frame - 8) / (total - 8)));
+        let out = "";
+        for (let i = 0; i < target.length; i++) { const c = target[i]; out += (i < revealed || c === " ") ? c : glyphs[Math.floor(Math.random()*glyphs.length)]; }
+        nameEl.textContent = out;
+        if (frame < total) setTimeout(tick, 55); else finish(true);
+      };
+      tick();
+      return;
+    }
+    // Gęś Wyścigowa: najpierw kręcą się gąski, potem wpadają litery
+    if (theme === "goose") {
+      nameEl.className = "name rv-geese";
+      nameEl.innerHTML = '<span class="gg">' + GOOSE_SVG + '</span><span class="gg">' + GOOSE_SVG + '</span><span class="gg">' + GOOSE_SVG + '</span>';
+      setTimeout(() => revealLetters(nameEl, target, finish), 1100);
+      return;
+    }
+    revealLetters(nameEl, target, finish);
+  }
+  const GOOSE_SVG = '<svg viewBox="-30 -36 76 58" aria-hidden="true"><g stroke-linecap="round" stroke-linejoin="round">' +
+    '<path d="M-4 2L-4 18L2 18M4 2L4 18L10 18" fill="none" stroke="#e07a1a" stroke-width="3"/>' +
+    '<g fill="#fff" stroke="#3a332c" stroke-width="2"><path d="M-16 -6L-26 -12L-20 -2Z"/><ellipse cx="0" cy="-4" rx="18" ry="11" transform="rotate(-6 0 -4)"/>' +
+    '<ellipse cx="-3" cy="-8" rx="10" ry="5" transform="rotate(-23 -3 -8)" fill="#e9e4dc"/>' +
+    '<path d="M12 -10Q22 -16 26 -26L31 -24Q26 -12 16 -2Z"/><circle cx="29" cy="-27" r="6"/>' +
+    '<path d="M34 -29L43 -26L34 -24Z" fill="#e07a1a"/></g><circle cx="30" cy="-29" r="1.4" fill="#2b2520"/></g></svg>';
+  // Każda litera pojawia się z animacją w stylu motywu (style: .rv-<motyw> w themes.css)
+  function revealLetters(nameEl, target, finish){
+    const chars = [...target];
+    const n = chars.filter(c => c !== " ").length || 1;
+    const step = Math.min(70, 1000 / n);
+    const dur = {wizard: 700, goose: 520, galaxy: 600, neon: 900}[theme] || 600;
+    nameEl.className = "name rv rv-" + theme;
+    nameEl.textContent = "";
+    let k = 0, maxDelay = 0, word = null;
+    chars.forEach(c => {
+      if (c === " ") { nameEl.appendChild(document.createTextNode(" ")); word = null; return; }
+      if (!word) { word = document.createElement("span"); word.className = "w"; nameEl.appendChild(word); }
+      const sp = document.createElement("span"); sp.className = "ch"; sp.textContent = c;
+      const delay = theme === "neon" ? Math.random() * 900 : k * step;   // neon zapala się losowo, jak świetlówka
+      sp.style.animationDelay = Math.round(delay) + "ms"; sp.style.animationDuration = dur + "ms";
+      maxDelay = Math.max(maxDelay, delay); k++;
+      word.appendChild(sp);
+    });
+    setTimeout(() => finish(false), maxDelay + dur + 80);
   }
   const histEntry = (game, at, exp) => ({id: vkey(game, exp), name: vlabel(game, exp), at});
   // "Gramy!" tylko zapamiętuje wybór – gra wypada z losowania dopiero po wpisaniu wyniku

@@ -255,14 +255,17 @@
 /* ===== dolny pasek zakładek ===== */
 body{padding-bottom:calc(env(safe-area-inset-bottom) + 86px)}
 .tabbar{position:fixed;left:0;right:0;bottom:0;z-index:12;display:flex;justify-content:center;
-  background:var(--card);border-top:1px solid var(--line);padding:4px 6px calc(env(safe-area-inset-bottom) + 4px);
+  background-color:var(--bg);background-image:linear-gradient(var(--card),var(--card));
+  border-top:1px solid var(--line);padding:4px 6px calc(env(safe-area-inset-bottom) + 4px);
   box-shadow:0 -6px 18px rgba(0,0,0,.25)}
 .tabbar .tb{flex:1;max-width:130px;display:flex;flex-direction:column;align-items:center;gap:2px;padding:7px 2px 6px;
   background:none;border:0;border-radius:var(--radius,6px);color:var(--muted);font-family:var(--font-head);font-size:11px;letter-spacing:1px;text-transform:uppercase;cursor:pointer}
-.tabbar .tb .ti{font-size:19px;line-height:1;filter:grayscale(.6);opacity:.75}
+.tabbar .tb .ti{display:grid;place-items:center;width:26px;height:24px}
+.tabbar .tb .ti svg{width:24px;height:24px;stroke-width:var(--icon-stroke,1.8);transition:transform .15s}
+.tabbar .tb .ti svg .pip{fill:currentColor;stroke:none}
 .tabbar .tb.on{color:var(--glow);background:var(--green-soft)}
-.tabbar .tb.on .ti{filter:none;opacity:1}
-.tabbar .tb.on span:last-child{text-shadow:0 0 6px rgba(var(--glow-rgb),calc(.6*var(--gs)))}
+.tabbar .tb.on .ti svg{filter:drop-shadow(0 0 4px rgba(var(--glow-rgb),calc(.9*var(--gs))));transform:scale(1.08)}
+.tabbar .tb.on .tl{text-shadow:0 0 6px rgba(var(--glow-rgb),calc(.6*var(--gs)))}
 .view > .listbtn:first-child{margin-top:0}
 /* menu "Więcej" */
 .menu .mitem{display:flex;align-items:center;gap:12px;width:100%;padding:13px 6px;background:none;border:0;border-bottom:1px solid var(--line);
