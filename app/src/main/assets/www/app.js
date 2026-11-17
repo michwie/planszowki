@@ -1030,7 +1030,7 @@
     });
     box.scrollTop = 0; openOv("chg");
   };
-  $("openHelp").onclick = () => { openOv("help"); $("help").querySelector(".ovscroll").scrollTop = 0; };
+  $("openHelp").onclick = $("openHelpAuth").onclick = () => { openOv("help"); $("help").querySelector(".ovscroll").scrollTop = 0; };
 
   // ---------- lista gier ----------
   let ovFilter = "all";
