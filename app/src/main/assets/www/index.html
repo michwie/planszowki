@@ -66,6 +66,7 @@
       <button class="ok" id="playBtn">Gramy! ✓</button>
     </div>
     <div class="count" id="count"></div>
+    <div class="dstats" id="drawStats" hidden></div>
   </section>
   </div>
 
@@ -273,6 +274,14 @@
   </div>
 </div>
 
+<!-- ================= INFORMACJE O GRZE ================= -->
+<div class="ov" id="gi" hidden role="dialog" aria-modal="true" aria-label="Informacje o grze">
+  <div class="ovin">
+    <div class="ovhead"><h2 id="giTitle">Gra</h2><button class="ovclose" data-close="gi" aria-label="Zamknij">✕</button></div>
+    <div class="ovscroll" id="giBody" style="border-top:0"></div>
+  </div>
+</div>
+
 <!-- ================= INSTRUKCJA ================= -->
 <div class="ov" id="help" hidden role="dialog" aria-modal="true" aria-label="Instrukcja">
   <div class="ovin">
@@ -356,6 +365,15 @@
       </ol>
       <p>Aby usunąć rozszerzenie, naciśnij <b>⊕</b>, a następnie dwa razy <b>✕</b> przy jego nazwie.</p>
       <p>Pod grą z rozszerzeniami widać listę jej wersji: wersję podstawową i każde rozszerzenie. Znak <b>✓</b> z datą oznacza wersję rozegraną, <b>○</b> wersję do zagrania.</p>
+      <h4>Informacje o grze</h4>
+      <p>Przycisk <b>ⓘ</b> przy tytule (w zakładce <b>Gry</b> i na liście wszystkich gier) otwiera okno z informacjami o grze:</p>
+      <ul>
+        <li>data dodania gry,</li>
+        <li>data ostatniej rozgrywki,</li>
+        <li>liczba rozegranych partii (przy grze z rozszerzeniami także podział na wersje),</li>
+        <li>osoba, która najczęściej wygrywa, z liczbą wygranych.</li>
+      </ul>
+      <p>Statystyki są liczone z wyników, które widzisz: rozgrywek z Twoim udziałem i wyników wpisanych przez Ciebie. Dla gier dodanych przed wersją 1.3 data dodania pochodzi z Change Logu i może być niedostępna.</p>
       <h4>Stan rozegranych gier</h4>
       <ul>
         <li>Gra jest oznaczana jako rozegrana automatycznie, po zapisaniu wyniku. Nie można jej oznaczyć ręcznie.</li>
@@ -376,6 +394,7 @@
         <li>Losowane są tylko gry, których jeszcze nie rozegrałeś w bieżącym cyklu.</li>
         <li>Gra z rozszerzeniami jest losowana w wersjach: osobno wersja podstawowa i każde rozszerzenie.</li>
         <li>Wersja gry wypada z losowania po zapisaniu wyniku. Samo naciśnięcie <b>Gramy!</b> niczego nie zapisuje.</li>
+        <li>Pod przyciskiem <b>Losuj grę</b> widać najczęściej i najrzadziej graną grę z wybranych grup oraz liczbę partii. Liczą się wszystkie zapisane wyniki, także partie rozegrane bez losowania. Dotknięcie tytułu otwiera informacje o grze.</li>
         <li>Gdy wszystkie gry zostaną rozegrane, pojawi się przycisk <b>Zacznij nowy cykl</b>. Przycisk <b>Wyzeruj moje rozegrane</b> pod listą gier robi to samo dla jednej grupy. Obie opcje dotyczą tylko Ciebie.</li>
       </ul>
 

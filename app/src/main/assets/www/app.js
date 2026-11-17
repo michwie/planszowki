@@ -285,6 +285,7 @@
     if (playSubs[gid]) return;
     playSubs[gid] = pcol(gid).where("viewers", "array-contains", me.uid).onSnapshot(ps => {
       playsBy[gid] = ps.docs.map(d => Object.assign({}, d.data(), {id: d.id, groupId: gid})).sort((a,b) => b.at - a.at);
+      renderDrawStats(); if (!$("gi").hidden) renderGameInfo();
       if (!ps.metadata.fromCache) { loadedP.add(gid); reconcileMine(gid); }
       renderResults();
     }, () => {
@@ -535,6 +536,84 @@
     btn.hidden = !!drawn && !spinning;
     $("afterDraw").hidden = !(drawn && !spinning);
     $("count").textContent = pool.length ? ("Do rozegrania: " + left + " z " + pool.length) : "";
+    renderDrawStats();
+  }
+
+  // ================= STATYSTYKI GIER =================
+  // Liczone z wyników, które widzisz (Twoje rozgrywki i wyniki wpisane przez Ciebie).
+  const gamePlays = (gid, gameId) => (playsBy[gid] || []).filter(p => p.gameId === gameId);
+  function partii(n){ return plural(n, "partia", "partie", "partii"); }
+  // data dodania: zapisana przy grze, a dla starszych gier – z wpisu „Dodanie gry” w Change Logu
+  function addedAt(g, game){
+    if (game.added) return game.added;
+    const t = "Dodanie gry " + q(game.name);
+    const e = (logsBy[g.id] || []).filter(x => x.type === "game-add" && x.text === t).sort((a,b) => a.at - b.at)[0];
+    return e ? e.at : null;
+  }
+  function topWinners(plays){
+    const cnt = new Map(), acc = accounts();
+    plays.forEach(pl => (pl.scores || []).forEach(sc => {
+      if (!scoreWon(pl, sc)) return;
+      const k = scoreKey(sc), c = cnt.get(k) || {n: sc.uid ? (acc.get(sc.uid) || sc.p) : sc.p, w: 0};
+      c.w++; cnt.set(k, c);
+    }));
+    const arr = [...cnt.values()]; if (!arr.length) return null;
+    const max = Math.max(...arr.map(x => x.w));
+    return {names: arr.filter(x => x.w === max).map(x => x.n).sort(cmp), wins: max};
+  }
+  // pod przyciskiem Losuj: najczęściej i najrzadziej grana gra z wybranej puli (także bez losowania)
+  function renderDrawStats(){
+    const el = $("drawStats");
+    const rows = poolGames().map(x => { const ps = gamePlays(x.group.id, x.game.id); return {x, n: ps.length, last: ps.reduce((m, p) => Math.max(m, p.at), 0)}; });
+    if (rows.length < 2) { el.hidden = true; el.innerHTML = ""; return; }
+    el.hidden = false; el.innerHTML = "";
+    const line = (label, r, ties) => {
+      const d = document.createElement("div"); d.className = "ds";
+      d.innerHTML = '<span class="dl"></span><button class="dn" type="button"></button><span class="dc"></span>';
+      d.querySelector(".dl").textContent = label;
+      d.querySelector(".dn").textContent = r.x.game.name;
+      d.querySelector(".dn").onclick = () => openGameInfo(r.x.group.id, r.x.game.id);
+      d.querySelector(".dc").textContent = partii(r.n) + (ties > 0 ? " · i " + plural(ties, "inna", "inne", "innych") : "");
+      el.appendChild(d);
+    };
+    const most = rows.slice().sort((a,b) => (b.n - a.n) || (b.last - a.last) || cmp(a.x.game.name, b.x.game.name))[0];
+    if (most.n) line("Najczęściej grana", most, rows.filter(r => r.n === most.n).length - 1);
+    else { const d = document.createElement("div"); d.className = "ds"; d.innerHTML = '<span class="dl">Najczęściej grana</span><span class="dc">brak wyników</span>'; el.appendChild(d); }
+    const least = rows.slice().sort((a,b) => (a.n - b.n) || (a.last - b.last) || cmp(a.x.game.name, b.x.game.name))[0];
+    line("Najrzadziej grana", least, rows.filter(r => r.n === least.n).length - 1);
+  }
+  // okno ⓘ z informacjami o grze
+  let giKey = null;
+  function openGameInfo(gid, gameId){ giKey = {gid, gameId}; renderGameInfo(); openOv("gi"); }
+  function renderGameInfo(){
+    if (!giKey) return;
+    const f = findGame(giKey.gameId, giKey.gid);
+    if (!f) { closeOv("gi"); return; }
+    const {game, group: g} = f;
+    const ps = gamePlays(g.id, game.id);
+    $("giTitle").textContent = game.name;
+    const body = $("giBody"); body.innerHTML = "";
+    const dl = document.createElement("dl"); dl.className = "gi";
+    const row = (k, v) => { const dt = document.createElement("dt"), dd = document.createElement("dd"); dt.textContent = k; dd.textContent = v; dl.append(dt, dd); };
+    if (groups.length > 1) row("Grupa", g.name);
+    const ad = addedAt(g, game);
+    row("Data dodania", ad ? fmt(ad) : "brak danych");
+    row("Ostatnia rozgrywka", ps.length ? fmt(Math.max(...ps.map(p => p.at))) : "jeszcze nie grana");
+    row("Rozegrane partie", String(ps.length));
+    const ex = exps(game);
+    if (ex.length && ps.length) {
+      const per = [{e: null, name: "wersja podstawowa"}].concat(ex.map(e => ({e, name: e.name}))).map(r => {
+        const n = ps.filter(p => r.e ? (p.exps || []).some(x => x.id === r.e.id) : !(p.exps || []).length).length;
+        return r.name + ": " + n;
+      });
+      row("Partie według wersji", per.join(" · "));
+    }
+    const tw = topWinners(ps);
+    row("Najczęściej wygrywa", tw ? tw.names.join(", ") + " (" + plural(tw.wins, "wygrana", "wygrane", "wygranych") + ")" : "—");
+    body.appendChild(dl);
+    const note = document.createElement("p"); note.className = "ginote";
+    note.textContent = "Statystyki obejmują wyniki, które widzisz: rozgrywki z Twoim udziałem i wyniki wpisane przez Ciebie.";
+    body.appendChild(note);
   }
 
   function renderGroup(){
@@ -582,12 +661,14 @@
       li.className = "game" + (played ? " played" : "");
       li.innerHTML = '<span class="ib check" title="' + (played ? "Rozegrane wszystkie wersje" : "Do zagrania") + '">' + (played ? "✓" : "") + '</span>' +
         '<div class="gname"><b></b><small></small></div>' +
+        '<button class="ib info" title="Informacje o grze" aria-label="Informacje o grze">ⓘ</button>' +
         (edit ? '<button class="ib xed" title="Rozszerzenia">⊕</button>' : '') +
         (edit && moveTargets.length ? '<button class="ib move" title="Przenieś do innej grupy">⇄</button>' : '') +
         (edit ? '<button class="ib del" title="Usuń">🗑</button>' : '');
       li.querySelector("b").textContent = game.name;
       const sm = li.querySelector("small");
       sm.remove();   // bez napisów pod nazwą: stan pokazuje kwadracik (✓) i drzewko wersji
+      li.querySelector(".info").onclick = () => openGameInfo(g.id, game.id);
       // stan "rozegrana" zmienia się wyłącznie po dodaniu wyniku – tutaj tylko podgląd
       // rozszerzenia: dotknięcie = rozegrane / nierozegrane (dla Ciebie); edycja listy dla właściciela i edytorów
       if (ex.length || ui.expEdit === game.id) {
@@ -712,6 +793,7 @@
     $("addResult").hidden = !anyEdit; $("openList").hidden = !anyEdit;
     renderPool(); renderDraw(); renderGroup(); renderHist(); renderResults(); renderLog();
     if (!$("ov").hidden) renderAll();
+    if (!$("gi").hidden) renderGameInfo();
     if (!$("gm").hidden) renderGm();
   }
 
@@ -722,7 +804,7 @@
     if (!name) return;
     const g = groups[ui.tab]; if (!g || !canEdit(g)) return;
     if ((g.games || []).some(x => x.name.toLowerCase() === name.toLowerCase())) { toast("Ta gra już jest na liście"); return; }
-    upd(g.id, {games: FV.arrayUnion({id: uid(), name})}, "Dodanie gry " + q(name), "game-add");
+    upd(g.id, {games: FV.arrayUnion({id: uid(), name, added: Date.now()})}, "Dodanie gry " + q(name), "game-add");
     inp.value = ""; inp.focus();
   });
   let nameTimer = null;
@@ -870,8 +952,9 @@
       if (L !== last) { last = L; const h = document.createElement("li"); h.className = "letter"; h.textContent = L; ul.appendChild(h); }
       const li = document.createElement("li");
       li.className = isPlayed(x.group, x.game) ? "played" : "";
-      li.innerHTML = '<span class="nm"></span><span class="tag"></span>';
+      li.innerHTML = '<span class="nm"></span><span class="tag"></span><button class="ib info" title="Informacje o grze" aria-label="Informacje o grze">ⓘ</button>';
       li.querySelector(".nm").textContent = x.game.name;
+      li.querySelector(".info").onclick = () => openGameInfo(x.group.id, x.game.id);
       if (groups.length > 1) li.querySelector(".tag").textContent = x.group.name; else li.querySelector(".tag").remove();
       ul.appendChild(li);
       // rozszerzenia w drzewku pod grą
