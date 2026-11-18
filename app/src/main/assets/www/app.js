@@ -72,6 +72,9 @@
   const variants = game => [null].concat(exps(game));
   const vlabel = (game, exp) => game.name + (exp ? " + " + exp.name : (exps(game).length ? " (wersja podstawowa)" : ""));
   const isVPlayed = (g, game, exp) => !!myPlayed(g)[vkey(game, exp)];
+  // wykluczenie z losowania (wspólne dla grupy): game.off – wersja podstawowa, exp.off – rozszerzenie
+  const isVOff = (game, exp) => !!(exp ? exp.off : game.off);
+  const isAllOff = game => variants(game).every(e => isVOff(game, e));
   // gra "rozegrana" (przekreślona) = rozegrane wszystkie jej warianty
   const isPlayed = (g, game) => variants(game).every(e => isVPlayed(g, game, e));
   const findExp = (game, expId) => expId ? exps(game).find(e => e.id === expId) || null : null;
@@ -427,7 +430,7 @@
   }
   function poolVariants(){
     const out = [];
-    poolGames().forEach(x => variants(x.game).forEach(exp => out.push({game: x.game, group: x.group, exp})));
+    poolGames().forEach(x => variants(x.game).forEach(exp => { if (!isVOff(x.game, exp)) out.push({game: x.game, group: x.group, exp}); }));
     return out;
   }
   let spinning = false;
@@ -616,7 +619,7 @@
       stage.querySelector(".stagebtn").onclick = () => openResult(jp.game.id, jp.group.id, null, ui.justPlayed.exp);
     } else if (!groups.length) stage.innerHTML = '<div class="hint">Utwórz grupę albo dołącz do grupy znajomych.</div>';
     else if (!groups.some(canEdit)) stage.innerHTML = '<div class="hint">Jesteś graczem w swoich grupach – gry losuje właściciel lub Mistrz Gry. Swoje wyniki zobaczysz w zakładce Wyniki.</div>';
-    else if (!pool.length) stage.innerHTML = '<div class="hint">Dodaj gry w zakładce Gry, a potem losuj.</div>';
+    else if (!pool.length) stage.innerHTML = poolGames().length ? '<div class="hint">Wszystkie gry z wybranych grup są wykluczone z losowania (⊘ w zakładce Gry).</div>' : '<div class="hint">Dodaj gry w zakładce Gry, a potem losuj.</div>';
     else if (!left) stage.innerHTML = '<div class="hint">Cała pula rozegrana. Misja zakończona.</div>';
     else stage.innerHTML = '<div class="hint">oczekuję na polecenie…</div>';
     const btn = $("drawBtn");
@@ -659,7 +662,7 @@
   // pod przyciskiem Losuj: najczęściej i najrzadziej grana gra z wybranej puli (także bez losowania)
   function renderDrawStats(){
     const el = $("drawStats");
-    const rows = poolGames().map(x => { const ps = gamePlays(x.group.id, x.game.id); return {x, n: ps.length, last: ps.reduce((m, p) => Math.max(m, p.at), 0)}; });
+    const rows = poolGames().filter(x => !isAllOff(x.game)).map(x => { const ps = gamePlays(x.group.id, x.game.id); return {x, n: ps.length, last: ps.reduce((m, p) => Math.max(m, p.at), 0)}; });
     if (rows.length < 2) { el.hidden = true; el.innerHTML = ""; return; }
     el.hidden = false; el.innerHTML = "";
     // dwa osobne bloki (karty), jak blok losowania
@@ -763,11 +766,12 @@
       const ex = exps(game);
       const baseDone = isVPlayed(g, game, null);
       const li = document.createElement("li");
-      li.className = "game" + (played ? " played" : "");
+      li.className = "game" + (played ? " played" : "") + (isAllOff(game) ? " off" : "");
       li.innerHTML = '<span class="ib check" title="' + (played ? "Rozegrane wszystkie wersje" : "Do zagrania") + '">' + (played ? "✓" : "") + '</span>' +
         '<div class="gname"><b></b><small></small></div>' +
         '<button class="ib info" title="Informacje o grze" aria-label="Informacje o grze">ⓘ</button>' +
         (edit ? '<button class="ib xed" title="Rozszerzenia">⊕</button>' : '') +
+        (edit ? '<button class="ib off" aria-label="Wyklucz z losowania">⊘</button>' : '') +
         (edit && moveTargets.length ? '<button class="ib move" title="Przenieś do innej grupy">⇄</button>' : '') +
         (edit ? '<button class="ib del" title="Usuń">🗑</button>' : '');
       li.querySelector("b").textContent = game.name;
@@ -789,9 +793,18 @@
           row.className = "xrow" + (done ? " done" : "") + (r.e ? "" : " base") + (canDel ? " edit" : " ro") + (r.e && ui.expArmed === r.e.id ? " armed" : "");
           row.innerHTML = '<span class="br"></span><span class="mk"></span><span class="nm"></span><span class="dt"></span>';
           row.querySelector(".br").textContent = last ? "└─" : "├─";
-          row.querySelector(".mk").textContent = editing && r.e ? "✕" : (done ? "✓" : "○");
+          const off = isVOff(game, r.e);
+          if (off && !editing) row.classList.add("off");
+          row.querySelector(".mk").textContent = editing && r.e ? "✕" : (off ? "⊘" : (done ? "✓" : "○"));
           row.querySelector(".nm").textContent = editing && r.e && ui.expArmed === r.e.id ? "Usunąć „" + r.name + "”?" : r.name;
           if (done && !editing) row.querySelector(".dt").textContent = fmt(myPlayed(g)[vkey(game, r.e)]);
+          if (!editing) {
+            const ob = document.createElement("button"); ob.type = "button"; ob.className = "xoff" + (off ? " on" : "");
+            ob.textContent = "⊘"; ob.title = off ? "Przywróć do losowania" : "Wyklucz z losowania";
+            ob.setAttribute("aria-label", ob.title);
+            ob.onclick = () => setOff(g, game, [r.e], !off);
+            row.appendChild(ob);
+          }
           if (canDel) row.onclick = () => {
             if (ui.expArmed !== r.e.id) { ui.expArmed = r.e.id; renderGroup(); return; }
             ui.expArmed = null;
@@ -823,6 +836,14 @@
       if (xed) {
         xed.classList.toggle("on", ui.expEdit === game.id);
         xed.onclick = () => { ui.expEdit = ui.expEdit === game.id ? null : game.id; ui.expArmed = null; ui.expFocus = game.id; renderGroup(); };
+      }
+      const ob = li.querySelector(".ib.off");
+      if (ob) {
+        const all = isAllOff(game);
+        ob.classList.toggle("on", all);
+        ob.title = all ? "Przywróć do losowania" : (ex.length ? "Wyklucz z losowania (wszystkie wersje)" : "Wyklucz z losowania");
+        ob.setAttribute("aria-label", ob.title);
+        ob.onclick = () => setOff(g, game, variants(game), !all);
       }
       const mv = li.querySelector(".move");
       if (mv) mv.onclick = () => {
@@ -859,6 +880,17 @@
         tools.appendChild(r);
       }
     }
+  }
+  // wykluczenie / przywrócenie wersji gry (null = wersja podstawowa) w losowaniu – wspólne dla całej grupy
+  function setOff(g, game, list, off){
+    const ids = new Set(list.map(e => e ? e.id : null));
+    const flag = o => { const c = Object.assign({}, o); if (off) c.off = true; else delete c.off; return c; };
+    let ng = ids.has(null) ? flag(game) : Object.assign({}, game);
+    if (exps(game).length) ng.exps = exps(game).map(e => ids.has(e.id) ? flag(e) : e);
+    const what = list.length === 1 ? vlabel(game, list[0]) : game.name;
+    if (ui.drawn === game.id && ui.drawnGid === g.id && off) ui.drawn = null;
+    saveGame(g, ng, (off ? "Wykluczenie z losowania: " : "Przywrócenie do losowania: ") + q(what));
+    toast(off ? "Wykluczono z losowania" : "Przywrócono do losowania");
   }
   // zmiana jednej gry (np. lista rozszerzeń) – zapis całej listy gier grupy
   function saveGame(g, newGame, logText){
@@ -1056,7 +1088,7 @@
       const L = x.game.name.charAt(0).toLocaleUpperCase("pl");
       if (L !== last) { last = L; const h = document.createElement("li"); h.className = "letter"; h.textContent = L; ul.appendChild(h); }
       const li = document.createElement("li");
-      li.className = isPlayed(x.group, x.game) ? "played" : "";
+      li.className = (isPlayed(x.group, x.game) ? "played" : "") + (isAllOff(x.game) ? " off" : "");
       li.innerHTML = '<span class="nm"></span><span class="tag"></span><button class="ib info" title="Informacje o grze" aria-label="Informacje o grze">ⓘ</button>';
       li.querySelector(".nm").textContent = x.game.name;
       li.querySelector(".info").onclick = () => openGameInfo(x.group.id, x.game.id);
@@ -1069,7 +1101,7 @@
         const rows = [{e: null, name: "wersja podstawowa"}].concat(ex.map(e => ({e, name: e.name})));
         rows.forEach((r, i) => {
           const sub = document.createElement("li");
-          sub.className = "xsub" + (isVPlayed(x.group, x.game, r.e) ? " played" : "") + (r.e ? "" : " base") + (i === rows.length - 1 ? " last" : "");
+          sub.className = "xsub" + (isVPlayed(x.group, x.game, r.e) ? " played" : "") + (isVOff(x.game, r.e) ? " off" : "") + (r.e ? "" : " base") + (i === rows.length - 1 ? " last" : "");
           sub.innerHTML = '<span class="br"></span><span class="nm"></span>';
           sub.querySelector(".br").textContent = i === rows.length - 1 ? "└─" : "├─";
           sub.querySelector(".nm").textContent = r.name;
@@ -1694,8 +1726,8 @@
   $("bkCopy").onclick = async () => {
     const data = { v: 2, exportedAt: Date.now(),
       groups: groups.filter(canEdit).map(g => ({ id: g.id, name: g.name,
-        games: (g.games || []).map(x => ({id: x.id, name: x.name, played: isVPlayed(g, x, null), playedAt: myPlayed(g)[x.id] || null,
-          expansions: exps(x).map(e => ({id: e.id, name: e.name, played: isVPlayed(g, x, e), playedAt: myPlayed(g)[vkey(x, e)] || null}))})),
+        games: (g.games || []).map(x => ({id: x.id, name: x.name, played: isVPlayed(g, x, null), playedAt: myPlayed(g)[x.id] || null, off: !!x.off,
+          expansions: exps(x).map(e => ({id: e.id, name: e.name, played: isVPlayed(g, x, e), playedAt: myPlayed(g)[vkey(x, e)] || null, off: !!e.off}))})),
         history: myHistory(g), players: g.players || [],
         log: (logsBy[g.id] || []).map(e => ({at: e.at, name: e.name, type: e.type, text: e.text, scope: e.scope || "group"})) })),
       plays: allPlays().map(p => Object.assign({}, p)),
@@ -1732,9 +1764,11 @@
         const games = (og.games || []).filter(x => x && x.name).map(x => {
           const gm = {id: cleanId(x.id), name: String(x.name).slice(0, 80)};
           if (x.played) played[gm.id] = Number(x.playedAt) || Date.now();
+          if (x.off) gm.off = true;
           const ex = (Array.isArray(x.expansions) ? x.expansions : []).filter(e => e && e.name).map(e => {
             const en = {id: cleanId(e.id), name: String(e.name).slice(0, 60)};
             if (e.played) played[gm.id + "__" + en.id] = Number(e.playedAt) || Date.now();
+            if (e.off) en.off = true;
             return en;
           });
           if (ex.length) gm.exps = ex;
