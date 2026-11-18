@@ -662,7 +662,7 @@
   // pod przyciskiem Losuj: najczęściej i najrzadziej grana gra z wybranej puli (także bez losowania)
   function renderDrawStats(){
     const el = $("drawStats");
-    const rows = poolGames().filter(x => !isAllOff(x.game)).map(x => { const ps = gamePlays(x.group.id, x.game.id); return {x, n: ps.length, last: ps.reduce((m, p) => Math.max(m, p.at), 0)}; });
+    const rows = poolGames().map(x => { const ps = gamePlays(x.group.id, x.game.id); return {x, n: ps.length, last: ps.reduce((m, p) => Math.max(m, p.at), 0)}; });
     if (rows.length < 2) { el.hidden = true; el.innerHTML = ""; return; }
     el.hidden = false; el.innerHTML = "";
     // dwa osobne bloki (karty), jak blok losowania
