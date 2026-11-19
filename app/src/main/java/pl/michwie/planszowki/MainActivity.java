@@ -60,6 +60,11 @@ public class MainActivity extends Activity {
         super.onCreate(savedInstanceState);
         cleanupUpdates();   // po instalacji (lub porzuceniu) aktualizacji plik jest usuwany przy następnym starcie
         current = new WeakReference<>(this);
+        // aplikacja otwarta – powiadomienie „zaktualizowano” nie jest już potrzebne
+        try {
+            android.app.NotificationManager nm = (android.app.NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+            if (nm != null) nm.cancel(UpdatedReceiver.NOTIF_ID);
+        } catch (Exception ignored) { }
 
         root = new FrameLayout(this);
         root.setBackgroundColor(Color.rgb(2, 5, 3));
@@ -260,6 +265,15 @@ public class MainActivity extends Activity {
                         d.setSystemUiVisibility(light ? (f | mask) : (f & ~mask));
                     }
                 } catch (Exception ignored) { }
+            });
+        }
+
+        /** Prośba o zgodę na powiadomienia (Android 13+), by po aktualizacji pokazać „dotknij, aby otworzyć”. */
+        @JavascriptInterface
+        public void askNotifications() {
+            if (Build.VERSION.SDK_INT >= 33) runOnUiThread(() -> {
+                if (checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED)
+                    requestPermissions(new String[]{android.Manifest.permission.POST_NOTIFICATIONS}, 7);
             });
         }
 

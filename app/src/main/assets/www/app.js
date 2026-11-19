@@ -1618,13 +1618,18 @@
     const t = $("rank");
     if (!shown.length) t.innerHTML = '<tr><td class="empty" style="text-align:center;border:0">' + (plays.length ? "Brak wyników w tej grupie." : "Brak wyników. Dodaj pierwszy po rozgrywce.") + '</td></tr>';
     else {
-      const top = rows.length ? rows[0].w : 0;
+      // miejsca: najpierw liczba wygranych, przy remisie procent wygranych; ten sam wynik = to samo miejsce
+      const pct = r => r.g ? r.w / r.g : 0;
+      let place = 0;
+      rows.forEach((r, i) => { place = (i && r.w === rows[i-1].w && pct(r) === pct(rows[i-1])) ? place : i + 1; r.place = place; });
       t.innerHTML = "<tr><th>Gracz</th><th>Wygrane</th><th>Gry</th><th>%</th></tr>";
       rows.forEach(r => {
         const tr = document.createElement("tr");
-        if (r.w && r.w === top) tr.className = "top";
+        const medal = r.w && r.place <= 3 ? ["gold", "silver", "bronze"][r.place - 1] : "";
+        if (medal) tr.className = "top p" + r.place;
         tr.innerHTML = "<td></td><td class='w'></td><td></td><td></td>";
-        tr.children[0].textContent = (r.w && r.w === top ? "👑 " : "") + r.label;
+        if (medal) tr.children[0].innerHTML = '<svg class="crown ' + medal + '" viewBox="0 0 24 18" aria-label="' + r.place + '. miejsce"><path d="M2 15 L1 4 L7 9 L12 1 L17 9 L23 4 L22 15 Z"/><rect x="2" y="15.5" width="20" height="2.5" rx="1"/></svg>';
+        tr.children[0].appendChild(document.createTextNode(r.label));
         tr.children[1].textContent = r.w; tr.children[2].textContent = r.g;
         tr.children[3].textContent = r.g ? Math.round(100 * r.w / r.g) + "%" : "–";
         t.appendChild(tr);
@@ -1877,13 +1882,14 @@
     openOv("updOv");
     if (updBusy) return;
     updBusy = true;
+    if (Android.askNotifications) try { Android.askNotifications(); } catch(e){}
     Android.downloadUpdate(url);
   }
   $("updRetry").onclick = () => { updBusy = false; if (updArgs) startUpdate(updArgs[0], updArgs[1]); };
   // postęp z Androida: 0–99 pobieranie, 100 instalacja, liczby ujemne – stany szczególne
   window.updProgress = p => {
     if (p >= 0 && p < 100) updState({pct: p, text: "Pobieranie… " + p + "%", spin: true});
-    else if (p === 100) updState({indet: true, text: "Instalowanie… aplikacja uruchomi się ponownie", icon: "⟳", spin: true, lock: true});
+    else if (p === 100) updState({indet: true, text: "Instalowanie… Po instalacji dotknij powiadomienia „Planszomat zaktualizowany”, aby otworzyć aplikację.", icon: "⟳", spin: true, lock: true});
     else if (p === -2) updState({text: "Zezwól Planszomatowi na instalowanie aplikacji i wróć – instalacja ruszy sama.", icon: "🔒"});
     else if (p === -3) updState({indet: true, text: "Potwierdź instalację w oknie systemowym.", icon: "⟳", spin: true});
     else if (p === -5) { updBusy = false; updState({pct: 100, text: "Zainstalowano. Uruchom aplikację ponownie.", icon: "✓"}); }
