@@ -48,7 +48,9 @@
 :root[data-theme="goose"] .toast{color:#fff;border-color:#2b2520}
 :root[data-theme="goose"] input,:root[data-theme="goose"] select,:root[data-theme="goose"] textarea{border-width:2px;border-radius:10px}
 :root[data-theme="goose"] .code{border-width:2px;color:#2b2520}
-:root[data-theme="goose"] .rank tr.top td{color:#b94e05}
+:root[data-theme="goose"] .rank tr.p1 td{color:#a87400;text-shadow:none}
+:root[data-theme="goose"] .rank tr.p2 td{color:#5f6b78;text-shadow:none}
+:root[data-theme="goose"] .rank tr.p3 td{color:#9a5418;text-shadow:none}
 :root[data-theme="goose"] .ib.del.armed,:root[data-theme="goose"] .danger.armed,:root[data-theme="goose"] .delg.armed{color:#fff}
 
 /* 4) Galaktyka – czarny kosmos, gwiazdy, żółte napisy, niebieskie akcenty */

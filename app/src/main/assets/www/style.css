@@ -117,7 +117,9 @@
   .rank th{color:var(--muted);font-weight:400;font-size:11px;letter-spacing:1px;text-transform:uppercase;text-align:right;padding:6px 4px;border-bottom:1px solid var(--line)}
   .rank th:first-child,.rank td:first-child{text-align:left}
   .rank td{padding:9px 4px;border-bottom:1px solid var(--line);text-align:right}
-  .rank tr.p1 td{color:var(--glow);text-shadow:0 0 8px rgba(var(--glow-rgb),calc(.6*var(--gs)))}
+  .rank tr.p1 td{color:#f5c518;text-shadow:0 0 8px rgba(245,197,24,.45)}
+  .rank tr.p2 td{color:#c9d1d9;text-shadow:0 0 6px rgba(201,209,217,.35)}
+  .rank tr.p3 td{color:#cd7f32;text-shadow:0 0 6px rgba(205,127,50,.35)}
   .rank .w{font-family:var(--font-head);font-weight:800}
   .res li{padding:10px 0;border-top:1px solid var(--line);display:flex;gap:8px;align-items:flex-start}
   .res li:first-child{border-top:0}
