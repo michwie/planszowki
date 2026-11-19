@@ -422,7 +422,7 @@
   function inPool(g){ if (!canEdit(g)) return false; const p = ui.pool.filter(id => groups.some(x => x.id === id && canEdit(x))); return !p.length || p.includes(g.id); }
   function poolGames(){
     const out = [];
-    groups.forEach(g => { if (inPool(g)) (g.games || []).forEach(game => out.push({game, group: g})); });
+    groups.forEach(g => { if (inPool(g)) (g.games || []).forEach(game => { if (!game.noDraw) out.push({game, group: g}); }); });
     return out;
   }
   function poolVariants(){
@@ -757,96 +757,7 @@
     const list = $("list"); list.innerHTML = "";
     const games = (g.games || []).slice().sort((a,b) => cmp(a.name, b.name));
     if (!games.length) list.innerHTML = '<li class="empty">Brak gier w tej grupie.</li>';
-    const moveTargets = groups.filter(x => x !== g && canEdit(x));
-    games.forEach(game => {
-      const played = isPlayed(g, game);
-      const ex = exps(game);
-      const baseDone = isVPlayed(g, game, null);
-      const li = document.createElement("li");
-      li.className = "game" + (played ? " played" : "");
-      li.innerHTML = '<span class="ib check" title="' + (played ? "Rozegrane wszystkie wersje" : "Do zagrania") + '">' + (played ? "✓" : "") + '</span>' +
-        '<div class="gname"><b></b><small></small></div>' +
-        '<button class="ib info" title="Informacje o grze" aria-label="Informacje o grze">ⓘ</button>' +
-        (edit ? '<button class="ib xed" title="Rozszerzenia">⊕</button>' : '') +
-        (edit && moveTargets.length ? '<button class="ib move" title="Przenieś do innej grupy">⇄</button>' : '') +
-        (edit ? '<button class="ib del" title="Usuń">🗑</button>' : '');
-      li.querySelector("b").textContent = game.name;
-      const sm = li.querySelector("small");
-      sm.remove();   // bez napisów pod nazwą: stan pokazuje kwadracik (✓) i drzewko wersji
-      li.querySelector(".info").onclick = () => openGameInfo(g.id, game.id);
-      // stan "rozegrana" zmienia się wyłącznie po dodaniu wyniku – tutaj tylko podgląd
-      // rozszerzenia: dotknięcie = rozegrane / nierozegrane (dla Ciebie); edycja listy dla właściciela i edytorów
-      if (ex.length || ui.expEdit === game.id) {
-        // drzewko wersji: podstawowa + rozszerzenia; dotknięcie = rozegrana / nierozegrana (dla Ciebie)
-        const box = document.createElement("div"); box.className = "xtree";
-        const editing = ui.expEdit === game.id;
-        const rows = ex.length ? [{e: null, name: "wersja podstawowa"}].concat(ex.map(e => ({e, name: e.name}))) : [];
-        rows.forEach((r, i) => {
-          const done = isVPlayed(g, game, r.e);
-          const last = i === rows.length - 1 && !editing;
-          const canDel = editing && r.e;
-          const row = document.createElement(canDel ? "button" : "div"); if (canDel) row.type = "button";
-          row.className = "xrow" + (done ? " done" : "") + (r.e ? "" : " base") + (canDel ? " edit" : " ro") + (r.e && ui.expArmed === r.e.id ? " armed" : "");
-          row.innerHTML = '<span class="br"></span><span class="mk"></span><span class="nm"></span><span class="dt"></span>';
-          row.querySelector(".br").textContent = last ? "└─" : "├─";
-          row.querySelector(".mk").textContent = editing && r.e ? "✕" : (done ? "✓" : "○");
-          row.querySelector(".nm").textContent = editing && r.e && ui.expArmed === r.e.id ? "Usunąć „" + r.name + "”?" : r.name;
-          if (done && !editing) row.querySelector(".dt").textContent = fmt(myPlayed(g)[vkey(game, r.e)]);
-          if (canDel) row.onclick = () => {
-            if (ui.expArmed !== r.e.id) { ui.expArmed = r.e.id; renderGroup(); return; }
-            ui.expArmed = null;
-            saveGame(g, Object.assign({}, game, {exps: ex.filter(x => x.id !== r.e.id)}), "Usunięcie rozszerzenia " + q(r.name) + " z gry " + q(game.name));
-          };
-          box.appendChild(row);
-        });
-        if (ui.expEdit === game.id) {
-          const f = document.createElement("form"); f.className = "add expadd";
-          f.innerHTML = '<span class="br">└─</span><input type="text" maxlength="60" placeholder="nazwa rozszerzenia…" autocomplete="off">' +
-            '<div class="xbtns"><button type="button" class="xcancel">Anuluj</button><button type="submit" class="xdone">✓ Gotowe</button></div>';
-          const closeEdit = () => { ui.expEdit = null; ui.expArmed = null; renderGroup(); };
-          f.querySelector(".xcancel").onclick = closeEdit;   // porzuca wpisaną nazwę
-          // Gotowe (lub Enter): dodaje wpisane rozszerzenie i kończy edycję; puste pole – tylko kończy edycję
-          f.onsubmit = ev => {
-            ev.preventDefault();
-            const inp = f.querySelector("input"); const n = inp.value.trim().replace(/\s+/g, " ");
-            if (!n) { closeEdit(); return; }
-            if (ex.some(x => x.name.toLowerCase() === n.toLowerCase())) { toast("To rozszerzenie już jest"); return; }
-            ui.expEdit = null; ui.expArmed = null;
-            saveGame(g, Object.assign({}, game, {exps: ex.concat({id: uid(), name: n, added: Date.now()})}), "Dodanie rozszerzenia " + q(n) + " do gry " + q(game.name));
-            renderGroup();
-          };
-          box.appendChild(f);
-        }
-        li.appendChild(box);
-      }
-      const xed = li.querySelector(".xed");
-      if (xed) {
-        xed.classList.toggle("on", ui.expEdit === game.id);
-        xed.onclick = () => { ui.expEdit = ui.expEdit === game.id ? null : game.id; ui.expArmed = null; ui.expFocus = game.id; renderGroup(); };
-      }
-      const mv = li.querySelector(".move");
-      if (mv) mv.onclick = () => {
-        if (moveTargets.length === 1) { moveGame(g, game, moveTargets[0]); return; }
-        ui.moving = ui.moving === game.id ? null : game.id; renderGroup();
-      };
-      if (ui.moving === game.id) {
-        const box = document.createElement("div"); box.className = "movebox";
-        box.innerHTML = "<span>Przenieś do:</span>";
-        moveTargets.forEach(o => { const c = document.createElement("button"); c.className = "chip"; c.textContent = o.name; c.onclick = () => moveGame(g, game, o); box.appendChild(c); });
-        li.appendChild(box);
-      }
-      const del = li.querySelector(".del");
-      if (del) {
-        if (ui.armed === game.id) { del.classList.add("armed"); del.textContent = "Usuń?"; }
-        del.onclick = () => {
-          if (ui.armed !== game.id) { ui.armed = game.id; renderGroup(); return; }
-          ui.armed = null; if (ui.drawn === game.id) ui.drawn = null;
-          upd(g.id, {games: FV.arrayRemove(game)}, "Usunięcie gry " + q(game.name), "game-del");
-        };
-      }
-      list.appendChild(li);
-    });
-    if (ui.expFocus) { const fi = list.querySelector(".expadd input"); if (fi) fi.focus(); ui.expFocus = null; }
+    games.forEach(game => list.appendChild(gameRow(g, game, false)));
     const allV = games.reduce((a, x) => a + variants(x).length, 0);
     const doneV = games.reduce((a, x) => a + variants(x).filter(e => isVPlayed(g, x, e)).length, 0);
     const playedN = doneV;
@@ -859,6 +770,115 @@
         tools.appendChild(r);
       }
     }
+  }
+  const rerenderLists = () => { renderGroup(); if (!$("ov").hidden) renderAll(); };
+  // Wiersz gry: mały znacznik ✓/○, tytuł (wyszarzony, gdy rozegrane wszystkie wersje), data rozegrania,
+  // drzewko wersji. full = lista wszystkich gier: dodatkowo przyciski ⓘ ✎ ⊘ ⇄ 🗑 i edycja.
+  function gameRow(g, game, full){
+    const edit = full && canEdit(g);
+    const played = isPlayed(g, game);
+    const ex = exps(game);
+    const editing = edit && ui.expEdit === game.id;
+    const moveTargets = groups.filter(x => x !== g && canEdit(x));
+    const li = document.createElement("li");
+    li.className = "game" + (played ? " played" : "") + (game.noDraw ? " nodraw" : "");
+    li.innerHTML = '<span class="gmk"></span><div class="gname"><b></b><span class="gsub"></span></div><span class="gdt"></span>' +
+      (full && groups.length > 1 ? '<span class="tag"></span>' : '') +
+      (full ? '<span class="gbtns"><button class="ib info" title="Informacje o grze" aria-label="Informacje o grze">ⓘ</button>' +
+        (edit ? '<button class="ib xed" title="Edytuj grę i rozszerzenia" aria-label="Edytuj">✎</button>' +
+                '<button class="ib nd" title="Wyklucz z losowania / przywróć" aria-label="Wykluczenie z losowania">⊘</button>' +
+                (moveTargets.length ? '<button class="ib move" title="Przenieś do innej grupy" aria-label="Przenieś">⇄</button>' : '') +
+                '<button class="ib del" title="Usuń" aria-label="Usuń">🗑</button>' : '') + '</span>' : '');
+    li.querySelector(".gmk").textContent = played ? "✓" : "○";
+    li.querySelector("b").textContent = game.name;
+    li.querySelector(".gsub").textContent = game.noDraw ? "⊘ wykluczona z losowania" : "";
+    if (!ex.length && played) li.querySelector(".gdt").textContent = fmt(myPlayed(g)[game.id]);
+    const tag = li.querySelector(".tag"); if (tag) tag.textContent = g.name;
+    if (full) {
+      li.querySelector(".info").onclick = () => openGameInfo(g.id, game.id);
+      if (edit) {
+        const xed = li.querySelector(".xed");
+        xed.classList.toggle("on", editing);
+        xed.onclick = () => { ui.expEdit = editing ? null : game.id; ui.expArmed = null; ui.expFocus = game.id; rerenderLists(); };
+        const nd = li.querySelector(".nd");
+        nd.classList.toggle("on", !!game.noDraw);
+        nd.onclick = () => {
+          const ng = Object.assign({}, game); if (game.noDraw) delete ng.noDraw; else ng.noDraw = true;
+          if (ui.drawn === game.id) ui.drawn = null;
+          saveGame(g, ng, (game.noDraw ? "Przywrócenie gry do losowania: " : "Wykluczenie gry z losowania: ") + q(game.name));
+          toast(game.noDraw ? "„" + game.name + "” znów bierze udział w losowaniu" : "„" + game.name + "” nie będzie losowana");
+        };
+        const mv = li.querySelector(".move");
+        if (mv) mv.onclick = () => {
+          if (moveTargets.length === 1) { moveGame(g, game, moveTargets[0]); return; }
+          ui.moving = ui.moving === game.id ? null : game.id; rerenderLists();
+        };
+        const del = li.querySelector(".del");
+        if (ui.armed === game.id) { del.classList.add("armed"); del.textContent = "Usuń?"; }
+        del.onclick = () => {
+          if (ui.armed !== game.id) { ui.armed = game.id; rerenderLists(); return; }
+          ui.armed = null; if (ui.drawn === game.id) ui.drawn = null;
+          upd(g.id, {games: FV.arrayRemove(game)}, "Usunięcie gry " + q(game.name), "game-del");
+        };
+      }
+    }
+    // drzewko wersji (wersja podstawowa + rozszerzenia)
+    if (ex.length || editing) {
+      const box = document.createElement("div"); box.className = "xtree";
+      const rows = ex.length ? [{e: null, name: "wersja podstawowa"}].concat(ex.map(e => ({e, name: e.name}))) : [];
+      rows.forEach((r, i) => {
+        const done = isVPlayed(g, game, r.e);
+        const last = i === rows.length - 1 && !editing;
+        const canDel = editing && r.e;
+        const row = document.createElement(canDel ? "button" : "div"); if (canDel) row.type = "button";
+        row.className = "xrow" + (done ? " done" : "") + (r.e ? "" : " base") + (canDel ? " edit" : " ro") + (r.e && ui.expArmed === r.e.id ? " armed" : "");
+        row.innerHTML = '<span class="br"></span><span class="mk"></span><span class="nm"></span><span class="dt"></span>';
+        row.querySelector(".br").textContent = last ? "└─" : "├─";
+        row.querySelector(".mk").textContent = canDel ? "✕" : (done ? "✓" : "○");
+        row.querySelector(".nm").textContent = canDel && ui.expArmed === r.e.id ? "Usunąć „" + r.name + "”?" : r.name;
+        if (done && !editing) row.querySelector(".dt").textContent = fmt(myPlayed(g)[vkey(game, r.e)]);
+        if (canDel) row.onclick = () => {
+          if (ui.expArmed !== r.e.id) { ui.expArmed = r.e.id; rerenderLists(); return; }
+          ui.expArmed = null;
+          saveGame(g, Object.assign({}, game, {exps: ex.filter(x => x.id !== r.e.id)}), "Usunięcie rozszerzenia " + q(r.name) + " z gry " + q(game.name));
+        };
+        box.appendChild(row);
+      });
+      if (editing) {
+        // edycja: nazwa gry + nowe rozszerzenie; Gotowe zapisuje, Anuluj porzuca
+        const f = document.createElement("form"); f.className = "add expadd";
+        f.innerHTML = '<label class="fl">Nazwa gry</label><input type="text" class="gnm" maxlength="80" autocomplete="off">' +
+          '<label class="fl">Nowe rozszerzenie (opcjonalnie)</label><input type="text" class="xnew" maxlength="60" placeholder="nazwa rozszerzenia…" autocomplete="off">' +
+          '<div class="xbtns"><button type="button" class="xcancel">Anuluj</button><button type="submit" class="xdone">✓ Gotowe</button></div>';
+        f.querySelector(".gnm").value = game.name;
+        const closeEdit = () => { ui.expEdit = null; ui.expArmed = null; rerenderLists(); };
+        f.querySelector(".xcancel").onclick = closeEdit;
+        f.onsubmit = ev => {
+          ev.preventDefault();
+          const n = f.querySelector(".xnew").value.trim().replace(/\s+/g, " ");
+          const nm = f.querySelector(".gnm").value.trim().replace(/\s+/g, " ");
+          if (!nm) { toast("Wpisz nazwę gry"); return; }
+          if (nm !== game.name && (g.games || []).some(x => x.id !== game.id && x.name.toLowerCase() === nm.toLowerCase())) { toast("Gra o tej nazwie już jest"); return; }
+          if (n && ex.some(x => x.name.toLowerCase() === n.toLowerCase())) { toast("To rozszerzenie już jest"); return; }
+          if (!n && nm === game.name) { closeEdit(); return; }
+          const ng = Object.assign({}, game, {name: nm});
+          if (n) ng.exps = ex.concat({id: uid(), name: n, added: Date.now()});
+          const txt = [nm !== game.name ? "Zmiana nazwy gry " + q(game.name) + " na " + q(nm) : "", n ? "Dodanie rozszerzenia " + q(n) + " do gry " + q(nm) : ""].filter(Boolean).join("; ");
+          ui.expEdit = null; ui.expArmed = null;
+          saveGame(g, ng, txt);
+          rerenderLists();
+        };
+        box.appendChild(f);
+      }
+      li.appendChild(box);
+    }
+    if (full && ui.moving === game.id) {
+      const box = document.createElement("div"); box.className = "movebox";
+      box.innerHTML = "<span>Przenieś do:</span>";
+      moveTargets.forEach(o => { const c = document.createElement("button"); c.className = "chip"; c.textContent = o.name; c.onclick = () => moveGame(g, game, o); box.appendChild(c); });
+      li.appendChild(box);
+    }
+    return li;
   }
   // zmiana jednej gry (np. lista rozszerzeń) – zapis całej listy gier grupy
   function saveGame(g, newGame, logText){
@@ -931,7 +951,7 @@
   $("rerollBtn").onclick = () => { const f = ui.drawn && findGame(ui.drawn, ui.drawnGid); draw(f ? vkey(f.game, findExp(f.game, ui.drawnExp)) : null); };
   $("playBtn").onclick = markPlayed;
   document.addEventListener("click", e => {
-    if (ui.armed && !e.target.closest(".del")) { ui.armed = null; renderGroup(); }
+    if (ui.armed && !e.target.closest(".del")) { ui.armed = null; rerenderLists(); }
     if (ui.resArmed && !e.target.closest(".del")) { ui.resArmed = null; renderResults(); }
   });
 
@@ -1049,34 +1069,21 @@
     groups.forEach(g => { if (ovFilter === "all" || ovFilter === g.id) (g.games || []).forEach(game => items.push({game, group:g})); });
     const shown = items.filter(x => !q || x.game.name.toLowerCase().includes(q) || exps(x.game).some(e => e.name.toLowerCase().includes(q)))
       .sort((a,b) => cmp(a.game.name, b.game.name));
-    const ul = $("allList"); ul.innerHTML = "";
+    const ul = $("allList");
+    // zachowaj to, co wpisano w otwartej edycji, gdy lista odświeża się w trakcie
+    const keep = {x: (ul.querySelector(".expadd .xnew") || {}).value, n: (ul.querySelector(".expadd .gnm") || {}).value};
+    ul.innerHTML = "";
     if (!shown.length) ul.innerHTML = '<li class="empty" style="justify-content:center;border:0">' + (items.length ? "Brak wyników." : "Nie masz jeszcze żadnych gier.") + '</li>';
     let last = "";
     shown.forEach(x => {
       const L = x.game.name.charAt(0).toLocaleUpperCase("pl");
       if (L !== last) { last = L; const h = document.createElement("li"); h.className = "letter"; h.textContent = L; ul.appendChild(h); }
-      const li = document.createElement("li");
-      li.className = isPlayed(x.group, x.game) ? "played" : "";
-      li.innerHTML = '<span class="nm"></span><span class="tag"></span><button class="ib info" title="Informacje o grze" aria-label="Informacje o grze">ⓘ</button>';
-      li.querySelector(".nm").textContent = x.game.name;
-      li.querySelector(".info").onclick = () => openGameInfo(x.group.id, x.game.id);
-      if (groups.length > 1) li.querySelector(".tag").textContent = x.group.name; else li.querySelector(".tag").remove();
-      ul.appendChild(li);
-      // rozszerzenia w drzewku pod grą
-      const ex = exps(x.game);
-      if (ex.length) {
-        li.classList.add("hasx");
-        const rows = [{e: null, name: "wersja podstawowa"}].concat(ex.map(e => ({e, name: e.name})));
-        rows.forEach((r, i) => {
-          const sub = document.createElement("li");
-          sub.className = "xsub" + (isVPlayed(x.group, x.game, r.e) ? " played" : "") + (r.e ? "" : " base") + (i === rows.length - 1 ? " last" : "");
-          sub.innerHTML = '<span class="br"></span><span class="nm"></span>';
-          sub.querySelector(".br").textContent = i === rows.length - 1 ? "└─" : "├─";
-          sub.querySelector(".nm").textContent = r.name;
-          ul.appendChild(sub);
-        });
-      }
+      ul.appendChild(gameRow(x.group, x.game, true));
     });
+    const fx = ul.querySelector(".expadd .xnew"), fn = ul.querySelector(".expadd .gnm");
+    if (fx && keep.x !== undefined) fx.value = keep.x;
+    if (fn && keep.n !== undefined) fn.value = keep.n;
+    if (ui.expFocus) { if (fx) fx.focus(); ui.expFocus = null; }
     const played = items.filter(x => isPlayed(x.group, x.game)).length;
     $("ovSum").textContent = items.length ? ("Razem: " + items.length + " · rozegrane: " + played + " · do zagrania: " + (items.length - played)) : "";
   }

@@ -70,7 +70,7 @@
   .gname{flex:1;min-width:0}
   .gname b{font-weight:400;display:block;word-break:break-word;color:var(--ink)}
   .gname small{color:var(--muted);font-size:11px;letter-spacing:1px;text-transform:uppercase}
-  li.played .gname b{color:var(--muted);text-decoration:line-through;text-decoration-thickness:1px}
+  li.played .gname b{color:var(--muted)}
   .ib{width:36px;height:36px;border-radius:3px;display:grid;place-items:center;font-size:15px;flex:none;color:var(--muted)}
   .ib:active{background:var(--green-soft)}
   .ib.del.armed{background:var(--red);color:#fff;width:auto;padding:0 10px;font-size:12px;text-transform:uppercase;letter-spacing:1px}
@@ -109,7 +109,7 @@
   .ovscroll{overflow-y:auto;flex:1;-webkit-overflow-scrolling:touch;border-top:1px solid var(--line)}
   .all li{display:flex;align-items:center;gap:10px;padding:10px 2px;border-bottom:1px solid var(--line)}
   .all .nm{flex:1;min-width:0;word-break:break-word}
-  .all li.played .nm{color:var(--muted);text-decoration:line-through;text-decoration-thickness:1px}
+
   .all .tag{font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);border:1px solid var(--line);padding:3px 6px;border-radius:3px;white-space:nowrap}
   .all .letter{font-family:var(--font-head);color:var(--glow);font-size:13px;padding:14px 2px 4px;border-bottom:0;text-shadow:0 0 8px rgba(var(--glow-rgb),calc(.6*var(--gs)))}
   .ovsum{font-size:12px;color:var(--muted);margin-top:10px;text-align:center;letter-spacing:1px}
@@ -244,7 +244,7 @@
 .xrow .dt{flex:none;color:var(--muted);font-size:11px}
 .xrow.base .nm{color:var(--muted);font-style:italic}
 .xrow.done .mk{color:var(--glow)}
-.xrow.done .nm{color:var(--muted);text-decoration:line-through;text-decoration-thickness:1px}
+.xrow.done .nm{color:var(--muted)}
 .xrow.edit .mk{color:var(--red)}
 .xrow.armed{background:var(--red);color:#fff}
 .xrow.armed .nm,.xrow.armed .mk,.xrow.armed .br{color:#fff;text-decoration:none}
@@ -364,3 +364,22 @@ dl.gi .gil b{font-weight:400;color:var(--glow);flex:none;white-space:nowrap}
 .mergebox .ok.armed{background:var(--amber);border-color:var(--amber);color:var(--accent-ink)}
 .mergehint p{margin:0 0 10px;font-size:14px;line-height:1.5}
 .mergehint{border-color:var(--amber)}
+
+/* wiersz gry: mały znacznik zamiast kwadratu, data rozegrania, wyszarzenie */
+li.game .gmk{flex:none;width:18px;text-align:center;color:var(--muted);font-size:14px}
+li.game.played .gmk{color:var(--glow)}
+li.game .gname{flex:1;min-width:0}
+li.game .gsub{display:block;font-size:11px;color:var(--amber);letter-spacing:.5px}
+li.game .gsub:empty{display:none}
+li.game .gdt{flex:none;color:var(--muted);font-size:11px}
+li.game.played{opacity:.75}
+li.game .xtree{flex-basis:100%}
+li.game .gbtns{display:flex;gap:2px;flex:none}
+li.game .gbtns .ib{width:32px;height:32px}
+.ib.nd.on{color:var(--amber)}
+.all li.game{border-top:0;flex-wrap:wrap;gap:6px}
+.all li.game .tag{flex:none}
+.expadd .gnm{flex-basis:100%}
+@media (max-width:420px){ .all li.game .gbtns{flex-basis:100%;justify-content:flex-end} }
+.expadd .fl{flex-basis:100%;margin:8px 0 4px}
+.expadd .gnm,.expadd .xnew{flex-basis:100%}
