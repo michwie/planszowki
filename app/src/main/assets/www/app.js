@@ -72,6 +72,9 @@
   const variants = game => [null].concat(exps(game));
   const vlabel = (game, exp) => game.name + (exp ? " + " + exp.name : (exps(game).length ? " (wersja podstawowa)" : ""));
   const isVPlayed = (g, game, exp) => !!myPlayed(g)[vkey(game, exp)];
+  // wykluczenie z losowania (wspólne dla grupy): game.off – wersja podstawowa, exp.off – rozszerzenie
+  const isVOff = (game, exp) => !!(exp ? exp.off : game.off);
+  const isAllOff = game => variants(game).every(e => isVOff(game, e));
   // gra "rozegrana" (przekreślona) = rozegrane wszystkie jej warianty
   const isPlayed = (g, game) => variants(game).every(e => isVPlayed(g, game, e));
   const findExp = (game, expId) => expId ? exps(game).find(e => e.id === expId) || null : null;
@@ -422,12 +425,12 @@
   function inPool(g){ if (!canEdit(g)) return false; const p = ui.pool.filter(id => groups.some(x => x.id === id && canEdit(x))); return !p.length || p.includes(g.id); }
   function poolGames(){
     const out = [];
-    groups.forEach(g => { if (inPool(g)) (g.games || []).forEach(game => { if (!game.noDraw) out.push({game, group: g}); }); });
+    groups.forEach(g => { if (inPool(g)) (g.games || []).forEach(game => out.push({game, group: g})); });
     return out;
   }
   function poolVariants(){
     const out = [];
-    poolGames().forEach(x => variants(x.game).forEach(exp => out.push({game: x.game, group: x.group, exp})));
+    poolGames().forEach(x => variants(x.game).forEach(exp => { if (!isVOff(x.game, exp)) out.push({game: x.game, group: x.group, exp}); }));
     return out;
   }
   let spinning = false;
@@ -616,7 +619,7 @@
       stage.querySelector(".stagebtn").onclick = () => openResult(jp.game.id, jp.group.id, null, ui.justPlayed.exp);
     } else if (!groups.length) stage.innerHTML = '<div class="hint">Utwórz grupę albo dołącz do grupy znajomych.</div>';
     else if (!groups.some(canEdit)) stage.innerHTML = '<div class="hint">Jesteś graczem w swoich grupach – gry losuje właściciel lub Mistrz Gry. Swoje wyniki zobaczysz w zakładce Wyniki.</div>';
-    else if (!pool.length) stage.innerHTML = '<div class="hint">Dodaj gry w zakładce Gry, a potem losuj.</div>';
+    else if (!pool.length) stage.innerHTML = poolGames().length ? '<div class="hint">Wszystkie gry z wybranych grup są wykluczone z losowania (⊘ w zakładce Gry).</div>' : '<div class="hint">Dodaj gry w zakładce Gry, a potem losuj.</div>';
     else if (!left) stage.innerHTML = '<div class="hint">Cała pula rozegrana. Misja zakończona.</div>';
     else stage.innerHTML = '<div class="hint">oczekuję na polecenie…</div>';
     const btn = $("drawBtn");
@@ -781,7 +784,7 @@
     const editing = edit && ui.expEdit === game.id;
     const moveTargets = groups.filter(x => x !== g && canEdit(x));
     const li = document.createElement("li");
-    li.className = "game" + (played ? " played" : "") + (game.noDraw ? " nodraw" : "");
+    li.className = "game" + (played ? " played" : "") + (isAllOff(game) ? " off" : "");
     li.innerHTML = '<span class="gmk"></span><div class="gname"><b></b><span class="gsub"></span></div><span class="gdt"></span>' +
       (full && groups.length > 1 ? '<span class="tag"></span>' : '') +
       (full ? '<span class="gbtns"><button class="ib info" title="Informacje o grze" aria-label="Informacje o grze">ⓘ</button>' +
@@ -791,7 +794,7 @@
                 '<button class="ib del" title="Usuń" aria-label="Usuń">🗑</button>' : '') + '</span>' : '');
     li.querySelector(".gmk").textContent = played ? "✓" : "○";
     li.querySelector("b").textContent = game.name;
-    li.querySelector(".gsub").textContent = game.noDraw ? "⊘ wykluczona z losowania" : "";
+    li.querySelector(".gsub").textContent = isAllOff(game) ? "⊘ wykluczona z losowania" : (variants(game).some(e => isVOff(game, e)) ? "⊘ część wersji wykluczona z losowania" : "");
     if (!ex.length && played) li.querySelector(".gdt").textContent = fmt(myPlayed(g)[game.id]);
     const tag = li.querySelector(".tag"); if (tag) tag.textContent = g.name;
     if (full) {
@@ -801,13 +804,10 @@
         xed.classList.toggle("on", editing);
         xed.onclick = () => { ui.expEdit = editing ? null : game.id; ui.expArmed = null; ui.expFocus = game.id; rerenderLists(); };
         const nd = li.querySelector(".nd");
-        nd.classList.toggle("on", !!game.noDraw);
-        nd.onclick = () => {
-          const ng = Object.assign({}, game); if (game.noDraw) delete ng.noDraw; else ng.noDraw = true;
-          if (ui.drawn === game.id) ui.drawn = null;
-          saveGame(g, ng, (game.noDraw ? "Przywrócenie gry do losowania: " : "Wykluczenie gry z losowania: ") + q(game.name));
-          toast(game.noDraw ? "„" + game.name + "” znów bierze udział w losowaniu" : "„" + game.name + "” nie będzie losowana");
-        };
+        const allOff = isAllOff(game);
+        nd.classList.toggle("on", allOff);
+        nd.title = allOff ? "Przywróć do losowania" : (ex.length ? "Wyklucz z losowania (wszystkie wersje)" : "Wyklucz z losowania");
+        nd.onclick = () => setOff(g, game, variants(game), !allOff);
         const mv = li.querySelector(".move");
         if (mv) mv.onclick = () => {
           if (moveTargets.length === 1) { moveGame(g, game, moveTargets[0]); return; }
@@ -837,6 +837,14 @@
         row.querySelector(".mk").textContent = canDel ? "✕" : (done ? "✓" : "○");
         row.querySelector(".nm").textContent = canDel && ui.expArmed === r.e.id ? "Usunąć „" + r.name + "”?" : r.name;
         if (done && !editing) row.querySelector(".dt").textContent = fmt(myPlayed(g)[vkey(game, r.e)]);
+        const off = isVOff(game, r.e);
+        if (off && !editing) { row.classList.add("off"); row.querySelector(".mk").textContent = "⊘"; }
+        if (edit && !editing) {
+          const ob = document.createElement("button"); ob.type = "button"; ob.className = "xoff" + (off ? " on" : "");
+          ob.textContent = "⊘"; ob.title = off ? "Przywróć do losowania" : "Wyklucz z losowania"; ob.setAttribute("aria-label", ob.title);
+          ob.onclick = () => setOff(g, game, [r.e], !off);
+          row.appendChild(ob);
+        }
         if (canDel) row.onclick = () => {
           if (ui.expArmed !== r.e.id) { ui.expArmed = r.e.id; rerenderLists(); return; }
           ui.expArmed = null;
@@ -879,6 +887,17 @@
       li.appendChild(box);
     }
     return li;
+  }
+  // wykluczenie / przywrócenie wersji gry (null = wersja podstawowa) w losowaniu – wspólne dla całej grupy
+  function setOff(g, game, list, off){
+    const ids = new Set(list.map(e => e ? e.id : null));
+    const flag = o => { const c = Object.assign({}, o); if (off) c.off = true; else delete c.off; return c; };
+    let ng = ids.has(null) ? flag(game) : Object.assign({}, game);
+    if (exps(game).length) ng.exps = exps(game).map(e => ids.has(e.id) ? flag(e) : e);
+    const what = list.length === 1 ? vlabel(game, list[0]) : game.name;
+    if (ui.drawn === game.id && ui.drawnGid === g.id && off) ui.drawn = null;
+    saveGame(g, ng, (off ? "Wykluczenie z losowania: " : "Przywrócenie do losowania: ") + q(what));
+    toast(off ? "Wykluczono z losowania" : "Przywrócono do losowania");
   }
   // zmiana jednej gry (np. lista rozszerzeń) – zapis całej listy gier grupy
   function saveGame(g, newGame, logText){
@@ -1701,8 +1720,8 @@
   $("bkCopy").onclick = async () => {
     const data = { v: 2, exportedAt: Date.now(),
       groups: groups.filter(canEdit).map(g => ({ id: g.id, name: g.name,
-        games: (g.games || []).map(x => ({id: x.id, name: x.name, played: isVPlayed(g, x, null), playedAt: myPlayed(g)[x.id] || null,
-          expansions: exps(x).map(e => ({id: e.id, name: e.name, played: isVPlayed(g, x, e), playedAt: myPlayed(g)[vkey(x, e)] || null}))})),
+        games: (g.games || []).map(x => ({id: x.id, name: x.name, played: isVPlayed(g, x, null), playedAt: myPlayed(g)[x.id] || null, off: !!x.off,
+          expansions: exps(x).map(e => ({id: e.id, name: e.name, played: isVPlayed(g, x, e), playedAt: myPlayed(g)[vkey(x, e)] || null, off: !!e.off}))})),
         history: myHistory(g), players: g.players || [],
         log: (logsBy[g.id] || []).map(e => ({at: e.at, name: e.name, type: e.type, text: e.text, scope: e.scope || "group"})) })),
       plays: allPlays().map(p => Object.assign({}, p)),
@@ -1739,9 +1758,11 @@
         const games = (og.games || []).filter(x => x && x.name).map(x => {
           const gm = {id: cleanId(x.id), name: String(x.name).slice(0, 80)};
           if (x.played) played[gm.id] = Number(x.playedAt) || Date.now();
+          if (x.off) gm.off = true;
           const ex = (Array.isArray(x.expansions) ? x.expansions : []).filter(e => e && e.name).map(e => {
             const en = {id: cleanId(e.id), name: String(e.name).slice(0, 60)};
             if (e.played) played[gm.id + "__" + en.id] = Number(e.playedAt) || Date.now();
+            if (e.off) en.off = true;
             return en;
           });
           if (ex.length) gm.exps = ex;

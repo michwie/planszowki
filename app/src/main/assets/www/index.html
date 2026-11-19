@@ -391,7 +391,7 @@
         <li><b>✓</b> z datą: gra lub wersja rozegrana. Przy grze z rozszerzeniami znak ✓ przy tytule pojawia się dopiero wtedy, gdy rozegrane są wszystkie jej wersje.</li>
         <li>Rozegrana gra jest wyszarzona.</li>
         <li>Pod grą z rozszerzeniami widać listę jej wersji: wersję podstawową i każde rozszerzenie, każda z własnym oznaczeniem.</li>
-        <li>Napis <b>⊘ wykluczona z losowania</b> oznacza grę, która nie bierze udziału w losowaniu.</li>
+        <li>Napis <b>⊘ wykluczona z losowania</b> oznacza grę, która nie bierze udziału w losowaniu. Wykluczona wersja ma w drzewku znak <b>⊘</b> zamiast ○/✓.</li>
       </ul>
       <h4>Informacje o grze</h4>
       <p>Przycisk <b>ⓘ</b> przy tytule na liście wszystkich gier otwiera okno z informacjami o grze:</p>
@@ -418,9 +418,10 @@
         <li>Po rozgrywce naciśnij <b>Wpisz wynik po grze</b>.</li>
       </ol>
       <ul>
-        <li>Losowanie obejmuje gry z grup, w których jesteś właścicielem lub Mistrzem Gry, z wyjątkiem gier wykluczonych z losowania (⊘).</li>
+        <li>Losowanie obejmuje gry z grup, w których jesteś właścicielem lub Mistrzem Gry.</li>
         <li>Losowane są tylko gry, których jeszcze nie rozegrałeś w bieżącym cyklu.</li>
         <li>Gra z rozszerzeniami jest losowana w wersjach: osobno wersja podstawowa i każde rozszerzenie.</li>
+        <li>Gry i wersje wykluczone przyciskiem <b>⊘</b> są pomijane w losowaniu i w liczniku „Do rozegrania”. W blokach <b>Najczęściej grana</b> i <b>Najrzadziej grana</b> nadal są uwzględniane.</li>
         <li>Wersja gry wypada z losowania po zapisaniu wyniku. Samo naciśnięcie <b>Gramy!</b> niczego nie zapisuje.</li>
         <li>Pod blokiem losowania są dwa bloki: <b>Najczęściej grana</b> i <b>Najrzadziej grana</b>. Pokazują grę z wybranych grup i liczbę jej partii. Liczą się wszystkie zapisane wyniki, także partie rozegrane bez losowania. Dotknięcie tytułu otwiera informacje o grze.</li>
         <li>Gdy wszystkie gry zostaną rozegrane, pojawi się przycisk <b>Zacznij nowy cykl</b>. Przycisk <b>Wyzeruj moje rozegrane</b> pod listą gier robi to samo dla jednej grupy. Obie opcje dotyczą tylko Ciebie.</li>
@@ -481,7 +482,7 @@
       <ul>
         <li><b>ⓘ</b>: informacje o grze (rozdział 6).</li>
         <li><b>✎</b>: edycja gry: zmiana nazwy, dodawanie i usuwanie rozszerzeń.</li>
-        <li><b>⊘</b>: wykluczenie gry z losowania lub przywrócenie jej do losowania. Dotyczy całej grupy.</li>
+        <li><b>⊘</b>: wykluczenie gry z losowania (przy grze z rozszerzeniami wszystkich jej wersji) lub przywrócenie jej do losowania.</li>
         <li><b>⇄</b>: przeniesienie gry do innej grupy (gdy masz kilka grup).</li>
         <li><b>🗑</b>: usunięcie gry (naciśnij dwa razy).</li>
       </ul>
@@ -492,6 +493,12 @@
         <li>Naciśnij <b>✓ Gotowe</b>, aby zapisać, lub <b>Anuluj</b>, aby zrezygnować.</li>
       </ol>
       <p>Aby usunąć rozszerzenie, w trybie edycji dwa razy naciśnij <b>✕</b> przy jego nazwie.</p>
+      <h4>Wykluczanie z losowania</h4>
+      <ul>
+        <li>Aby wykluczyć tylko wersję podstawową albo jedno rozszerzenie, naciśnij <b>⊘</b> po prawej stronie tej wersji w drzewku pod grą.</li>
+        <li>Wykluczona gra lub wersja ma wyróżniony znak <b>⊘</b> i wyszarzoną nazwę. Ponowne naciśnięcie <b>⊘</b> przywraca ją do losowania.</li>
+        <li>Wykluczenie dotyczy całej grupy, czyli wszystkich osób, które losują z jej gier. Nie zmienia stanu rozegranych gier ani wyników.</li>
+      </ul>
 
       <h3>11. Change Log</h3>
       <p>Sekcja <b>Change Log</b> w zakładce <b>Więcej</b> pokazuje 5 najnowszych zdarzeń: kto, kiedy i co zmienił. Rejestrowane są m.in. zmiany gier, członków, ról, kodów zaproszeń i wyników.</p>
