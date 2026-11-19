@@ -405,3 +405,13 @@ li.game.off .gname b{opacity:.5}
 .rank .crown.silver{fill:#c9d1d9;filter:drop-shadow(0 0 3px rgba(201,209,217,.6))}
 .rank .crown.bronze{fill:#cd7f32;filter:drop-shadow(0 0 3px rgba(205,127,50,.6))}
 h1 .h1dice{display:inline-block;margin-right:10px;text-shadow:none;font-size:.95em;vertical-align:-1px}
+/* okno „Wszystkie wyniki” */
+.arfilters{margin-bottom:8px}
+.arfilters .chips{margin-bottom:8px}
+.arrow2{display:flex;gap:8px;margin-bottom:8px}
+.arrow2 select{flex:1;min-width:0}
+.ardate{flex:1;display:flex;align-items:center;gap:6px;min-width:0}
+.ardate span{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;flex:none}
+.ardate input{flex:1;min-width:0;padding:9px 8px}
+.arsum{font-size:13px;color:var(--muted);padding:8px 2px;border-top:1px solid var(--line)}
+#openAllRes{margin-top:10px;margin-bottom:0}

@@ -288,7 +288,7 @@
     if (playSubs[gid]) return;
     playSubs[gid] = pcol(gid).where("viewers", "array-contains", me.uid).onSnapshot(ps => {
       playsBy[gid] = ps.docs.map(d => Object.assign({}, d.data(), {id: d.id, groupId: gid})).sort((a,b) => b.at - a.at);
-      renderDrawStats(); if (!$("gi").hidden) renderGameInfo();
+      renderDrawStats(); if (!$("gi").hidden) renderGameInfo(); renderAllRes();
       if (!ps.metadata.fromCache) { loadedP.add(gid); reconcileMine(gid); }
       renderResults();
     }, () => {
@@ -938,6 +938,7 @@
     if (!$("ov").hidden) renderAll();
     if (!$("gi").hidden) renderGameInfo();
     if (!$("gm").hidden) renderGm();
+    renderAllRes();
   }
 
   // ---------- zdarzenia: gry i grupy ----------
@@ -971,7 +972,7 @@
   $("playBtn").onclick = markPlayed;
   document.addEventListener("click", e => {
     if (ui.armed && !e.target.closest(".del")) { ui.armed = null; rerenderLists(); }
-    if (ui.resArmed && !e.target.closest(".del")) { ui.resArmed = null; renderResults(); }
+    if (ui.resArmed && !e.target.closest(".del")) { ui.resArmed = null; renderResults(); renderAllRes(); }
   });
 
   // ================= OKNA (overlay) =================
@@ -1637,42 +1638,104 @@
     }
     const ul = $("resList"); ul.innerHTML = "";
     if (!shown.length) { ul.innerHTML = '<li class="empty" style="justify-content:center">—</li>'; return; }
-    shown.slice(0, 15).forEach(pl => {
-      const g = groupById(pl.groupId);
-      const mayEdit = canEdit(g);
-      const li = document.createElement("li");
-      li.innerHTML = '<div class="rb"><div class="rt"><b></b><span></span></div><div class="rs"></div></div>' +
-        (mayEdit ? '<button class="ib ed" title="Edytuj wynik">✎</button><button class="ib del" title="Usuń wynik">🗑</button>' : '');
-      li.querySelector("b").textContent = playLabel(pl);
-      li.querySelector(".rt span").textContent = fmt(pl.at) + (groups.length > 1 && g ? " · " + g.name : "");
-      const rs = li.querySelector(".rs");
-      const sorted = (pl.scores || []).slice().sort((a,b) => (pl.mode === "min" ? 1 : -1) * ((a.pts ?? -Infinity) - (b.pts ?? -Infinity)));
-      sorted.forEach((sc, i) => {
-        const sp = document.createElement("span");
-        const won = scoreWon(pl, sc);
-        if (won) sp.className = "win";
-        sp.textContent = (won ? "🏆 " : "") + (sc.uid ? (acc.get(sc.uid) || sc.p) : sc.p) + (sc.pts !== undefined ? " " + sc.pts : "");
-        rs.appendChild(sp);
-        if (i < sorted.length - 1) rs.appendChild(document.createTextNode(" · "));
-      });
-      if (pl.mode === "coop") rs.appendChild(document.createTextNode(pl.coopWin ? "  (kooperacja – wygrana)" : "  (kooperacja – przegrana)"));
-      if (mayEdit) {
-        li.querySelector(".ed").onclick = () => { ui.resArmed = null; openResult(null, null, pl); };
-        const del = li.querySelector(".del");
-        if (ui.resArmed === pl.id) { del.classList.add("armed"); del.textContent = "Usuń?"; }
-        del.onclick = () => {
-          if (ui.resArmed !== pl.id) { ui.resArmed = pl.id; renderResults(); return; }
-          ui.resArmed = null;
-          commitB((b, log, extra) => {
-            b.delete(pcol(pl.groupId).doc(pl.id));
-            extra(b => unmarkPlay(b, pl));
-            log(pl.groupId, "result", "Usunięcie wyniku: " + q(playLabel(pl)) + " z " + fmt(pl.at), pl.viewers || [me.uid]);
-          }).catch(e => toast(errMsg(e)));
-        };
-      }
-      ul.appendChild(li);
-    });
+    shown.slice(0, 15).forEach(pl => ul.appendChild(resultItem(pl, acc)));
+    const ab = $("openAllRes"); ab.hidden = !plays.length;
+    ab.textContent = "☰ Wszystkie wyniki (" + plays.length + ") · filtrowanie";
   }
+  // jeden wynik na liście (ostatnie wyniki i okno „Wszystkie wyniki”)
+  function resultItem(pl, acc){
+    const g = groupById(pl.groupId);
+    const mayEdit = canEdit(g);
+    const li = document.createElement("li");
+    li.innerHTML = '<div class="rb"><div class="rt"><b></b><span></span></div><div class="rs"></div></div>' +
+      (mayEdit ? '<button class="ib ed" title="Edytuj wynik">✎</button><button class="ib del" title="Usuń wynik">🗑</button>' : '');
+    li.querySelector("b").textContent = playLabel(pl);
+    li.querySelector(".rt span").textContent = fmt(pl.at) + (groups.length > 1 && g ? " · " + g.name : "");
+    const rs = li.querySelector(".rs");
+    const sorted = (pl.scores || []).slice().sort((a,b) => (pl.mode === "min" ? 1 : -1) * ((a.pts ?? -Infinity) - (b.pts ?? -Infinity)));
+    sorted.forEach((sc, i) => {
+      const sp = document.createElement("span");
+      const won = scoreWon(pl, sc);
+      if (won) sp.className = "win";
+      sp.textContent = (won ? "🏆 " : "") + (sc.uid ? (acc.get(sc.uid) || sc.p) : sc.p) + (sc.pts !== undefined ? " " + sc.pts : "");
+      rs.appendChild(sp);
+      if (i < sorted.length - 1) rs.appendChild(document.createTextNode(" · "));
+    });
+    if (pl.mode === "coop") rs.appendChild(document.createTextNode(pl.coopWin ? "  (kooperacja – wygrana)" : "  (kooperacja – przegrana)"));
+    if (mayEdit) {
+      li.querySelector(".ed").onclick = () => { ui.resArmed = null; openResult(null, null, pl); };
+      const del = li.querySelector(".del");
+      if (ui.resArmed === pl.id) { del.classList.add("armed"); del.textContent = "Usuń?"; }
+      del.onclick = () => {
+        if (ui.resArmed !== pl.id) { ui.resArmed = pl.id; renderResults(); renderAllRes(); return; }
+        ui.resArmed = null;
+        commitB((b, log, extra) => {
+          b.delete(pcol(pl.groupId).doc(pl.id));
+          extra(b => unmarkPlay(b, pl));
+          log(pl.groupId, "result", "Usunięcie wyniku: " + q(playLabel(pl)) + " z " + fmt(pl.at), pl.viewers || [me.uid]);
+        }).catch(e => toast(errMsg(e)));
+      };
+    }
+    return li;
+  }
+  // ---------- okno „Wszystkie wyniki” z filtrami ----------
+  const arF = {group: "all", game: "", player: "", from: "", to: "", limit: 50};
+  function renderAllRes(){
+    if ($("ar").hidden) return;
+    const acc = accounts();
+    const plays = allPlays();
+    // grupy
+    const ge = $("arGroups"); ge.innerHTML = ""; ge.hidden = groups.length < 2;
+    if (arF.group !== "all" && !groupById(arF.group)) arF.group = "all";
+    [{id: "all", name: "Wszystkie grupy"}].concat(groups.map(g => ({id: g.id, name: g.name}))).forEach(o => {
+      const b = document.createElement("button"); b.className = "chip" + (arF.group === o.id ? " on" : ""); b.textContent = o.name;
+      b.onclick = () => { arF.group = o.id; arF.limit = 50; renderAllRes(); }; ge.appendChild(b);
+    });
+    const inGroup = plays.filter(p => arF.group === "all" || p.groupId === arF.group);
+    // gry i gracze, które występują w wynikach
+    const games = new Map(), players = new Map();
+    inGroup.forEach(p => {
+      const f = findGame(p.gameId, p.groupId);
+      games.set(p.groupId + "|" + p.gameId, f ? f.game.name : p.gameName);
+      (p.scores || []).forEach(sc => players.set(scoreKey(sc), sc.uid ? (acc.get(sc.uid) || sc.p) : sc.p));
+    });
+    const fill = (sel, map, all, cur) => {
+      sel.innerHTML = ""; const o0 = document.createElement("option"); o0.value = ""; o0.textContent = all; sel.appendChild(o0);
+      [...map.entries()].sort((a,b) => cmp(a[1], b[1])).forEach(([k, n]) => { const o = document.createElement("option"); o.value = k; o.textContent = n; sel.appendChild(o); });
+      sel.value = map.has(cur) ? cur : "";
+      return sel.value;
+    };
+    arF.game = fill($("arGame"), games, "Wszystkie gry", arF.game);
+    arF.player = fill($("arPlayer"), players, "Wszyscy gracze", arF.player);
+    $("arFrom").value = arF.from; $("arTo").value = arF.to;
+    const fromTs = arF.from ? new Date(arF.from + "T00:00:00").getTime() : -Infinity;
+    const toTs = arF.to ? new Date(arF.to + "T23:59:59").getTime() : Infinity;
+    const list = inGroup.filter(p => (!arF.game || p.groupId + "|" + p.gameId === arF.game)
+      && (!arF.player || (p.scores || []).some(sc => scoreKey(sc) === arF.player))
+      && p.at >= fromTs && p.at <= toTs);
+    // podsumowanie: liczba wyników i najczęściej wygrywający
+    const tw = topWinners(list);
+    let sum = "Znaleziono: " + plural(list.length, "wynik", "wyniki", "wyników");
+    if (arF.player && list.length) {
+      const w = list.filter(p => (p.scores || []).some(sc => scoreKey(sc) === arF.player && scoreWon(p, sc))).length;
+      sum += " · " + players.get(arF.player) + ": " + plural(w, "wygrana", "wygrane", "wygranych") + " (" + Math.round(100 * w / list.length) + "%)";
+    } else if (tw) sum += " · najczęściej wygrywa: " + tw.names.join(", ") + " (" + tw.wins + ")";
+    $("arSum").textContent = sum;
+    const ul = $("arList"); ul.innerHTML = "";
+    if (!list.length) { ul.innerHTML = '<li class="empty" style="justify-content:center">Brak wyników dla wybranych filtrów.</li>'; return; }
+    list.slice(0, arF.limit).forEach(pl => ul.appendChild(resultItem(pl, acc)));
+    if (list.length > arF.limit) {
+      const li = document.createElement("li"); li.style.justifyContent = "center";
+      const b = document.createElement("button"); b.className = "link"; b.textContent = "Pokaż więcej (" + (list.length - arF.limit) + ")";
+      b.onclick = () => { arF.limit += 50; renderAllRes(); }; li.appendChild(b); ul.appendChild(li);
+    }
+  }
+  $("openAllRes").onclick = () => { arF.limit = 50; openOv("ar"); renderAllRes(); };
+  $("arGame").onchange = e => { arF.game = e.target.value; arF.limit = 50; renderAllRes(); };
+  $("arPlayer").onchange = e => { arF.player = e.target.value; arF.limit = 50; renderAllRes(); };
+  $("arFrom").onchange = e => { arF.from = e.target.value; arF.limit = 50; renderAllRes(); };
+  $("arTo").onchange = e => { arF.to = e.target.value; arF.limit = 50; renderAllRes(); };
+  $("arReset").onclick = () => { Object.assign(arF, {group: "all", game: "", player: "", from: "", to: "", limit: 50}); renderAllRes(); };
   $("addResult").onclick = () => openResult(null, null);
   // Usunięcie wyniku: gra (wersje z tego wyniku) wraca do losowania u graczy z kontem, którzy w nim byli –
   // chyba że ta sama wersja jest jeszcze w innym wyniku z ich udziałem.

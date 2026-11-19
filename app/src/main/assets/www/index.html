@@ -103,6 +103,7 @@
     <table class="rank" id="rank"></table>
     <div class="sub2">Ostatnie wyniki</div>
     <ul class="res" id="resList"></ul>
+    <button class="listbtn" id="openAllRes" hidden>☰ Wszystkie wyniki · filtrowanie</button>
   </section>
 
   <section class="card">
@@ -305,6 +306,27 @@
   </div>
 </div>
 
+<!-- ================= WSZYSTKIE WYNIKI ================= -->
+<div class="ov" id="ar" hidden role="dialog" aria-modal="true" aria-label="Wszystkie wyniki">
+  <div class="ovin">
+    <div class="ovhead"><h2>Wszystkie wyniki</h2><button class="ovclose" data-close="ar" aria-label="Zamknij">✕</button></div>
+    <div class="arfilters">
+      <div class="chips" id="arGroups"></div>
+      <div class="arrow2">
+        <select id="arGame" aria-label="Gra"></select>
+        <select id="arPlayer" aria-label="Gracz"></select>
+      </div>
+      <div class="arrow2">
+        <label class="ardate"><span>od</span><input type="date" id="arFrom"></label>
+        <label class="ardate"><span>do</span><input type="date" id="arTo"></label>
+      </div>
+      <button class="link" id="arReset">Wyczyść filtry</button>
+    </div>
+    <div class="arsum" id="arSum"></div>
+    <div class="ovscroll"><ul class="res" id="arList"></ul></div>
+  </div>
+</div>
+
 <!-- ================= INFORMACJE O GRZE ================= -->
 <div class="ov" id="gi" hidden role="dialog" aria-modal="true" aria-label="Informacje o grze">
   <div class="ovin">
@@ -453,6 +475,14 @@
         <li><b>✎</b> otwiera wynik do edycji. Po zmianie gry, wersji, daty lub graczy oznaczenia rozegranych gier są poprawiane automatycznie.</li>
         <li><b>🗑</b> usuwa wynik (naciśnij dwa razy). Gra wraca wtedy do losowania u graczy z tego wyniku, chyba że ta sama wersja jest w innym ich wyniku.</li>
       </ul>
+      <h4>Przeglądanie i filtrowanie wyników</h4>
+      <p>Lista <b>Ostatnie wyniki</b> pokazuje 15 najnowszych wyników. Całą historię otwiera przycisk <b>☰ Wszystkie wyniki</b> pod listą.</p>
+      <ol>
+        <li>W zakładce <b>Wyniki</b> naciśnij <b>☰ Wszystkie wyniki</b>.</li>
+        <li>Zawęź listę: wybierz grupę, grę, gracza oraz zakres dat <b>od</b> i <b>do</b>. Filtry można łączyć.</li>
+        <li>Aby wrócić do pełnej listy, naciśnij <b>Wyczyść filtry</b>.</li>
+      </ol>
+      <p>Nad listą widać liczbę znalezionych wyników i osobę, która w nich najczęściej wygrywa. Po wybraniu gracza zamiast tego widać jego liczbę wygranych i procent. Lista pokazuje po 50 wyników, kolejne doczytuje przycisk <b>Pokaż więcej</b>. Wyniki można tu także poprawiać (✎) i usuwać (🗑).</p>
       <h4>Łączenie gracza bez konta z kontem</h4>
       <p>Jeśli ktoś był wpisywany do wyników z imienia, a później założył konto i dołączył do grupy, można przenieść jego dotychczasowe wyniki na konto.</p>
       <ol>
