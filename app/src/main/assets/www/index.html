@@ -73,9 +73,8 @@
 
   <!-- ===== zakładka: Gry ===== -->
   <div class="view" id="v-games" hidden>
-    <button class="listbtn" id="openList" style="width:100%">☰ Lista wszystkich gier</button>
   <section class="card">
-    <h2>Moje gry</h2>
+    <h2>Zarządzanie grupą</h2>
     <div class="tabs" id="tabs"></div>
     <div id="groupBox">
       <div class="grouphead">
@@ -83,14 +82,14 @@
         <button class="gearb" id="openGm" title="Członkowie i zaproszenie" aria-label="Członkowie i zaproszenie">⚙</button>
       </div>
       <p class="rolenote" id="roleNote" hidden></p>
-      <form class="add" id="addForm">
-        <input type="text" id="newGame" placeholder="nazwa nowej gry…" maxlength="80" autocomplete="off">
-        <button type="submit" aria-label="Dodaj">+</button>
-      </form>
-      <ul id="list"></ul>
-      <div class="tools" id="tools"></div>
     </div>
     <div id="noGroups" class="empty" hidden>Nie masz jeszcze żadnej grupy. Utwórz ją przyciskiem „+ grupa” albo dołącz do grupy znajomych kodem.</div>
+  </section>
+  <section class="card" id="gamesCard">
+    <h2>Moje gry</h2>
+    <button class="listbtn" id="openList" style="width:100%">☰ Lista gier · dodaj i edytuj</button>
+    <ul id="list"></ul>
+    <div class="tools" id="tools"></div>
   </section>
   </div>
 
@@ -154,6 +153,11 @@
 <div class="ov" id="ov" hidden role="dialog" aria-modal="true" aria-label="Lista wszystkich gier">
   <div class="ovin">
     <div class="ovhead"><h2>Wszystkie gry</h2><button class="ovclose" data-close="ov" aria-label="Zamknij">✕</button></div>
+    <form class="add" id="addForm">
+      <select id="newGameGroup" aria-label="Grupa" hidden></select>
+      <input type="text" id="newGame" placeholder="nazwa nowej gry…" maxlength="80" autocomplete="off">
+      <button type="submit" aria-label="Dodaj grę">+</button>
+    </form>
     <div class="chips" id="ovFilter"></div>
     <input type="text" id="ovSearch" placeholder="szukaj…" autocomplete="off" style="margin-bottom:10px">
     <div class="ovscroll"><ul class="all" id="allList"></ul></div>
@@ -357,7 +361,7 @@
       <h4>Tworzenie grupy</h4>
       <ol>
         <li>Otwórz zakładkę <b>Gry</b>.</li>
-        <li>Naciśnij <b>+ grupa</b>.</li>
+        <li>W bloku <b>Zarządzanie grupą</b> naciśnij <b>+ grupa</b>.</li>
         <li>Wpisz nazwę grupy w polu <b>nazwa</b>.</li>
       </ol>
       <p>Ikona <b>⚙</b> obok nazwy otwiera ustawienia grupy: listę członków, role i kody zaproszeń.</p>
@@ -380,11 +384,11 @@
       <h3>6. Gry</h3>
       <h4>Dodawanie gry</h4>
       <ol>
-        <li>W zakładce <b>Gry</b> wybierz grupę.</li>
-        <li>Wpisz tytuł w polu <b>nazwa nowej gry</b>.</li>
+        <li>W zakładce <b>Gry</b>, w bloku <b>Moje gry</b>, naciśnij <b>☰ Lista gier · dodaj i edytuj</b>.</li>
+        <li>Na górze listy wpisz tytuł w polu <b>nazwa nowej gry</b>. Jeśli masz kilka grup, wybierz obok grupę.</li>
         <li>Naciśnij <b>+</b>.</li>
       </ol>
-      <p>Gry są ułożone alfabetycznie. Zakładka <b>Gry</b> pokazuje stan gier. Działania na grach (informacje, edycja, wykluczenie z losowania, przenoszenie, usuwanie) są na liście wszystkich gier, opisanej w rozdziale 10.</p>
+      <p>Zakładka <b>Gry</b> ma dwa bloki: <b>Zarządzanie grupą</b> (wybór grupy, nazwa, ⚙ członkowie i kody) oraz <b>Moje gry</b> (gry wybranej grupy i ich stan). Gry są ułożone alfabetycznie. Działania na grach (informacje, edycja, wykluczenie z losowania, przenoszenie, usuwanie) są na liście wszystkich gier, opisanej w rozdziale 10.</p>
       <h4>Oznaczenia na liście gier</h4>
       <ul>
         <li><b>○</b>: gra lub wersja do zagrania.</li>

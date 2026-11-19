@@ -744,17 +744,16 @@
     tabs.appendChild(jn);
 
     $("groupBox").hidden = !groups.length; $("noGroups").hidden = !!groups.length;
-    if (!groups.length) return;
+    if (!groups.length) { $("gamesCard").hidden = true; return; }
     const g = groups[ui.tab];
     const edit = canEdit(g);
     const gn = $("groupName");
     if (document.activeElement !== gn) gn.value = g.name;
     gn.readOnly = !edit;
-    $("addForm").hidden = !edit;
     const rn = $("roleNote");
     rn.hidden = edit;
     if (!edit) rn.innerHTML = "Jesteś <b>graczem</b> w tej grupie – nie widzisz jej gier. Widzisz wyniki rozgrywek, w których grasz (zakładka Wyniki). Gry i wyniki dodają właściciel i Mistrzowie Gry.";
-    $("list").hidden = !edit; $("tools").hidden = !edit;
+    $("gamesCard").hidden = !edit;
     if (!edit) { $("list").innerHTML = ""; $("tools").innerHTML = ""; return; }
 
     const list = $("list"); list.innerHTML = "";
@@ -946,9 +945,10 @@
     e.preventDefault();
     const inp = $("newGame"); const name = inp.value.trim().replace(/\s+/g, " ");
     if (!name) return;
-    const g = groups[ui.tab]; if (!g || !canEdit(g)) return;
+    const g = groupById($("newGameGroup").value); if (!g || !canEdit(g)) return;
     if ((g.games || []).some(x => x.name.toLowerCase() === name.toLowerCase())) { toast("Ta gra już jest na liście"); return; }
     upd(g.id, {games: FV.arrayUnion({id: uid(), name, added: Date.now()})}, "Dodanie gry " + q(name), "game-add");
+    toast("Dodano „" + name + "”" + (groups.filter(canEdit).length > 1 ? " do grupy „" + g.name + "”" : ""));
     inp.value = ""; inp.focus();
   });
   let nameTimer = null;
@@ -1075,6 +1075,13 @@
   let ovFilter = "all";
   function renderAll(){
     const eg = groups.filter(canEdit);
+    // dodawanie gry: do której grupy (domyślnie filtrowana grupa albo grupa wybrana w zakładce Gry)
+    const gs = $("newGameGroup"), prevSel = gs.value;
+    gs.innerHTML = ""; eg.forEach(g => { const o = document.createElement("option"); o.value = g.id; o.textContent = g.name; gs.appendChild(o); });
+    const tabG = groups[ui.tab];
+    gs.value = eg.some(g => g.id === ovFilter) ? ovFilter : (eg.some(g => g.id === prevSel) ? prevSel : (tabG && canEdit(tabG) ? tabG.id : (eg[0] || {}).id || ""));
+    gs.hidden = eg.length < 2;
+    $("addForm").hidden = !eg.length;
     const fEl = $("ovFilter"); fEl.innerHTML = ""; fEl.hidden = eg.length < 2;
     if (eg.length < 2) ovFilter = "all";
     [{id:"all", name:"Wszystkie"}].concat(eg.map(g => ({id:g.id, name:g.name}))).forEach(o => {
@@ -1106,7 +1113,7 @@
     const played = items.filter(x => isPlayed(x.group, x.game)).length;
     $("ovSum").textContent = items.length ? ("Razem: " + items.length + " · rozegrane: " + played + " · do zagrania: " + (items.length - played)) : "";
   }
-  $("openList").onclick = () => { ovFilter = "all"; $("ovSearch").value = ""; renderAll(); openOv("ov"); };
+  $("openList").onclick = () => { ovFilter = "all"; $("ovSearch").value = ""; $("newGameGroup").value = ""; renderAll(); openOv("ov"); };
   $("ovSearch").addEventListener("input", renderAll);
 
   // ================= GRUPA: członkowie, kod =================

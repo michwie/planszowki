@@ -394,3 +394,6 @@ li.game.off .gname b{opacity:.5}
 .all li.off .nm,.all li.xsub.off .nm{opacity:.5}
 .all li.xsub.off .nm::after{content:" ⊘";color:var(--amber)}
 .all li.off:not(.xsub) .nm::after{content:" ⊘";color:var(--amber)}
+#ov #addForm{margin-bottom:10px}
+#ov #newGameGroup{width:auto;max-width:40%;flex:none}
+#gamesCard .listbtn{margin-bottom:8px}
