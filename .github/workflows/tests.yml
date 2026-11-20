@@ -1,0 +1,46 @@
+name: Testy
+
+on:
+  workflow_call:
+  push:
+    branches-ignore: [ main ]
+  workflow_dispatch:
+
+jobs:
+  ui:
+    name: Testy interfejsu
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Playwright
+        run: |
+          pip install --quiet playwright
+          python -m playwright install --with-deps chromium
+      - name: Uruchom testy
+        run: python tests/ui_test.py
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: zrzuty-z-testow
+          path: test-shots/
+
+  rules:
+    name: Testy reguł bazy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Uruchom testy w emulatorze Firestore
+        working-directory: tests/rules
+        run: |
+          npm install --no-audit --no-fund
+          npm test
