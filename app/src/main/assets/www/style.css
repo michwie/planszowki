@@ -424,3 +424,10 @@ h1 .h1dice{display:inline-block;margin-right:10px;text-shadow:none;font-size:.95
 .res .rp.win{color:var(--amber)}
 .res .rp:not(.win){color:var(--muted)}
 .res .rpc{font-size:12px;color:var(--muted);margin-top:2px;font-style:italic}
+.res .rp .rpw .cup{width:15px;height:15px;vertical-align:-2px}
+.cup.gold{fill:#f5c518;filter:drop-shadow(0 0 3px rgba(245,197,24,.6))}
+.cup.silver{fill:#c9d1d9;filter:drop-shadow(0 0 2px rgba(201,209,217,.5))}
+.cup.bronze{fill:#cd7f32;filter:drop-shadow(0 0 2px rgba(205,127,50,.5))}
+.res .rp.m-silver{color:#c9d1d9}
+.res .rp.m-bronze{color:#cd7f32}
+.res .rp.m-gold{color:#f5c518}

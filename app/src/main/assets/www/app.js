@@ -1655,14 +1655,24 @@
     li.querySelector(".rt span").textContent = fmt(pl.at) + (groups.length > 1 && g ? " · " + g.name : "");
     const rs = li.querySelector(".rs");
     const sorted = (pl.scores || []).slice().sort((a,b) => (pl.mode === "min" ? 1 : -1) * ((a.pts ?? -Infinity) - (b.pts ?? -Infinity)));
-    // każdy gracz w osobnej linii: puchar dla zwycięzcy, imię, punkty po prawej
+    // miejsca w partii: zwycięzcy 1., dalej według punktów (ten sam wynik = to samo miejsce); w kooperacji tylko zwycięzcy
+    const hasPts = pl.mode !== "coop" && sorted.every(sc => sc.pts !== undefined);
+    let place = 0, prev;
+    sorted.forEach((sc, i) => {
+      if (scoreWon(pl, sc)) sc._pl = 1;
+      else if (hasPts) { place = (i && sc.pts === prev) ? place : i + 1; sc._pl = Math.max(2, place); }
+      else sc._pl = 0;
+      if (hasPts) { prev = sc.pts; if (sc._pl === 1) place = 1; }
+    });
+    // każdy gracz w osobnej linii: puchar (złoty, srebrny, brązowy), imię, punkty po prawej
     sorted.forEach(sc => {
-      const won = scoreWon(pl, sc);
-      const row = document.createElement("div"); row.className = "rp" + (won ? " win" : "");
+      const won = scoreWon(pl, sc), medal = sc._pl >= 1 && sc._pl <= 3 ? ["gold", "silver", "bronze"][sc._pl - 1] : "";
+      const row = document.createElement("div"); row.className = "rp" + (won ? " win" : "") + (medal ? " m-" + medal : "");
       row.innerHTML = '<span class="rpw"></span><span class="rpn"></span><span class="rpp"></span>';
-      row.querySelector(".rpw").textContent = won ? "🏆" : "";
+      if (medal) row.querySelector(".rpw").innerHTML = '<svg class="cup ' + medal + '" viewBox="0 0 24 24" aria-label="' + sc._pl + '. miejsce"><path d="M7 3h10v2h3v3a4 4 0 0 1-4.1 4A5 5 0 0 1 13 14.8V18h3v3H8v-3h3v-3.2A5 5 0 0 1 8.1 12 4 4 0 0 1 4 8V5h3zm-1 4v1a2 2 0 0 0 1.4 1.9A5 5 0 0 1 7 8V7zm11 0v1c0 .6-.1 1.3-.4 1.9A2 2 0 0 0 18 8V7z"/></svg>';
       row.querySelector(".rpn").textContent = sc.uid ? (acc.get(sc.uid) || sc.p) : sc.p;
       row.querySelector(".rpp").textContent = sc.pts !== undefined ? sc.pts : "";
+      delete sc._pl;
       rs.appendChild(row);
     });
     if (pl.mode === "coop") { const c = document.createElement("div"); c.className = "rpc"; c.textContent = pl.coopWin ? "Kooperacja – wygrana" : "Kooperacja – przegrana"; rs.appendChild(c); }

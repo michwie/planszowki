@@ -187,3 +187,6 @@
 :root[data-theme="wizard"] .updfill{background:linear-gradient(90deg,#8a5a12,#e8b84f,#fff1c2,#e8b84f)}
 :root[data-theme="wizard"] .updver{font-family:"Cinzel",serif}
 :root[data-theme="neon"] .updov .ovin{border-color:rgba(var(--glow-rgb),.6)}
+:root[data-theme="goose"] .res .rp.m-gold{color:#a87400}
+:root[data-theme="goose"] .res .rp.m-silver{color:#5f6b78}
+:root[data-theme="goose"] .res .rp.m-bronze{color:#9a5418}
