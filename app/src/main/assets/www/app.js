@@ -1953,18 +1953,39 @@
     cur = run; curWho = runWho;
     const body = $("h2hBody"); body.innerHTML = "";
     if (!common.length) { body.innerHTML = '<p class="h2hnone">Ci gracze nie grali jeszcze razem.</p>'; return; }
-    const top = document.createElement("div"); top.className = "h2htop";
-    top.innerHTML = '<div class="h2hp a"><span class="hn"></span><b class="hs"></b></div><div class="h2hvs">:</div><div class="h2hp b"><b class="hs"></b><span class="hn"></span></div>';
-    top.querySelector(".a .hn").textContent = nA; top.querySelector(".a .hs").textContent = wa;
-    top.querySelector(".b .hn").textContent = nB; top.querySelector(".b .hs").textContent = wb;
+    // wynik pojedynku: liczby pod wybranymi graczami + pasek proporcji
+    const top = document.createElement("div"); top.className = "h2hscore";
+    top.innerHTML = '<b class="hs a"></b><span class="hsep">:</span><b class="hs b"></b>';
+    top.querySelector(".a").textContent = wa; top.querySelector(".b").textContent = wb;
     if (wa > wb) top.querySelector(".a").classList.add("lead"); if (wb > wa) top.querySelector(".b").classList.add("lead");
     body.appendChild(top);
-    const info = document.createElement("div"); info.className = "h2hinfo";
-    const lines = [plural(common.length, "wspólna partia", "wspólne partie", "wspólnych partii") + (dr ? " · remisy: " + dr : "")];
-    if (cur >= 2) lines.push("Aktualna seria: " + (curWho > 0 ? nA : nB) + " lepszy(-a) " + cur + " razy z rzędu");
-    if (bestA || bestB) lines.push("Najdłuższa seria: " + nA + " " + bestA + " · " + nB + " " + bestB);
-    lines.forEach(t => { const d = document.createElement("div"); d.textContent = t; info.appendChild(d); });
-    body.appendChild(info);
+    const bar = document.createElement("div"); bar.className = "h2hbar";
+    [["a", wa], ["d", dr], ["b", wb]].forEach(([c, n]) => { if (!n) return; const sg = document.createElement("span"); sg.className = c; sg.style.flexGrow = n; bar.appendChild(sg); });
+    body.appendChild(bar);
+    const leg = document.createElement("div"); leg.className = "h2hleg";
+    [["a", nA, wa], ["d", "remisy", dr], ["b", nB, wb]].forEach(([c, n, v]) => {
+      const it = document.createElement("span"); it.className = "li";
+      it.innerHTML = '<i class="' + c + '"></i><span class="ln"></span><b></b>';
+      it.querySelector(".ln").textContent = c === "d" ? n : String(n).split(" ")[0]; it.querySelector("b").textContent = v;
+      leg.appendChild(it);
+    });
+    body.appendChild(leg);
+    // kafelki: wspólne partie, remisy, aktualna seria, najdłuższa seria
+    const first = n => String(n).split(" ")[0];
+    const tiles = [
+      ["Wspólne partie", String(common.length), ""],
+      ["Remisy", String(dr), ""],
+      ["Aktualna seria", cur >= 2 ? cur + "×" : "–", cur >= 2 ? first(curWho > 0 ? nA : nB) : "brak serii"],
+      ["Najdłuższa seria", (bestA || 0) + " : " + (bestB || 0), bestA === bestB ? "remis" : first(bestA > bestB ? nA : nB)]
+    ];
+    const grid = document.createElement("div"); grid.className = "h2htiles";
+    tiles.forEach(([l, v, sub]) => {
+      const d = document.createElement("div"); d.className = "h2htile";
+      d.innerHTML = '<span class="tl"></span><b class="tv"></b><span class="ts"></span>';
+      d.querySelector(".tl").textContent = l; d.querySelector(".tv").textContent = v; d.querySelector(".ts").textContent = sub;
+      grid.appendChild(d);
+    });
+    body.appendChild(grid);
     // rozbicie na gry
     const per = new Map();
     res.forEach(r => { const f = findGame(r.p.gameId, r.p.groupId); const k = r.p.groupId + "|" + r.p.gameId; const o = per.get(k) || {name: f ? f.game.name : r.p.gameName, a: 0, b: 0, n: 0}; o.n++; if (r.d > 0) o.a++; if (r.d < 0) o.b++; per.set(k, o); });
