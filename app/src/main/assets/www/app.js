@@ -2142,6 +2142,12 @@
   }
   $("openRec").onclick = () => { $("recSearch").value = ""; openOv("recOv"); renderRecords(); };
   $("recSearch").oninput = () => renderRecords();
+  // spis treści instrukcji: naciśnięcie pozycji przewija do rozdziału
+  document.querySelectorAll("#help .toc li").forEach((li, i) => li.onclick = () => {
+    const h = [...document.querySelectorAll("#help h3")].filter(x => /^\d+\./.test(x.textContent))[i];
+    const sc = document.querySelector("#help .ovscroll");
+    if (h && sc) sc.scrollTo({top: h.offsetTop - sc.offsetTop - 8, behavior: "smooth"});
+  });
   $("openH2h").onclick = () => openOv("h2hOv");
   $("h2hA").onchange = e => { h2h.a = e.target.value; if (h2h.b === h2h.a) h2h.b = ""; renderResults(); };
   $("h2hB").onchange = e => { h2h.b = e.target.value; renderResults(); };

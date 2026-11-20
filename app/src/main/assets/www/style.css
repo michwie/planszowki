@@ -561,3 +561,12 @@ li.game .gcov{width:34px;height:34px;object-fit:cover;border-radius:4px;flex:non
 .pfd.w svg{fill:var(--accent-ink)}
 .pfd.l svg{fill:var(--muted)}
 .pfd.l svg .x{fill:var(--card,#000)}
+/* instrukcja: tabele, spis treści, uwagi */
+.help .htab{width:100%;border-collapse:collapse;margin:4px 0 10px;font-size:13px}
+.help .htab th{font-family:var(--font-head);font-size:10px;letter-spacing:.5px;text-transform:uppercase;color:var(--muted);text-align:left;padding:6px 6px;border-bottom:1px solid var(--line);font-weight:600}
+.help .htab td{padding:6px;border-bottom:1px solid var(--line);color:var(--ink);line-height:1.45;vertical-align:top}
+.help .htab td:not(:first-child),.help .htab th:not(:first-child){text-align:center}
+.help .htab.wide td:not(:first-child),.help .htab.wide th:not(:first-child){text-align:left}
+.help .toc li{cursor:pointer}
+.help .toc li{margin:0 0 2px}
+.help p.note{border-left:2px solid var(--amber);padding-left:10px}

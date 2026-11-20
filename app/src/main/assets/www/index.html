@@ -435,300 +435,335 @@
     <div class="ovscroll help">
       <p class="testnote">🧪 <b>Aplikacja działa w trybie testowym.</b> Jeśli znajdziesz błąd albo coś działa nie tak, jak powinno, daj mi znać – opisz, co się stało, a najlepiej dołącz zrzut ekranu. Dzięki! – Michał „Misiek”</p>
 
-      <h3>1. O aplikacji</h3>
-      <p>Planszomat pomaga wybrać grę planszową na wieczór. Aplikacja przechowuje listę gier, losuje tytuł bez powtórek, zapisuje wyniki rozgrywek i prowadzi ranking zwycięstw. Grupę gier można współdzielić z innymi osobami.</p>
+      <h3>Spis treści</h3>
+      <p class="note" style="border:0;padding:0">Naciśnij rozdział, aby do niego przejść.</p>
+      <ul class="toc">
+        <li>1. Wprowadzenie</li>
+        <li>2. Konto</li>
+        <li>3. Ekran startowy i nawigacja</li>
+        <li>4. Zakładka Losuj</li>
+        <li>5. Zakładka Gry</li>
+        <li>6. Zakładka Aktualności</li>
+        <li>7. Zakładka Wyniki</li>
+        <li>8. Zakładka Więcej</li>
+        <li>9. Aktualizacje</li>
+        <li>10. Praca bez internetu</li>
+      </ul>
+
+      <h3>1. Wprowadzenie</h3>
+      <p>Planszomat służy do wyboru gry planszowej i prowadzenia historii rozgrywek. Aplikacja przechowuje listę gier, losuje tytuł bez powtórek do końca kolekcji, zapisuje wyniki i na ich podstawie prowadzi statystyki. Gry i wyniki są przypisane do grup, które można współdzielić z innymi osobami.</p>
+      <h4>Role w grupie</h4>
+      <p>Każdy członek grupy ma jedną z trzech ról. Rola określa, co dana osoba może zrobić w grupie.</p>
+      <table class="htab">
+        <tr><th>Czynność</th><th>Właściciel</th><th>Mistrz Gry</th><th>Gracz</th></tr>
+        <tr><td>Przeglądanie gier grupy</td><td>✓</td><td>✓</td><td>–</td></tr>
+        <tr><td>Losowanie</td><td>✓</td><td>✓</td><td>–</td></tr>
+        <tr><td>Dodawanie, edycja i usuwanie gier</td><td>✓</td><td>✓</td><td>–</td></tr>
+        <tr><td>Dodawanie, edycja i usuwanie wyników</td><td>✓</td><td>✓</td><td>–</td></tr>
+        <tr><td>Przeglądanie własnych wyników i rankingu</td><td>✓</td><td>✓</td><td>✓</td></tr>
+        <tr><td>Zmiana nazwy grupy</td><td>✓</td><td>✓</td><td>–</td></tr>
+        <tr><td>Przekazywanie kodów zaproszeń</td><td>✓</td><td>✓</td><td>–</td></tr>
+        <tr><td>Nowy kod, zmiana ról, usuwanie członków</td><td>✓</td><td>–</td><td>–</td></tr>
+        <tr><td>Usuwanie grupy</td><td>✓</td><td>–</td><td>–</td></tr>
+      </table>
+      <p>Właścicielem jest osoba, która utworzyła grupę.</p>
 
       <h3>2. Konto</h3>
-      <h4>Zakładanie konta</h4>
+      <h4>2.1. Zakładanie konta</h4>
       <ol>
-        <li>Na ekranie startowym wybierz <b>Nowe konto</b>.</li>
+        <li>Na ekranie logowania wybierz kartę <b>Nowe konto</b>.</li>
         <li>Wpisz imię, nazwisko, adres e-mail i hasło (co najmniej 6 znaków).</li>
         <li>Naciśnij <b>Załóż konto</b>.</li>
-        <li>Otwórz wiadomość e-mail od Planszomatu i kliknij link potwierdzający adres.</li>
+      </ol>
+      <p>Imię i nazwisko podane przy rejestracji są widoczne dla pozostałych członków Twoich grup.</p>
+      <h4>2.2. Potwierdzenie adresu e-mail</h4>
+      <p>Po założeniu konta aplikacja wyświetla ekran <b>Potwierdź adres e-mail</b>, a na podany adres zostaje wysłana wiadomość z linkiem.</p>
+      <ol>
+        <li>Otwórz wiadomość i kliknij link.</li>
         <li>Wróć do aplikacji i naciśnij <b>Sprawdź</b>.</li>
       </ol>
-      <p>Bez potwierdzenia adresu e-mail nie można korzystać z aplikacji. Dotyczy to wszystkich kont, także założonych wcześniej: przy pierwszym uruchomieniu po aktualizacji takie konto dostaje link automatycznie. Jeśli wiadomość nie dotarła, sprawdź folder Spam lub naciśnij <b>Wyślij link ponownie</b>.</p>
-      <p>Imię i nazwisko widzą pozostali członkowie Twoich grup.</p>
-      <p>Instrukcję można otworzyć już na ekranie logowania przyciskiem <b>? Instrukcja</b>, a po zalogowaniu w zakładce <b>Więcej</b>.</p>
-      <h4>Logowanie i hasło</h4>
-      <ul>
-        <li>Aplikacja pamięta zalogowanie. Nie trzeba logować się przy każdym uruchomieniu.</li>
-        <li>Jeśli nie pamiętasz hasła, wpisz e-mail na ekranie logowania i naciśnij <b>Nie pamiętam hasła</b>. Link do ustawienia nowego hasła przyjdzie e-mailem.</li>
-        <li>Aby się wylogować, wybierz <b>Więcej › Wyloguj</b> i potwierdź.</li>
-      </ul>
-
-      <h3>3. Nawigacja</h3>
-      <p>Po uruchomieniu aplikacja pokazuje <b>ekran startowy</b> z dwoma blokami: <b>Najczęściej grana</b> i <b>Najrzadziej grana</b> (gry z grup wybranych do losowania, liczą się wszystkie zapisane wyniki, także partie rozegrane bez losowania). Jeśli kilka gier ma tyle samo partii, pierwsza jest wyświetlona dużo, a pozostałe mniejsze pod nią. Dotknięcie tytułu otwiera informacje o grze. Ekran startowy nie ma przycisku na pasku – pojawia się przy każdym uruchomieniu.</p>
-      <p>Na dole ekranu znajduje się pasek z czterema zakładkami:</p>
-      <ul>
-        <li><b>Losuj</b>: losowanie gry na wieczór.</li>
-        <li><b>Gry</b>: grupy, lista gier, rozszerzenia, członkowie i kody zaproszeń.</li>
-        <li><b>Wyniki</b>: dodawanie wyników i ranking, ostatnie wyniki (każdy gracz w osobnej linii, z punktami).</li>
-        <li><b>🔔 (dzwonek)</b>: aktualności, czyli kto, kiedy i co zmienił. Gdy pojawi się nowy wpis od innej osoby, dzwonek świeci na czerwono.</li>
-        <li><b>Więcej</b>: instrukcja, zmiany w wersji, motyw, kopia zapasowa, wylogowanie i usuwanie konta.</li>
-      </ul>
-      <p>Działania, których nie da się łatwo cofnąć (usuwanie, opuszczanie grupy, wylogowanie, import, nowy kod), aplikacja potwierdza w osobnym oknie z przyciskami <b>Anuluj</b> i np. <b>Usuń</b>.</p>
-      <p>Przycisk <b>Wstecz</b> telefonu zamyka otwarte okno. Jeśli żadne okno nie jest otwarte, przenosi do zakładki <b>Losuj</b>.</p>
-      <p>Okna z formularzami (wynik, kod zaproszenia, kopia zapasowa, usuwanie konta) zamyka się przyciskiem <b>✕</b> lub <b>Wstecz</b>. Dotknięcie obok okna ich nie zamyka, więc wpisane dane nie przepadną.</p>
-      <p>Na dole każdej zakładki widać stan połączenia i numer zainstalowanej wersji.</p>
-
-      <h3>4. Grupy i role</h3>
-      <p>Grupa to Wasza szafa z grami. Każda osoba w grupie ma jedną z trzech ról:</p>
-      <ul>
-        <li><b>Właściciel</b>: osoba, która utworzyła grupę. Ma wszystkie uprawnienia, w tym nadawanie ról, generowanie kodów zaproszeń, usuwanie osób i usuwanie grupy.</li>
-        <li><b>Mistrz Gry</b>: widzi gry grupy, dodaje, przenosi i usuwa gry, losuje, wpisuje i poprawia wyniki, zmienia nazwę grupy.</li>
-        <li><b>Gracz</b>: bierze udział w rozgrywkach. Nie widzi gier grupy ani jej aktualności o zmianach w grupie, nie losuje i nie wpisuje wyników. Widzi wyniki rozgrywek, w których grał, oraz ranking.</li>
-      </ul>
-      <h4>Tworzenie grupy</h4>
+      <p>Jeśli wiadomość nie dotarła, sprawdź folder Spam lub Oferty albo naciśnij <b>Wyślij link ponownie</b>.</p>
+      <p class="note">Uwaga: bez potwierdzonego adresu e-mail korzystanie z aplikacji nie jest możliwe. Dotyczy to wszystkich kont, także założonych przed wprowadzeniem tego wymogu.</p>
+      <h4>2.3. Logowanie</h4>
       <ol>
-        <li>Otwórz zakładkę <b>Gry</b>.</li>
-        <li>W bloku <b>Zarządzanie grupą</b> naciśnij <b>+ grupa</b>.</li>
-        <li>Wpisz nazwę grupy w polu <b>nazwa</b>.</li>
+        <li>Na karcie <b>Logowanie</b> wpisz adres e-mail i hasło.</li>
+        <li>Naciśnij <b>Zaloguj</b>.</li>
       </ol>
-      <p>Ikona <b>⚙</b> obok nazwy otwiera ustawienia grupy: listę członków, role i kody zaproszeń.</p>
+      <p>Aplikacja zapamiętuje zalogowanie, więc przy kolejnych uruchomieniach nie trzeba logować się ponownie.</p>
+      <h4>2.4. Resetowanie hasła</h4>
+      <ol>
+        <li>Na ekranie logowania wpisz adres e-mail.</li>
+        <li>Naciśnij <b>Nie pamiętam hasła</b>.</li>
+        <li>Ustaw nowe hasło za pomocą linku z wiadomości e-mail.</li>
+      </ol>
+      <p>Instrukcję można otworzyć przed zalogowaniem przyciskiem <b>? Instrukcja</b> na ekranie logowania.</p>
 
-      <h3>5. Zapraszanie osób</h3>
-      <p>Każda grupa ma dwa kody zaproszenia: <b>Kod dla Mistrza Gry</b> i <b>Kod dla gracza</b>. Rola nowej osoby zależy od tego, który kod otrzyma.</p>
-      <h4>Wysyłanie zaproszenia</h4>
-      <ol>
-        <li>W zakładce <b>Gry</b> naciśnij <b>⚙</b> przy nazwie grupy.</li>
-        <li>Przy wybranym kodzie naciśnij <b>Udostępnij</b> lub <b>Kopiuj</b>.</li>
-        <li>Wyślij kod zapraszanej osobie.</li>
-      </ol>
-      <h4>Dołączanie do grupy</h4>
-      <ol>
-        <li>Otwórz zakładkę <b>Gry</b> i naciśnij <b>⇥ kod</b>.</li>
-        <li>Wpisz otrzymany kod i naciśnij <b>Dołącz</b>.</li>
-      </ol>
-      <p>Właściciel może później zmienić rolę osoby (gracz lub Mistrz Gry) albo usunąć ją z grupy. Przycisk <b>Nowy kod</b> (tylko właściciel) unieważnia dotychczasowy kod.</p>
-
-      <h3>6. Gry</h3>
-      <h4>Dodawanie gry</h4>
-      <ol>
-        <li>W zakładce <b>Gry</b>, w bloku <b>Moje gry</b>, naciśnij <b>☰ Lista gier · dodaj i edytuj</b>.</li>
-        <li>Na górze listy wpisz tytuł w polu <b>nazwa nowej gry</b>. Jeśli masz kilka grup, wybierz obok grupę.</li>
-        <li>Naciśnij <b>+</b>.</li>
-      </ol>
-      <p>Zakładka <b>Gry</b> ma dwa bloki: <b>Zarządzanie grupą</b> (wybór grupy, nazwa, ⚙ członkowie i kody) oraz <b>Moje gry</b> (gry wybranej grupy i ich stan). Gry są ułożone alfabetycznie. Działania na grach (informacje, edycja, wykluczenie z losowania, przenoszenie, usuwanie) są na liście wszystkich gier, opisanej w rozdziale 10. Między blokami jest przycisk <b>🏅 Rekordy w grach</b>.</p>
-      <h4>Rekordy w grach</h4>
-      <p>Przycisk <b>🏅 Rekordy w grach</b> w zakładce <b>Gry</b> (między <b>Zarządzanie grupą</b> a <b>Moje gry</b>) otwiera okno z kartami gier, w które graliście. Pole <b>szukaj gry…</b> zawęża listę. Na karcie gry widać:</p>
+      <h3>3. Ekran startowy i nawigacja</h3>
+      <h4>3.1. Ekran startowy</h4>
+      <p>Ekran startowy wyświetla się po każdym uruchomieniu aplikacji. Zawiera dwa bloki:</p>
       <ul>
-        <li>liczbę partii i średnią liczbę punktów,</li>
-        <li><b>🏆 Rekord</b>: najlepszy wynik punktowy, kto go zdobył i kiedy. W grach, w których wygrywa najmniej punktów, rekordem jest najniższy wynik,</li>
-        <li><b>▼ Najsłabszy wynik</b>: wynik z drugiego końca skali,</li>
-        <li><b>👑 Najwięcej wygranych</b>: osoba (lub osoby przy remisie) z największą liczbą wygranych w tej grze.</li>
+        <li><b>Najczęściej grana</b>: gra z największą liczbą zapisanych partii.</li>
+        <li><b>Najrzadziej grana</b>: gra z najmniejszą liczbą zapisanych partii.</li>
       </ul>
-      <p>Rekordy są liczone z wyników, które widzisz. Gry bez wpisanych punktów mają tylko liczbę partii i najwięcej wygranych.</p>
-      <h4>Oznaczenia na liście gier</h4>
+      <p>Jeśli kilka gier ma tę samą liczbę partii, pierwsza z nich jest wyświetlana dużą czcionką, a pozostałe pod nią. Naciśnięcie tytułu otwiera okno z informacjami o grze. Statystyki obejmują gry z grup wybranych do losowania, także gry wykluczone z losowania.</p>
+      <h4>3.2. Pasek zakładek</h4>
+      <p>Pasek na dole ekranu zawiera pięć zakładek:</p>
+      <table class="htab wide">
+        <tr><th>Zakładka</th><th>Zawartość</th></tr>
+        <tr><td><b>Losuj</b></td><td>losowanie gry</td></tr>
+        <tr><td><b>Gry</b></td><td>grupy, członkowie, kody zaproszeń, lista gier, rekordy</td></tr>
+        <tr><td><b>🔔</b></td><td>aktualności, czyli historia zmian w grupach</td></tr>
+        <tr><td><b>Wyniki</b></td><td>wyniki, ranking, profil gracza, pojedynki</td></tr>
+        <tr><td><b>Więcej</b></td><td>instrukcja, zmiany w wersjach, motyw, kopia zapasowa, konto</td></tr>
+      </table>
+      <p>Na dole każdej zakładki widoczny jest stan połączenia i numer zainstalowanej wersji.</p>
+      <h4>3.3. Okna i potwierdzenia</h4>
       <ul>
-        <li><b>○</b>: gra lub wersja do zagrania.</li>
-        <li><b>✓</b> z datą: gra lub wersja rozegrana. Przy grze z rozszerzeniami znak ✓ przy tytule pojawia się dopiero wtedy, gdy rozegrane są wszystkie jej wersje.</li>
-        <li>Rozegrana gra jest wyszarzona.</li>
-        <li>Pod grą z rozszerzeniami widać listę jej wersji: wersję podstawową i każde rozszerzenie, każda z własnym oznaczeniem.</li>
-        <li>Okładka gry (jeśli jest dodana) widać przy tytule, w losowaniu, na ekranie startowym i w oknie ⓘ.</li>
-        <li>Napis <b>⊘ wykluczona z losowania</b> oznacza grę, która nie bierze udziału w losowaniu. Wykluczona wersja ma w drzewku znak <b>⊘</b> zamiast ○/✓.</li>
-      </ul>
-      <h4>Informacje o grze</h4>
-      <p>Przycisk <b>ⓘ</b> przy tytule na liście wszystkich gier otwiera okno z informacjami o grze:</p>
-      <ul>
-        <li>data dodania gry oraz osobno data dodania każdego rozszerzenia,</li>
-        <li>data ostatniej rozgrywki,</li>
-        <li>liczba rozegranych partii (przy grze z rozszerzeniami także podział na wersje),</li>
-        <li>osoba, która najczęściej wygrywa, z liczbą wygranych.</li>
-      </ul>
-      <p>Statystyki są liczone z wyników, które widzisz: rozgrywek z Twoim udziałem i wyników wpisanych przez Ciebie. Dla gier dodanych przed wersją 1.3 daty dodania gry i rozszerzeń pochodzą z aktualności i mogą być niedostępne.</p>
-      <h4>Stan rozegranych gier</h4>
-      <ul>
-        <li>Gra jest oznaczana jako rozegrana automatycznie, po zapisaniu wyniku. Nie można jej oznaczyć ręcznie.</li>
-        <li>Znak <b>✓</b> przy grze pojawia się, gdy rozegrane są wszystkie jej wersje.</li>
-        <li>Każda osoba ma własny stan rozegranych gier.</li>
+        <li>Okno zamyka przycisk <b>✕</b> w prawym górnym rogu lub przycisk <b>Wstecz</b> telefonu.</li>
+        <li>Okna z formularzami (wynik, edycja gry, kod zaproszenia, kopia zapasowa, usuwanie konta) nie zamykają się po naciśnięciu obok okna, dzięki czemu wpisane dane nie przepadają.</li>
+        <li>Czynności, których nie można łatwo cofnąć (np. usunięcie, opuszczenie grupy, import, wylogowanie), wymagają potwierdzenia w osobnym oknie.</li>
+        <li>Jeśli żadne okno nie jest otwarte, przycisk <b>Wstecz</b> przechodzi do zakładki <b>Losuj</b>.</li>
       </ul>
 
-      <h3>7. Losowanie</h3>
+      <h3>4. Zakładka Losuj</h3>
+      <h4>4.1. Losowanie gry</h4>
       <ol>
         <li>Otwórz zakładkę <b>Losuj</b>.</li>
-        <li>Jeśli masz kilka grup, wybierz, z których losować: <b>Wszystkie grupy</b> lub wybrane grupy.</li>
+        <li>Jeśli należysz do kilku grup, wybierz grupy, z których ma być losowana gra, albo <b>Wszystkie grupy</b>.</li>
         <li>Naciśnij <b>Losuj grę</b>.</li>
-        <li>Naciśnij <b>Gramy! ✓</b>, aby przyjąć wylosowaną grę, lub <b>Losuj inną</b>.</li>
-        <li>Po rozgrywce naciśnij <b>Wpisz wynik po grze</b>.</li>
+        <li>Naciśnij <b>Gramy! ✓</b>, aby przyjąć wylosowaną grę, lub <b>Losuj inną</b>, aby wylosować ponownie.</li>
+        <li>Po zakończeniu rozgrywki naciśnij <b>Wpisz wynik po grze</b> (punkt 7.3).</li>
       </ol>
+      <h4>4.2. Zasady losowania</h4>
       <ul>
-        <li>Losowanie obejmuje gry z grup, w których jesteś właścicielem lub Mistrzem Gry.</li>
-        <li>Losowane są tylko gry, których jeszcze nie rozegrałeś w bieżącym cyklu.</li>
+        <li>Losowane są gry z grup, w których masz rolę właściciela lub Mistrza Gry.</li>
+        <li>Każda gra jest losowana tylko raz w cyklu. Gra wypada z losowania po zapisaniu wyniku. Samo naciśnięcie <b>Gramy! ✓</b> niczego nie zapisuje.</li>
         <li>Gra z rozszerzeniami jest losowana w wersjach: osobno wersja podstawowa i każde rozszerzenie.</li>
-        <li>Gry i wersje wykluczone z losowania (okno <b>Edytuj grę</b>) są pomijane w losowaniu i w liczniku „Do rozegrania”. W blokach <b>Najczęściej grana</b> i <b>Najrzadziej grana</b> nadal są uwzględniane.</li>
-        <li>Wersja gry wypada z losowania po zapisaniu wyniku. Samo naciśnięcie <b>Gramy!</b> niczego nie zapisuje.</li>
-        <li>Gdy wszystkie gry zostaną rozegrane, pojawi się przycisk <b>Zacznij nowy cykl</b>. Przycisk <b>Wyzeruj moje rozegrane</b> pod listą gier robi to samo dla jednej grupy. Obie opcje dotyczą tylko Ciebie.</li>
+        <li>Gry i wersje wykluczone z losowania (punkt 5.7) są pomijane.</li>
+        <li>Licznik <b>Do rozegrania</b> pod przyciskiem pokazuje, ile gier zostało w bieżącym cyklu.</li>
+        <li>Po rozegraniu wszystkich gier pojawia się przycisk <b>Zacznij nowy cykl</b>. Nowy cykl dotyczy tylko Ciebie.</li>
       </ul>
 
-      <h3>8. Wyniki</h3>
-      <p>Wyniki wpisują, poprawiają i usuwają właściciel oraz Mistrzowie Gry.</p>
-      <h4>Dodawanie wyniku</h4>
+      <h3>5. Zakładka Gry</h3>
+      <p>Zakładka zawiera blok <b>Zarządzanie grupą</b>, przycisk <b>🏅 Rekordy w grach</b> i blok <b>Moje gry</b>.</p>
+      <h4>5.1. Zarządzanie grupą</h4>
+      <p>Karty na górze bloku odpowiadają Twoim grupom. Liczba w nawiasie to liczba gier w grupie; w grupach, w których masz rolę gracza, zamiast liczby jest dopisek <b>· gracz</b>. Naciśnięcie karty wybiera grupę.</p>
+      <ul>
+        <li><b>+ grupa</b>: tworzy nową grupę. Wpisz jej nazwę w polu <b>nazwa</b>.</li>
+        <li><b>⇥ kod</b>: dołączenie do grupy za pomocą kodu (punkt 5.3).</li>
+        <li><b>nazwa</b>: nazwa wybranej grupy. Zmiana zapisuje się automatycznie.</li>
+        <li><b>⚙</b>: ustawienia grupy (punkt 5.2).</li>
+      </ul>
+      <h4>5.2. Ustawienia grupy</h4>
+      <p>Okno ustawień otwiera przycisk <b>⚙</b> obok nazwy grupy. Na górze okna widoczna jest Twoja rola. Okno zawiera:</p>
+      <ul>
+        <li><b>Kody zaproszeń</b> (właściciel i Mistrz Gry): <b>Kod dla Mistrza Gry</b> i <b>Kod dla gracza</b>. Rola nowej osoby zależy od kodu, który otrzyma. Przyciski <b>Kopiuj</b> i <b>Udostępnij</b> służą do przekazania kodu. Przycisk <b>Nowy kod</b> (tylko właściciel) unieważnia dotychczasowy kod; osoby, które już dołączyły, pozostają w grupie.</li>
+        <li><b>Członkowie</b>: lista osób w grupie z rolami. Właściciel zmienia rolę osoby na liście wyboru przy jej nazwisku. Opcja <b>usuń z grupy</b> usuwa osobę po potwierdzeniu.</li>
+        <li><b>Gracze bez konta</b> (właściciel i Mistrz Gry): osoby wpisywane do wyników z imienia, bez konta w aplikacji (punkt 5.2.1).</li>
+        <li><b>Usuń grupę</b> (właściciel) lub <b>Opuść grupę</b> (pozostali członkowie).</li>
+      </ul>
+      <h4>5.2.1. Łączenie gracza bez konta z kontem</h4>
+      <p>Jeśli osoba wpisywana wcześniej z imienia założy konto i dołączy do grupy, jej dotychczasowe wyniki można przenieść na konto.</p>
       <ol>
-        <li>W zakładce <b>Wyniki</b> naciśnij <b>+ Dodaj wynik</b> albo po losowaniu <b>Wpisz wynik po grze</b>.</li>
-        <li>Wybierz grę i datę.</li>
-        <li>Przy grze z rozszerzeniami zaznacz, w co graliście: wersję podstawową albo jedno lub kilka rozszerzeń.</li>
-        <li>Wybierz sposób wygrywania: <b>Najwięcej pkt</b>, <b>Najmniej pkt</b> lub <b>Kooperacja</b>.</li>
-        <li>Dodaj graczy z listy lub wpisz nowego gracza.</li>
-        <li>Wpisz punkty (w kooperacji wybierz <b>Wygrana</b> lub <b>Przegrana</b>).</li>
+        <li>W ustawieniach grupy, w sekcji <b>Gracze bez konta</b>, naciśnij <b>Połącz z kontem</b> przy imieniu gracza.</li>
+        <li>Wybierz konto z listy członków grupy.</li>
+        <li>Sprawdź liczbę znalezionych wyników i naciśnij <b>Połącz</b>.</li>
+        <li>Potwierdź operację.</li>
+      </ol>
+      <p>Po połączeniu ranking i statystyki uwzględniają wszystkie wyniki tej osoby, a imię znika z listy graczy bez konta. Gdy do grupy dołączy osoba o takim samym imieniu jak gracz bez konta, w zakładce <b>Wyniki</b> pojawia się podpowiedź z przyciskiem <b>Połącz</b>.</p>
+      <p class="note">Uwaga: łączone są wyniki, które widzisz. Wyniki wpisane bez Twojego udziału musi połączyć osoba, która je wpisała.</p>
+      <h4>5.3. Dołączanie do grupy</h4>
+      <ol>
+        <li>W bloku <b>Zarządzanie grupą</b> naciśnij <b>⇥ kod</b>.</li>
+        <li>Wpisz kod otrzymany od właściciela grupy.</li>
+        <li>Naciśnij <b>Dołącz</b>.</li>
+      </ol>
+      <h4>5.4. Rekordy w grach</h4>
+      <p>Przycisk <b>🏅 Rekordy w grach</b> otwiera okno z kartami gier, w które grano. Pole <b>szukaj gry…</b> zawęża listę. Każda karta zawiera:</p>
+      <ul>
+        <li>liczbę partii i średnią liczbę punktów,</li>
+        <li><b>🏆 Rekord</b>: najlepszy wynik z nazwiskiem gracza i datą; w grach, w których wygrywa najmniejsza liczba punktów, jest to najniższy wynik,</li>
+        <li><b>▼ Najsłabszy wynik</b>: wynik z przeciwnego końca skali,</li>
+        <li><b>👑 Najwięcej wygranych</b>: gracz z największą liczbą wygranych w tej grze (przy remisie kilku graczy).</li>
+      </ul>
+      <p>Dla gier bez wpisanych punktów wyświetlana jest tylko liczba partii i najwięcej wygranych.</p>
+      <h4>5.5. Moje gry</h4>
+      <p>Blok zawiera alfabetyczną listę gier wybranej grupy. Pod grą z rozszerzeniami widoczne są jej wersje: wersja podstawowa i każde rozszerzenie.</p>
+      <table class="htab wide">
+        <tr><th>Oznaczenie</th><th>Znaczenie</th></tr>
+        <tr><td><b>○</b></td><td>gra lub wersja do rozegrania</td></tr>
+        <tr><td><b>✓</b> z datą</td><td>gra lub wersja rozegrana; przy grze z rozszerzeniami ✓ pojawia się po rozegraniu wszystkich wersji</td></tr>
+        <tr><td>wyszarzony tytuł</td><td>gra rozegrana w bieżącym cyklu</td></tr>
+        <tr><td><b>⊘</b></td><td>gra lub wersja wykluczona z losowania</td></tr>
+      </table>
+      <p>Gra jest oznaczana jako rozegrana automatycznie, po zapisaniu wyniku. Każda osoba ma własny stan rozegranych gier. Przycisk <b>Wyzeruj moje rozegrane</b> pod listą rozpoczyna nowy cykl w wybranej grupie, tylko dla Ciebie.</p>
+      <h4>5.6. Lista gier</h4>
+      <p>Przycisk <b>☰ Lista gier · dodaj i edytuj</b> otwiera okno <b>Wszystkie gry</b> z grami ze wszystkich grup. Listę można zawęzić do jednej grupy i przeszukiwać, także po nazwie rozszerzenia.</p>
+      <p>Dodawanie gry:</p>
+      <ol>
+        <li>W polu <b>nazwa nowej gry</b> wpisz tytuł.</li>
+        <li>Jeśli należysz do kilku grup, wybierz grupę.</li>
+        <li>Naciśnij <b>+</b>.</li>
+      </ol>
+      <p>Przy każdej grze znajdują się przyciski:</p>
+      <ul>
+        <li><b>ⓘ</b>: informacje o grze (punkt 5.8),</li>
+        <li><b>✎</b>: okno <b>Edytuj grę</b> (punkt 5.7).</li>
+      </ul>
+      <h4>5.7. Edycja gry</h4>
+      <p>Okno <b>Edytuj grę</b> zawiera wszystkie ustawienia gry:</p>
+      <ul>
+        <li><b>Okładka</b>: <b>📷 Dodaj okładkę</b> pozwala wybrać zdjęcie z galerii lub zrobić je aparatem. <b>Usuń okładkę</b> usuwa okładkę. Zmiana okładki zapisuje się od razu.</li>
+        <li><b>Nazwa gry</b>.</li>
+        <li><b>Losowanie i rozszerzenia</b>: lista wersji gry. Przy każdej wersji znajduje się przycisk <b>⊘ Wyklucz</b>, który wyklucza ją z losowania; przy wersji wykluczonej w jego miejscu jest <b>↺ Przywróć</b>. Przy rozszerzeniach pod tym przyciskiem znajduje się <b>🗑 Usuń</b>. Przycisk <b>⊘ Wyklucz całą grę z losowania</b> wyklucza wszystkie wersje naraz.</li>
+        <li><b>nowe rozszerzenie…</b>: wpisz nazwę i naciśnij <b>+</b>.</li>
+        <li><b>Przenieś do innej grupy</b> (przy kilku grupach): naciśnij nazwę grupy docelowej i potwierdź. Gra zostaje przeniesiona od razu.</li>
+        <li><b>🗑 Usuń grę</b>: usuwa grę z grupy po potwierdzeniu. Zapisane wyniki pozostają.</li>
+      </ul>
+      <p>Przycisk <b>✓ Zapisz</b> zapisuje nazwę, rozszerzenia i wykluczenia. Przycisk <b>Anuluj</b> zamyka okno bez zapisywania tych zmian.</p>
+      <p class="note">Uwaga: wykluczenie z losowania dotyczy wszystkich osób, które losują z gier tej grupy. Nie zmienia stanu rozegranych gier ani wyników.</p>
+      <h4>5.8. Informacje o grze</h4>
+      <p>Okno informacji (przycisk <b>ⓘ</b> lub tytuł na ekranie startowym) zawiera:</p>
+      <ul>
+        <li>datę dodania gry i każdego rozszerzenia,</li>
+        <li>datę ostatniej rozgrywki,</li>
+        <li>liczbę partii, przy grze z rozszerzeniami także w podziale na wersje,</li>
+        <li>gracza, który najczęściej wygrywa, z liczbą wygranych.</li>
+      </ul>
+      <p class="note">Dla gier dodanych przed wersją 1.3 daty dodania mogą być niedostępne.</p>
+
+      <h3>6. Zakładka Aktualności</h3>
+      <p>Zakładka oznaczona dzwonkiem <b>🔔</b> zawiera historię zmian: kto, kiedy i co zmienił. Rejestrowane są m.in. zmiany gier, członków, ról, kodów zaproszeń i wyników.</p>
+      <ul>
+        <li>Gdy inna osoba doda nowy wpis, dzwonek świeci na czerwono i ma czerwoną kropkę.</li>
+        <li>Wpisy dodane od Twojej poprzedniej wizyty są wyświetlane na górze, w części <b>🔔 Nowe</b>. Pozostałe wpisy znajdują się w części <b>Wcześniej</b>.</li>
+        <li>Zakładka wyświetla 20 najnowszych wpisów. Przycisk <b>Starsze</b> wczytuje kolejne.</li>
+        <li>Wpisy o wynikach mają taki sam układ jak w zakładce <b>Wyniki</b>.</li>
+      </ul>
+      <p>Wpisy dotyczące grupy widzą właściciel i Mistrzowie Gry. Wpis o wyniku widzą uczestnicy rozgrywki z kontem i osoba, która wpisała wynik. Wpisów nie można edytować ani usuwać.</p>
+
+      <h3>7. Zakładka Wyniki</h3>
+      <p>Zakładka zawiera przycisk <b>👤 Profil gracza</b>, blok <b>Wyniki</b> z rankingiem, przycisk <b>⚔ Pojedynki</b> i blok <b>Ostatnie wyniki</b>. Wszystkie statystyki są liczone z wyników, które widzisz (punkt 7.7).</p>
+      <h4>7.1. Profil gracza</h4>
+      <p>Przycisk <b>👤 Profil gracza</b> otwiera okno ze statystykami gracza. Domyślnie wyświetlany jest Twój profil. Innego gracza wybierzesz na liście u góry okna.</p>
+      <p>Pod nazwiskiem widoczne są: data założenia konta (lub informacja <b>Gracz bez konta</b>) oraz daty pierwszej i ostatniej partii. Profil zawiera:</p>
+      <table class="htab wide">
+        <tr><th>Pole</th><th>Znaczenie</th></tr>
+        <tr><td><b>Partie</b>, <b>Wygrane</b></td><td>liczba rozegranych i wygranych partii</td></tr>
+        <tr><td><b>% wygranych</b></td><td>udział wygranych we wszystkich partiach</td></tr>
+        <tr><td><b>W tym miesiącu</b></td><td>liczba partii w bieżącym miesiącu</td></tr>
+        <tr><td><b>Forma</b></td><td>5 ostatnich partii, od najstarszej (po lewej) do najnowszej: puchar oznacza wygraną, nagrobek partię bez wygranej. Naciśnięcie pola pokazuje nazwę gry i datę</td></tr>
+        <tr><td><b>Ulubiona gra</b></td><td>gra z największą liczbą partii</td></tr>
+        <tr><td><b>Najlepsza gra</b></td><td>gra z najwyższym procentem wygranych (co najmniej 2 partie)</td></tr>
+        <tr><td><b>Rekord punktów</b></td><td>najwyższy wynik w grach, w których wygrywa największa liczba punktów</td></tr>
+        <tr><td><b>Najczęściej gra z</b></td><td>osoba, z którą gracz rozegrał najwięcej partii</td></tr>
+        <tr><td><b>Najczęściej pokonuje</b></td><td>przeciwnik, z którym gracz najczęściej wygrywa</td></tr>
+        <tr><td><b>Najtrudniejszy rywal</b></td><td>przeciwnik, z którym gracz najczęściej przegrywa</td></tr>
+      </table>
+      <p class="note">Partie kooperacyjne nie są uwzględniane w polach Najczęściej pokonuje i Najtrudniejszy rywal.</p>
+      <h4>7.2. Ranking</h4>
+      <p>Ranking w bloku <b>Wyniki</b> zawiera kolumny:</p>
+      <ul>
+        <li><b>Wygrane</b>: liczba zwycięstw,</li>
+        <li><b>Gry</b>: liczba rozgrywek z udziałem gracza,</li>
+        <li><b>%</b>: procent wygranych.</li>
+      </ul>
+      <p>O kolejności decyduje liczba wygranych, a przy równej liczbie wygranych procent wygranych. Gracze z identycznym wynikiem zajmują to samo miejsce. Złota, srebrna i brązowa korona oznaczają miejsca 1–3. Jeśli należysz do kilku grup, nad rankingiem możesz wybrać jedną grupę lub wszystkie.</p>
+      <h4>7.3. Dodawanie wyniku</h4>
+      <ol>
+        <li>Naciśnij <b>+ Dodaj wynik</b> albo, po losowaniu, <b>Wpisz wynik po grze</b>.</li>
+        <li>Wybierz grę i datę rozgrywki.</li>
+        <li>W grze z rozszerzeniami zaznacz, w co grano: wersję podstawową albo jedno lub kilka rozszerzeń.</li>
+        <li>Wybierz sposób wyłaniania zwycięzcy: <b>Najwięcej pkt</b>, <b>Najmniej pkt</b> lub <b>Kooperacja</b>.</li>
+        <li>Dodaj graczy z listy albo wpisz imię nowego gracza.</li>
+        <li>Wpisz punkty. W kooperacji wybierz <b>Wygrana</b> lub <b>Przegrana</b>.</li>
         <li>Naciśnij <b>Zapisz wynik</b>.</li>
       </ol>
       <ul>
-        <li>Zwycięzca jest wyznaczany na podstawie punktów. Przy remisie wygrywa każdy z najlepszym wynikiem.</li>
-        <li>Na liście graczy na górze są osoby z kontem w aplikacji (oznaczone ◉), niżej gracze bez konta wpisani wcześniej.</li>
-        <li>Po zapisaniu wyniku gra (wybrana wersja) jest oznaczana jako rozegrana u każdego gracza z kontem, który jest w tej grupie.</li>
+        <li>Zwycięzca jest wyznaczany na podstawie punktów. Przy remisie wygrywają wszyscy gracze z najlepszym wynikiem.</li>
+        <li>Na liście graczy najpierw wyświetlane są osoby z kontem (oznaczone ◉), a pod nimi gracze bez konta.</li>
+        <li>Po zapisaniu wyniku gra (wybrana wersja) zostaje oznaczona jako rozegrana u każdego uczestnika z kontem, który należy do grupy.</li>
       </ul>
-      <h4>Poprawianie i usuwanie wyniku</h4>
+      <h4>7.4. Pojedynki</h4>
+      <p>Przycisk <b>⚔ Pojedynki</b> otwiera okno porównujące dwóch graczy. Przycisk jest widoczny, gdy w wynikach występuje co najmniej dwóch graczy. Graczy wybiera się na listach u góry okna; domyślnie są to Ty i osoba, z którą grasz najczęściej.</p>
       <ul>
-        <li><b>✎</b> otwiera wynik do edycji. Po zmianie gry, wersji, daty lub graczy oznaczenia rozegranych gier są poprawiane automatycznie.</li>
-        <li><b>🗑</b> usuwa wynik (po potwierdzeniu w oknie). Gra wraca wtedy do losowania u graczy z tego wyniku, chyba że ta sama wersja jest w innym ich wyniku.</li>
+        <li><b>Wynik pojedynku</b>: liczba partii, w których każdy z graczy był lepszy. Decydują punkty, a w partiach bez punktów zwycięstwo. Wynik prowadzącego jest wyróżniony.</li>
+        <li><b>Pasek</b>: proporcja wygranych pierwszego gracza (kolor motywu), remisów (szary) i wygranych drugiego gracza (bursztynowy). Pod paskiem znajduje się legenda.</li>
+        <li><b>Wspólne partie</b> i <b>Remisy</b>.</li>
+        <li><b>Aktualna seria</b>: liczba kolejnych wygranych tej samej osoby, od 2 partii.</li>
+        <li><b>Najdłuższa seria</b>: najdłuższe serie obu graczy, w kolejności z list wyboru.</li>
+        <li>Tabela z bilansem w poszczególnych grach.</li>
       </ul>
-      <h4>Przeglądanie i filtrowanie wyników</h4>
-      <p>Przy każdym wyniku gracze są wypisani w osobnych liniach, od najlepszego. Puchar złoty, srebrny i brązowy oznacza 1., 2. i 3. miejsce w partii. Przy tej samej liczbie punktów gracze dzielą miejsce. W kooperacji puchar dostają tylko zwycięzcy.</p>
-      <p>Lista <b>Ostatnie wyniki</b> pokazuje 15 najnowszych wyników. Całą historię otwiera przycisk <b>☰ Wszystkie wyniki</b> pod listą.</p>
+      <h4>7.5. Ostatnie wyniki</h4>
+      <p>Blok zawiera 15 najnowszych wyników. Gracze są wymienieni w kolejności zajętych miejsc, z punktami. Złoty, srebrny i brązowy puchar oznaczają miejsca 1–3 w partii; przy równej liczbie punktów gracze dzielą miejsce. W kooperacji puchar otrzymują tylko zwycięzcy.</p>
+      <ul>
+        <li><b>✎</b>: edycja wyniku. Po zmianie gry, wersji, daty lub graczy oznaczenia rozegranych gier są aktualizowane automatycznie.</li>
+        <li><b>🗑</b>: usunięcie wyniku po potwierdzeniu. Gra wraca do losowania u uczestników, chyba że ta sama wersja występuje w innym ich wyniku.</li>
+      </ul>
+      <h4>7.6. Wszystkie wyniki</h4>
       <ol>
-        <li>W zakładce <b>Wyniki</b> naciśnij <b>☰ Wszystkie wyniki</b>.</li>
-        <li>Zawęź listę: wybierz grupę, grę, gracza oraz zakres dat <b>od</b> i <b>do</b>. Filtry można łączyć.</li>
+        <li>Pod listą ostatnich wyników naciśnij <b>☰ Wszystkie wyniki · filtrowanie</b>.</li>
+        <li>Wybierz filtry: grupę, grę, gracza oraz zakres dat <b>od</b> i <b>do</b>. Filtry można łączyć.</li>
         <li>Aby wrócić do pełnej listy, naciśnij <b>Wyczyść filtry</b>.</li>
       </ol>
-      <p>Nad listą widać liczbę znalezionych wyników i osobę, która w nich najczęściej wygrywa. Po wybraniu gracza zamiast tego widać jego liczbę wygranych i procent. Lista pokazuje po 50 wyników, kolejne doczytuje przycisk <b>Pokaż więcej</b>. Wyniki można tu także poprawiać (✎) i usuwać (🗑).</p>
-      <h4>Łączenie gracza bez konta z kontem</h4>
-      <p>Jeśli ktoś był wpisywany do wyników z imienia, a później założył konto i dołączył do grupy, można przenieść jego dotychczasowe wyniki na konto.</p>
+      <p>Nad listą wyświetlana jest liczba znalezionych wyników i gracz, który w nich najczęściej wygrywa. Po wybraniu gracza wyświetlana jest jego liczba wygranych i procent. Lista zawiera po 50 wyników; kolejne wczytuje przycisk <b>Pokaż więcej</b>. W tym oknie również można edytować i usuwać wyniki.</p>
+      <h4>7.7. Widoczność wyników</h4>
+      <p>Wynik widzą uczestnicy rozgrywki z kontem oraz osoba, która ostatnio go zapisała. Osoba usunięta z wyniku przestaje go widzieć, nawet jeśli to ona go wpisała. Nazwiska osób z kontem są zawsze wyświetlane tak, jak podano je przy rejestracji.</p>
+
+      <h3>8. Zakładka Więcej</h3>
+      <h4>8.1. Instrukcja</h4>
+      <p>Otwiera niniejszą instrukcję.</p>
+      <h4>8.2. Zmiany!</h4>
+      <p>Wyświetla listę zmian w trzech ostatnich wersjach aplikacji: numer wersji, datę wydania i opis zmian.</p>
+      <h4>8.3. Motyw</h4>
       <ol>
-        <li>W zakładce <b>Gry</b> naciśnij <b>⚙</b> przy nazwie grupy.</li>
-        <li>W sekcji <b>Gracze bez konta</b> naciśnij <b>Połącz z kontem</b> przy imieniu gracza.</li>
-        <li>Wybierz konto z listy członków grupy.</li>
-        <li>Sprawdź liczbę znalezionych wyników, naciśnij <b>Połącz</b> i potwierdź w oknie.</li>
+        <li>Naciśnij <b>Motyw</b>.</li>
+        <li>Wybierz motyw: <b>Matrix</b>, <b>Szkoła Magii</b>, <b>Gęś Wyścigowa</b>, <b>Galaktyka</b> lub <b>Neon</b>.</li>
       </ol>
       <ul>
-        <li>Wyniki przechodzą na konto, a ranking i statystyki liczą stare i nowe wyniki razem. Osoba widzi od tej chwili także swoje wcześniejsze wyniki.</li>
-        <li>Imię znika z listy graczy bez konta.</li>
-        <li>Gdy do grupy dołączy osoba o takim samym imieniu jak gracz bez konta, w zakładce <b>Wyniki</b> pojawi się podpowiedź z przyciskiem <b>Połącz</b>.</li>
-        <li>Łączone są wyniki, które widzisz. Jeśli część wyników z tą osobą wpisał ktoś inny bez Twojego udziału, on również musi wykonać połączenie u siebie.</li>
-      </ul>
-      <p>Łączenie wykonuje właściciel lub Mistrz Gry.</p>
-      <h4>Kto widzi wynik</h4>
-      <p>Wynik widzą gracze z kontem, którzy brali udział w rozgrywce, oraz osoba, która go ostatnio zapisała. Osoba usunięta z wyniku przestaje go widzieć, nawet jeśli to ona go wpisała.</p>
-      <p>Imiona osób z kontem są zawsze wyświetlane tak, jak podano je przy rejestracji.</p>
-
-      <h3>9. Ranking</h3>
-      <ul>
-        <li><b>Wygrane</b>: liczba zwycięstw.</li>
-        <li><b>Gry</b>: liczba rozgrywek, w których gracz brał udział.</li>
-        <li><b>%</b>: odsetek wygranych w rozgrywkach danego gracza.</li>
-        <li>Korony oznaczają trzy pierwsze miejsca: złota za 1., srebrna za 2. i brązowa za 3. miejsce.</li>
-        <li>O miejscu decyduje liczba wygranych. Przy tej samej liczbie wygranych wyżej jest osoba z wyższym procentem wygranych. Osoby z taką samą liczbą wygranych i takim samym procentem zajmują to samo miejsce.</li>
-      </ul>
-      <p>Ranking jest liczony z wyników, które widzisz. Przy kilku grupach można wybrać jedną grupę lub wszystkie.</p>
-
-      <h4>Profil gracza</h4>
-      <p>Przycisk <b>👤 Profil gracza</b> na górze zakładki <b>Wyniki</b> otwiera okno ze statystykami jednego gracza. Domyślnie widać Twój profil, innego gracza wybierzesz na liście u góry okna. Pod imieniem widać, czy gracz ma konto w aplikacji (z datą założenia konta), oraz daty jego pierwszej i ostatniej partii. W profilu są też:</p>
-      <ul>
-        <li><b>Partie</b>, <b>Wygrane</b>, <b>% wygranych</b> i liczba partii <b>W tym miesiącu</b>,</li>
-        <li><b>Forma (ostatnie partie)</b>: jak gracz poradził sobie w swoich 5 ostatnich partiach. Każdy kwadracik to jedna partia, od najstarszej (po lewej) do najnowszej (po prawej): <b>🏆 puchar</b> to wygrana, <b>🪦 nagrobek</b> to partia bez wygranej. Stuknięcie kwadracika pokazuje nazwę gry i datę,</li>
-        <li><b>Ulubiona gra</b>: gra z największą liczbą partii,</li>
-        <li><b>Najlepsza gra</b>: gra z najwyższym procentem wygranych (liczona od 2 partii w grze),</li>
-        <li><b>Rekord punktów</b>: najwyższy wynik w grach, w których wygrywa najwięcej punktów, z nazwą gry i datą,</li>
-        <li><b>Najczęściej gra z</b>, <b>Najczęściej pokonuje</b> i <b>Najtrudniejszy rywal</b> (osoba, z którą ten gracz najczęściej przegrywa). Partie kooperacyjne nie liczą się do pokonanych i przegranych.</li>
-      </ul>
-      <p>Profil jest liczony z wyników, które widzisz, ze wszystkich grup.</p>
-
-      <h4>Pojedynki</h4>
-      <p>Przycisk <b>⚔ Pojedynki</b> w zakładce <b>Wyniki</b> (pod rankingiem) otwiera okno, które porównuje dwóch graczy. Przycisk jest widoczny, gdy w wynikach jest co najmniej dwóch graczy. Wybierz graczy na listach u góry okna (domyślnie Ty i osoba, z którą grasz najczęściej). W oknie widać:</p>
-      <ul>
-        <li><b>Wynik pojedynku</b>: duże liczby pod wybranymi graczami mówią, ile razy każdy z nich był lepszy we wspólnych partiach. Liczą się punkty, a w partiach bez punktów zwycięstwo. Liczba osoby, która prowadzi, jest wyróżniona.</li>
-        <li><b>Pasek z legendą</b>: proporcja wygranych pierwszego gracza (kolor motywu), remisów (szary) i wygranych drugiego gracza (bursztynowy).</li>
-        <li><b>Wspólne partie</b>: ile partii rozegrali razem.</li>
-        <li><b>Remisy</b>: partie, w których żaden z nich nie był lepszy.</li>
-        <li><b>Aktualna seria</b>: ile razy z rzędu ostatnio wygrywa ta sama osoba (od 2 razy). Gdy serii nie ma, widać „brak serii”.</li>
-        <li><b>Najdłuższa seria</b>: rekordowe serie obu graczy, w tej samej kolejności co na listach, i imię rekordzisty.</li>
-        <li>Tabela z bilansem w każdej grze osobno.</li>
-      </ul>
-
-      <h3>10. Lista wszystkich gier</h3>
-      <p>Przycisk <b>☰ Lista wszystkich gier</b> na górze zakładki <b>Gry</b> otwiera alfabetyczną listę tytułów z podziałem na litery. Pod grami widać ich rozszerzenia. Listę można zawęzić do jednej grupy i przeszukiwać, także po nazwie rozszerzenia. Oznaczenia są takie same jak w zakładce <b>Gry</b>.</p>
-      <p>Przy każdej grze są przyciski (zmieniać gry mogą właściciel i Mistrz Gry):</p>
-      <ul>
-        <li><b>ⓘ</b>: informacje o grze (rozdział 6).</li>
-        <li><b>✎</b>: otwiera okno <b>Edytuj grę</b>.</li>
-      </ul>
-      <h4>Okno „Edytuj grę”</h4>
-      <ul>
-        <li><b>📷 Dodaj okładkę</b>: wybierz zdjęcie z galerii albo zrób zdjęcie pudełka aparatem. Okładka zapisuje się od razu. <b>Usuń okładkę</b> ją usuwa.</li>
-        <li><b>Nazwa gry</b>: popraw nazwę.</li>
-        <li><b>Losowanie i rozszerzenia</b>: lista wersji gry (wersja podstawowa i rozszerzenia). Obok nazwy wersji są przyciski, jeden pod drugim. <b>⊘ Wyklucz</b> wyklucza wersję z losowania, a przy wykluczonej wersji w tym miejscu jest <b>↺ Przywróć</b>. Przy grze z rozszerzeniami jest też przycisk <b>⊘ Wyklucz całą grę z losowania</b>.</li>
-        <li><b>🗑 Usuń</b> przy rozszerzeniu usuwa je z gry (po potwierdzeniu).</li>
-        <li>Nowe rozszerzenie: wpisz nazwę w polu <b>nowe rozszerzenie…</b> i naciśnij <b>+</b>.</li>
-        <li><b>Przenieś do innej grupy</b> (gdy masz kilka grup): naciśnij nazwę grupy i potwierdź. Gra przenosi się od razu.</li>
-        <li><b>🗑 Usuń grę</b> na dole okna usuwa grę z grupy (po potwierdzeniu, od razu). Zapisane wyniki zostają.</li>
-        <li><b>✓ Zapisz</b> zapisuje nazwę, rozszerzenia i wykluczenia. <b>Anuluj</b> porzuca te zmiany.</li>
-      </ul>
-      <h4>Wykluczanie z losowania</h4>
-      <ul>
-        <li>Wykluczona gra lub wersja ma na liście znak <b>⊘</b> zamiast ○/✓ i wyszarzoną nazwę.</li>
-        <li>Wykluczenie dotyczy całej grupy, czyli wszystkich osób, które losują z jej gier. Nie zmienia stanu rozegranych gier ani wyników.</li>
-      </ul>
-
-      <h3>11. Aktualności</h3>
-      <p>Zakładka z dzwonkiem <b>🔔</b> na dolnym pasku (między <b>Gry</b> a <b>Wyniki</b>) pokazuje 20 najnowszych zdarzeń: kto, kiedy i co zmienił. Przycisk <b>Starsze</b> na dole doczytuje kolejne 20. Rejestrowane są m.in. zmiany gier, członków, ról, kodów zaproszeń i wyników.</p>
-      <p>Gdy pojawi się nowy wpis dodany przez inną osobę, dzwonek świeci na czerwono i ma czerwoną kropkę. Po otwarciu zakładki oznaczenie znika, a wpisy dodane przez inne osoby od Twojej poprzedniej wizyty są na górze, w części <b>🔔 Nowe</b>: z czerwonym paskiem, dzwoneczkiem i czerwonym nazwiskiem. Pod nimi, w części <b>Wcześniej</b>, są pozostałe wpisy.</p>
-      <p>Wpisy o wynikach wyglądają jak w zakładce <b>Wyniki</b>: nazwa gry, a pod nią gracze w osobnych liniach, z pucharami i punktami.</p>
-      <ul>
-        <li>Zdarzenia grupy widzą właściciel i Mistrzowie Gry.</li>
-        <li>Wpis o wyniku widzą gracze z kontem, którzy brali udział w rozgrywce, oraz osoba, która go wpisała.</li>
-        <li>Wpisów nie można edytować ani usuwać.</li>
-      </ul>
-
-      <h3>12. Motyw i animacje</h3>
-      <ol>
-        <li>Wybierz <b>Więcej › Motyw</b>.</li>
-        <li>Wybierz jeden z motywów: <b>Matrix</b>, <b>Szkoła Magii</b>, <b>Gęś Wyścigowa</b>, <b>Galaktyka</b> lub <b>Neon</b>.</li>
-      </ol>
-      <ul>
-        <li>Motyw i ustawienie animacji są zapisywane na koncie. Po zalogowaniu na innym urządzeniu zostaną włączone automatycznie.</li>
-        <li>Każda osoba ma własny motyw.</li>
-        <li>W motywie Gęś Wyścigowa co kilka sekund przez dół ekranu przebiega gęś, a w motywie Szkoła Magii przelatuje złota piłeczka. Animacje nie blokują przycisków.</li>
-        <li>Każdy motyw ma własną animację pojawiania się wylosowanego tytułu. W motywie Gęś Wyścigowa litery wyskakują zza kręcących się gąsek, a w motywie Galaktyka tytuł poprzedzają napisy płynące w głąb kosmosu.</li>
+        <li>Każdy motyw ma własną animację tła i animację wyświetlania wylosowanego tytułu.</li>
         <li>Przełącznik <b>Animowane tło</b> wyłącza tło i animacje.</li>
+        <li>Motyw i ustawienie animacji są zapisywane na koncie i włączają się automatycznie na innym urządzeniu po zalogowaniu.</li>
       </ul>
-
-      <h3>13. Kopia zapasowa</h3>
+      <h4>8.4. Kopia zapasowa</h4>
+      <p>Tworzenie kopii:</p>
       <ol>
-        <li>Wybierz <b>Więcej › Kopia zapasowa</b>.</li>
-        <li>Naciśnij <b>Kopiuj</b>, aby skopiować dane do schowka.</li>
+        <li>Naciśnij <b>Kopia zapasowa</b>.</li>
+        <li>Naciśnij <b>Kopiuj</b>.</li>
         <li>Wklej skopiowany tekst w bezpieczne miejsce, np. do notatek.</li>
       </ol>
-      <p>Kopia zawiera gry ze stanem rozegranych, wyniki, historię rozegranych gier, listę graczy i aktualności. Aby odtworzyć dane, wklej tekst kopii w okno, naciśnij <b>Importuj</b> i potwierdź. Z kopii powstaną nowe grupy, a istniejące grupy pozostaną bez zmian.</p>
-
-      <h3>14. Zmiany i aktualizacje</h3>
-      <ul>
-        <li><b>Więcej › Zmiany!</b> pokazuje zmiany w trzech ostatnich wersjach: numer wersji, datę wydania i listę zmian.</li>
-        <li>Gdy dostępna jest nowa wersja, na górze ekranu pojawia się pasek <b>Dostępna nowa wersja</b>.</li>
-      </ul>
-      <h4>Instalowanie aktualizacji</h4>
+      <p>Przywracanie danych:</p>
       <ol>
-        <li>Naciśnij <b>Aktualizuj</b> na pasku aktualizacji.</li>
-        <li>W oknie <b>Aktualizacja</b> widać postęp pobierania. Po pobraniu instalacja uruchamia się sama.</li>
-        <li>Po instalacji Android zamyka aplikację i pokazuje powiadomienie <b>Planszomat zaktualizowany</b>. Dotknij go, aby otworzyć aplikację. Przez kilka sekund wyświetli się okno <b>Aplikacja zaktualizowana</b> z listą zmian.</li>
+        <li>Wklej tekst kopii w pole okna <b>Kopia zapasowa</b>.</li>
+        <li>Naciśnij <b>Importuj</b> i potwierdź.</li>
       </ol>
-      <ul>
-        <li>Przy pierwszej aktualizacji Android może poprosić o zgodę na instalowanie aplikacji z Planszomatu. Zezwól na nią i wróć do aplikacji, a instalacja uruchomi się sama.</li>
-        <li>Przy pierwszej aktualizacji tym sposobem system wyświetli też okno potwierdzenia instalacji. Na Androidzie 12 i nowszym kolejne aktualizacje instalują się bez pytania.</li>
-        <li>Przy pierwszej aktualizacji aplikacja poprosi o zgodę na powiadomienia. Bez niej powiadomienie się nie pojawi i aplikację trzeba otworzyć ikoną.</li>
-        <li>Plik aktualizacji jest zapisywany w pamięci aplikacji, a nie w folderze Pobrane, i usuwany po instalacji.</li>
-      </ul>
-      <p>Dane są przechowywane w chmurze, więc aktualizacja niczego nie usuwa.</p>
-
-      <h3>15. Usuwanie konta</h3>
+      <p>Kopia zawiera gry ze stanem rozegranych, wyniki, historię rozgrywek, listę graczy i aktualności. Import tworzy nowe grupy; istniejące grupy pozostają bez zmian.</p>
+      <h4>8.5. Wyloguj</h4>
+      <p>Wylogowuje z aplikacji po potwierdzeniu.</p>
+      <h4>8.6. Usuń konto</h4>
       <ol>
-        <li>Wybierz <b>Więcej › Usuń konto</b>.</li>
+        <li>Naciśnij <b>Usuń konto</b>.</li>
         <li>Wpisz hasło.</li>
         <li>Naciśnij <b>Usuń moje konto</b> i potwierdź.</li>
       </ol>
-      <p>Usunięcie konta jest nieodwracalne. Usuwane są: konto i adres e-mail, Twoje wpisy w wynikach, członkostwo w grupach, stan rozegranych gier i ustawienia. Grupy, których jesteś właścicielem, są usuwane razem z grami i wynikami.</p>
+      <p class="note">Uwaga: usunięcie konta jest nieodwracalne. Usuwane są konto, adres e-mail, Twoje wpisy w wynikach, członkostwo w grupach, stan rozegranych gier i ustawienia. Grupy, których jesteś właścicielem, są usuwane razem z grami i wynikami.</p>
 
-      <h3>16. Praca bez internetu</h3>
-      <p>Bez połączenia z internetem aplikacja pokazuje ostatnio wczytane dane. Wprowadzone zmiany zostaną wysłane po przywróceniu połączenia.</p>
+      <h3>9. Aktualizacje</h3>
+      <p>Gdy dostępna jest nowa wersja, na górze ekranu wyświetla się pasek <b>Dostępna nowa wersja</b>.</p>
+      <ol>
+        <li>Naciśnij <b>Aktualizuj</b>.</li>
+        <li>Poczekaj na pobranie pliku. Postęp jest widoczny w oknie <b>Aktualizacja</b>. Instalacja uruchamia się automatycznie.</li>
+        <li>Po instalacji system zamyka aplikację i wyświetla powiadomienie <b>Planszomat zaktualizowany</b>. Naciśnij je, aby otworzyć aplikację.</li>
+      </ol>
+      <p>Po uruchomieniu nowej wersji przez kilka sekund wyświetla się okno <b>Aplikacja zaktualizowana</b> z listą zmian.</p>
+      <ul>
+        <li>Przy pierwszej aktualizacji system może poprosić o zgodę na instalowanie aplikacji z Planszomatu oraz o zgodę na powiadomienia. Bez zgody na powiadomienia aplikację po aktualizacji trzeba uruchomić ikoną.</li>
+        <li>Na Androidzie 12 i nowszym kolejne aktualizacje instalują się bez dodatkowego potwierdzenia.</li>
+        <li>Plik aktualizacji jest usuwany po instalacji. Dane są przechowywane w chmurze, więc aktualizacja ich nie usuwa.</li>
+      </ul>
+
+      <h3>10. Praca bez internetu</h3>
+      <p>Bez połączenia z internetem aplikacja wyświetla ostatnio wczytane dane. Zmiany wprowadzone w tym czasie zostaną wysłane po przywróceniu połączenia.</p>
 
       <div class="foot helpfoot">
         <p class="motto">Bo najtrudniejsza gra to wybrać, w co zagrać. 🎲</p>
