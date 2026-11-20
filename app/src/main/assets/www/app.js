@@ -212,20 +212,21 @@
   });
   // ---------- potwierdzenie adresu e-mail (nowe konta) ----------
   try { auth.languageCode = "pl"; } catch(e){}
-  const VERIFY_FROM = Date.parse("2026-11-20T09:10:00Z");   // konta założone wcześniej nie muszą potwierdzać adresu
-  function needsVerify(u){
-    const c = Date.parse(u && u.metadata && u.metadata.creationTime);
-    return !!u && !u.emailVerified && !(!isNaN(c) && c < VERIFY_FROM);
-  }
+  // każde konto musi mieć potwierdzony adres e-mail – sprawdzają to też reguły bazy (email_verified)
+  function needsVerify(u){ return !!u && !u.emailVerified; }
   function enterApp(u){
     if (needsVerify(u)) { showVerify(u); return; }
     $("verifyView").hidden = true;
     startApp(u);
   }
+  let verifySentFor = "";
   function showVerify(u){
     $("authView").hidden = true; $("appView").hidden = true; $("tabbar").hidden = true;
     $("verifyView").hidden = false;
     $("vEmail").textContent = u.email || "";
+    // konto założone przed wprowadzeniem potwierdzania: link wysyłamy automatycznie (raz na uruchomienie)
+    const fresh = Date.now() - Date.parse(u.metadata && u.metadata.creationTime || 0) < 5 * 60 * 1000;
+    if (!fresh && verifySentFor !== u.uid) { verifySentFor = u.uid; u.sendEmailVerification().catch(() => {}); }
   }
   async function checkVerified(silent){
     const u = auth.currentUser; if (!u) return;
