@@ -203,10 +203,13 @@
       <div class="gecovrow"><div id="geCover"></div><div class="gecovbtns"><button type="button" class="ghost" id="geCovAdd">📷 Dodaj okładkę</button><button type="button" class="link" id="geCovDel">Usuń okładkę</button></div></div>
       <label class="fl" for="geName">Nazwa gry</label>
       <input type="text" id="geName" maxlength="80" autocomplete="off">
-      <span class="fl">Rozszerzenia</span>
+      <span class="fl">Losowanie i rozszerzenia</span>
+      <div class="gehint">Wykluczone wersje nie biorą udziału w losowaniu.</div>
+      <button type="button" class="gebtn geall" id="geAllOff"></button>
       <ul class="geexps" id="geExps"></ul>
       <form class="add" id="geAdd"><input type="text" id="geNew" maxlength="60" placeholder="nowe rozszerzenie…" autocomplete="off" aria-label="Nowe rozszerzenie"><button type="submit" aria-label="Dodaj rozszerzenie">+</button></form>
       <div class="ferr" id="geErr"></div>
+      <button type="button" class="gebtn gedelgame" id="geDelGame">🗑 Usuń grę</button>
     </div>
     <div class="row2" style="margin-top:10px"><button class="ghost" id="geCancel">Anuluj</button><button class="ok" id="geSave">✓ Zapisz</button></div>
   </div>
@@ -512,7 +515,7 @@
         <li>Losowanie obejmuje gry z grup, w których jesteś właścicielem lub Mistrzem Gry.</li>
         <li>Losowane są tylko gry, których jeszcze nie rozegrałeś w bieżącym cyklu.</li>
         <li>Gra z rozszerzeniami jest losowana w wersjach: osobno wersja podstawowa i każde rozszerzenie.</li>
-        <li>Gry i wersje wykluczone przyciskiem <b>⊘</b> są pomijane w losowaniu i w liczniku „Do rozegrania”. W blokach <b>Najczęściej grana</b> i <b>Najrzadziej grana</b> nadal są uwzględniane.</li>
+        <li>Gry i wersje wykluczone z losowania (okno <b>Edytuj grę</b>) są pomijane w losowaniu i w liczniku „Do rozegrania”. W blokach <b>Najczęściej grana</b> i <b>Najrzadziej grana</b> nadal są uwzględniane.</li>
         <li>Wersja gry wypada z losowania po zapisaniu wyniku. Samo naciśnięcie <b>Gramy!</b> niczego nie zapisuje.</li>
         <li>Gdy wszystkie gry zostaną rozegrane, pojawi się przycisk <b>Zacznij nowy cykl</b>. Przycisk <b>Wyzeruj moje rozegrane</b> pod listą gier robi to samo dla jednej grupy. Obie opcje dotyczą tylko Ciebie.</li>
       </ul>
@@ -590,24 +593,22 @@
       <p>Przy każdej grze są przyciski (zmieniać gry mogą właściciel i Mistrz Gry):</p>
       <ul>
         <li><b>ⓘ</b>: informacje o grze (rozdział 6).</li>
-        <li><b>✎</b>: edycja gry: okładka, zmiana nazwy, dodawanie i usuwanie rozszerzeń.</li>
-        <li><b>⊘</b>: wykluczenie gry z losowania (przy grze z rozszerzeniami wszystkich jej wersji) lub przywrócenie jej do losowania.</li>
+        <li><b>✎</b>: otwiera okno <b>Edytuj grę</b>.</li>
         <li><b>⇄</b>: przeniesienie gry do innej grupy (gdy masz kilka grup).</li>
-        <li><b>🗑</b>: usunięcie gry (po potwierdzeniu w oknie).</li>
       </ul>
-      <h4>Edycja gry i rozszerzeń</h4>
-      <ol>
-        <li>Naciśnij <b>✎</b> przy grze.</li>
-        <li>Przycisk <b>✎</b> otwiera okno <b>Edytuj grę</b>. Możesz w nim zmienić nazwę gry, dodać rozszerzenie (wpisz nazwę i naciśnij <b>+</b>) albo usunąć rozszerzenie (<b>✕</b>). Zmiany zapisuje <b>✓ Zapisz</b>, a <b>Anuluj</b> je porzuca.</li>
-        <li>Aby dodać okładkę, naciśnij w tym oknie <b>📷 Dodaj okładkę</b> i wybierz zdjęcie z galerii albo zrób zdjęcie pudełka aparatem. Okładka zapisuje się od razu. <b>Usuń okładkę</b> ją usuwa.</li>
-        <li>Popraw nazwę gry lub wpisz nazwę nowego rozszerzenia.</li>
-        <li>Naciśnij <b>✓ Gotowe</b>, aby zapisać, lub <b>Anuluj</b>, aby zrezygnować.</li>
-      </ol>
-      <p>Aby usunąć rozszerzenie, w trybie edycji naciśnij <b>✕</b> przy jego nazwie i potwierdź.</p>
+      <h4>Okno „Edytuj grę”</h4>
+      <ul>
+        <li><b>📷 Dodaj okładkę</b>: wybierz zdjęcie z galerii albo zrób zdjęcie pudełka aparatem. Okładka zapisuje się od razu. <b>Usuń okładkę</b> ją usuwa.</li>
+        <li><b>Nazwa gry</b>: popraw nazwę.</li>
+        <li><b>Losowanie i rozszerzenia</b>: lista wersji gry (wersja podstawowa i rozszerzenia). Przy każdej jest przycisk <b>⊘ Wyklucz</b>, który wyklucza ją z losowania. Przy wykluczonej wersji jest przycisk <b>↺ Przywróć</b>. Przy grze z rozszerzeniami jest też przycisk <b>⊘ Wyklucz całą grę z losowania</b>.</li>
+        <li><b>🗑 Usuń</b> przy rozszerzeniu usuwa je z gry (po potwierdzeniu).</li>
+        <li>Nowe rozszerzenie: wpisz nazwę w polu <b>nowe rozszerzenie…</b> i naciśnij <b>+</b>.</li>
+        <li><b>🗑 Usuń grę</b> na dole okna usuwa grę z grupy (po potwierdzeniu, od razu). Zapisane wyniki zostają.</li>
+        <li><b>✓ Zapisz</b> zapisuje nazwę, rozszerzenia i wykluczenia. <b>Anuluj</b> porzuca te zmiany.</li>
+      </ul>
       <h4>Wykluczanie z losowania</h4>
       <ul>
-        <li>Aby wykluczyć tylko wersję podstawową albo jedno rozszerzenie, naciśnij <b>⊘</b> po prawej stronie tej wersji w drzewku pod grą.</li>
-        <li>Wykluczona gra lub wersja ma wyróżniony znak <b>⊘</b> i wyszarzoną nazwę. Ponowne naciśnięcie <b>⊘</b> przywraca ją do losowania.</li>
+        <li>Wykluczona gra lub wersja ma na liście znak <b>⊘</b> zamiast ○/✓ i wyszarzoną nazwę.</li>
         <li>Wykluczenie dotyczy całej grupy, czyli wszystkich osób, które losują z jej gier. Nie zmienia stanu rozegranych gier ani wyników.</li>
       </ul>
 

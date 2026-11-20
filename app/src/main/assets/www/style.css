@@ -493,5 +493,12 @@ li.game .gcov{width:34px;height:34px;object-fit:cover;border-radius:4px;flex:non
 #geName{width:100%;box-sizing:border-box}
 .geexps{list-style:none;margin:2px 0 8px;padding:0}
 .geexps li{display:flex;align-items:center;gap:8px;padding:7px 2px;border-bottom:1px solid var(--line)}
-.geexps li .nm{flex:1}
+.geexps li .nm{flex:1;min-width:0}
+.geexps li.off .nm{opacity:.55;text-decoration:line-through}
 .geexps li.geempty{color:var(--muted);font-size:13px;border:0}
+.gehint{font-size:12px;color:var(--muted);margin:0 0 8px}
+.gebtn{background:none;color:inherit;border:1px solid var(--line);border-radius:4px;padding:6px 10px;font:inherit;font-size:12px;cursor:pointer;white-space:nowrap;box-shadow:none}
+.gebtn.on{border-color:var(--amber);color:var(--amber)}
+.gebtn.gedel{color:var(--red);border-color:transparent}
+.geall{width:100%;margin-bottom:4px;padding:9px 10px}
+.gedelgame{width:100%;margin-top:18px;padding:10px;color:var(--red);border-color:var(--red)}

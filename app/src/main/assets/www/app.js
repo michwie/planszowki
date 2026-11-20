@@ -913,9 +913,7 @@
       (full && groups.length > 1 ? '<span class="tag"></span>' : '') +
       (full ? '<span class="gbtns"><button class="ib info" title="Informacje o grze" aria-label="Informacje o grze">ⓘ</button>' +
         (edit ? '<button class="ib xed" title="Edytuj grę i rozszerzenia" aria-label="Edytuj">✎</button>' +
-                '<button class="ib nd" title="Wyklucz z losowania / przywróć" aria-label="Wykluczenie z losowania">⊘</button>' +
-                (moveTargets.length ? '<button class="ib move" title="Przenieś do innej grupy" aria-label="Przenieś">⇄</button>' : '') +
-                '<button class="ib del" title="Usuń" aria-label="Usuń">🗑</button>' : '') + '</span>' : '');
+                (moveTargets.length ? '<button class="ib move" title="Przenieś do innej grupy" aria-label="Przenieś">⇄</button>' : '') : '') + '</span>' : '');
     li.querySelector(".gmk").textContent = played ? "✓" : "○";
     const th = coverImg(g.id, game.id, "gcov"); if (th) li.insertBefore(th, li.querySelector(".gname"));
     li.querySelector("b").textContent = game.name;
@@ -927,19 +925,11 @@
       if (edit) {
         const xed = li.querySelector(".xed");
         xed.onclick = () => openGameEdit(g, game);
-        const nd = li.querySelector(".nd");
-        const allOff = isAllOff(game);
-        nd.classList.toggle("on", allOff);
-        nd.title = allOff ? "Przywróć do losowania" : (ex.length ? "Wyklucz z losowania (wszystkie wersje)" : "Wyklucz z losowania");
-        nd.onclick = () => setOff(g, game, variants(game), !allOff);
         const mv = li.querySelector(".move");
         if (mv) mv.onclick = () => {
           if (moveTargets.length === 1) { moveGame(g, game, moveTargets[0]); return; }
           ui.moving = ui.moving === game.id ? null : game.id; rerenderLists();
         };
-        li.querySelector(".del").onclick = () => confirmDialog({title: "Usunąć grę?", text: "„" + game.name + "” zniknie z grupy „" + g.name + "”" + (ex.length ? " razem z rozszerzeniami" : "") + ". Zapisane wyniki zostaną.", icon: "🗑", yes: "Usuń", danger: true,
-          onYes: () => { if (ui.drawn === game.id) ui.drawn = null; upd(g.id, {games: FV.arrayRemove(game)}, "Usunięcie gry " + q(game.name), "game-del");
-            if (coverOf(g.id, game.id)) gref(g.id).collection("covers").doc(game.id).delete().catch(() => {}); }});
       }
     }
     // drzewko wersji (wersja podstawowa + rozszerzenia)
@@ -959,12 +949,6 @@
         if (done && !editing) row.querySelector(".dt").textContent = fmt(myPlayed(g)[vkey(game, r.e)]);
         const off = isVOff(game, r.e);
         if (off && !editing) { row.classList.add("off"); row.querySelector(".mk").textContent = "⊘"; }
-        if (edit && !editing) {
-          const ob = document.createElement("button"); ob.type = "button"; ob.className = "xoff" + (off ? " on" : "");
-          ob.textContent = "⊘"; ob.title = off ? "Przywróć do losowania" : "Wyklucz z losowania"; ob.setAttribute("aria-label", ob.title);
-          ob.onclick = () => setOff(g, game, [r.e], !off);
-          row.appendChild(ob);
-        }
         if (canDel) row.onclick = () => {
           confirmDialog({title: "Usunąć rozszerzenie?", text: "„" + r.name + "” zniknie z gry „" + game.name + "”. Zapisane wyniki zostaną.", icon: "🗑", yes: "Usuń", danger: true,
             onYes: () => saveGame(g, Object.assign({}, game, {exps: ex.filter(x => x.id !== r.e.id)}), "Usunięcie rozszerzenia " + q(r.name) + " z gry " + q(game.name))});
@@ -993,12 +977,19 @@
     toast(off ? "Wykluczono z losowania" : "Przywrócono do losowania");
   }
   // zmiana jednej gry (np. lista rozszerzeń) – zapis całej listy gier grupy
-  // ===== okno edycji gry: okładka, nazwa, rozszerzenia. Zapisz zapisuje wszystko naraz, Anuluj porzuca =====
+  // ===== okno edycji gry: okładka, nazwa, wersje (wykluczenie z losowania), rozszerzenia, usunięcie gry.
+  // Zapisz zapisuje nazwę, rozszerzenia i wykluczenia naraz, Anuluj porzuca. Okładka i usunięcie gry działają od razu.
   let ge = null;
   function openGameEdit(g, game){
-    ge = {gid: g.id, gameId: game.id, orig: game, exps: exps(game).map(e => Object.assign({}, e)), removed: []};
+    ge = {gid: g.id, gameId: game.id, orig: game, baseOff: !!game.off, exps: exps(game).map(e => Object.assign({}, e)), removed: []};
     $("geName").value = game.name; $("geNew").value = ""; $("geErr").textContent = "";
     renderGameEdit(); openOv("ge");
+  }
+  function offBtn(isOff, onToggle){
+    const b = document.createElement("button"); b.type = "button"; b.className = "gebtn geoff" + (isOff ? " on" : "");
+    b.textContent = isOff ? "↺ Przywróć" : "⊘ Wyklucz";
+    b.title = isOff ? "Przywróć do losowania" : "Wyklucz z losowania";
+    b.onclick = onToggle; return b;
   }
   function renderGameEdit(){
     if (!ge) return;
@@ -1011,22 +1002,29 @@
     const has = !!coverOf(g.id, game.id);
     $("geCovAdd").textContent = has ? "📷 Zmień okładkę" : "📷 Dodaj okładkę";
     $("geCovDel").hidden = !has;
+    // wykluczenie całej gry (gdy są rozszerzenia)
+    const allOff = ge.baseOff && ge.exps.every(e => e.off);
+    const wb = $("geAllOff"); wb.hidden = !ge.exps.length;
+    wb.textContent = allOff ? "↺ Przywróć całą grę do losowania" : "⊘ Wyklucz całą grę z losowania";
+    wb.classList.toggle("on", allOff);
+    wb.onclick = () => { ge.baseOff = !allOff; ge.exps.forEach(e => { e.off = !allOff; }); renderGameEdit(); };
     const ul = $("geExps"); ul.innerHTML = "";
-    if (!ge.exps.length) ul.innerHTML = '<li class="geempty">Brak rozszerzeń.</li>';
-    ge.exps.forEach(e => {
-      const li = document.createElement("li");
-      li.innerHTML = '<span class="nm"></span><button type="button" class="ib rm" aria-label="Usuń rozszerzenie">✕</button>';
-      li.querySelector(".nm").textContent = e.name + (e.isNew ? "  (nowe)" : "");
-      li.querySelector(".rm").onclick = () => {
-        if (e.isNew) { ge.exps = ge.exps.filter(x => x !== e); renderGameEdit(); return; }
-        confirmDialog({title: "Usunąć rozszerzenie?", text: "„" + e.name + "” zniknie z gry po zapisaniu zmian. Zapisane wyniki zostaną.", icon: "🗑", yes: "Usuń", danger: true,
-          onYes: () => { ge.exps = ge.exps.filter(x => x !== e); ge.removed.push(e.name); renderGameEdit(); }});
-      };
+    const row = (name, isOff, onToggle, onDel) => {
+      const li = document.createElement("li"); if (isOff) li.className = "off";
+      const nm = document.createElement("span"); nm.className = "nm"; nm.textContent = name; li.appendChild(nm);
+      li.appendChild(offBtn(isOff, onToggle));
+      if (onDel) { const d = document.createElement("button"); d.type = "button"; d.className = "gebtn gedel"; d.textContent = "🗑 Usuń"; d.title = "Usuń rozszerzenie"; d.onclick = onDel; li.appendChild(d); }
       ul.appendChild(li);
-    });
+    };
+    row(ge.exps.length ? "Wersja podstawowa" : "Gra", ge.baseOff, () => { ge.baseOff = !ge.baseOff; renderGameEdit(); });
+    ge.exps.forEach(e => row(e.name + (e.isNew ? " (nowe)" : ""), !!e.off, () => { e.off = !e.off; renderGameEdit(); }, () => {
+      if (e.isNew) { ge.exps = ge.exps.filter(x => x !== e); renderGameEdit(); return; }
+      confirmDialog({title: "Usunąć rozszerzenie?", text: "„" + e.name + "” zniknie z gry po zapisaniu zmian. Zapisane wyniki zostaną.", icon: "🗑", yes: "Usuń", danger: true,
+        onYes: () => { ge.exps = ge.exps.filter(x => x !== e); ge.removed.push(e.name); renderGameEdit(); }});
+    }));
   }
-  $("geCovAdd").onclick = () => { const g = groupById(ge.gid), game = findGame(ge.gameId, ge.gid); if (g && game) pickCover(g, game.game || game); };
-  $("geCovDel").onclick = () => { const g = groupById(ge.gid), game = findGame(ge.gameId, ge.gid); if (g && game) removeCover(g, game.game || game); };
+  $("geCovAdd").onclick = () => { const f = findGame(ge.gameId, ge.gid); if (f) pickCover(f.group, f.game); };
+  $("geCovDel").onclick = () => { const f = findGame(ge.gameId, ge.gid); if (f) removeCover(f.group, f.game); };
   $("geAdd").addEventListener("submit", ev => {
     ev.preventDefault();
     const n = $("geNew").value.trim().replace(/\s+/g, " "); if (!n) return;
@@ -1035,27 +1033,48 @@
     $("geNew").value = ""; $("geErr").textContent = ""; renderGameEdit(); $("geNew").focus();
   });
   $("geCancel").onclick = () => { ge = null; closeOv("ge"); };
+  $("geDelGame").onclick = () => {
+    const f = findGame(ge.gameId, ge.gid); if (!f) return;
+    const g = f.group, game = f.game;
+    confirmDialog({title: "Usunąć grę?", text: "„" + game.name + "” zniknie z grupy „" + g.name + "”" + (exps(game).length ? " razem z rozszerzeniami" : "") + ". Zapisane wyniki zostaną.", icon: "🗑", yes: "Usuń", danger: true,
+      onYes: () => { ge = null; closeOv("ge"); deleteGame(g, game); }});
+  };
   $("geSave").onclick = () => {
-    const g = groupById(ge.gid), f = findGame(ge.gameId, ge.gid);
-    const game = f && (f.game || f); if (!g || !game) { closeOv("ge"); return; }
+    const f = findGame(ge.gameId, ge.gid);
+    if (!f) { closeOv("ge"); return; }
+    const g = f.group, game = f.game;
     const pending = $("geNew").value.trim().replace(/\s+/g, " ");
     if (pending && !ge.exps.some(x => x.name.toLowerCase() === pending.toLowerCase())) ge.exps.push({id: uid(), name: pending, added: Date.now(), isNew: true});
     const nm = $("geName").value.trim().replace(/\s+/g, " ");
     if (!nm) { $("geErr").textContent = "Wpisz nazwę gry."; return; }
     if (nm !== game.name && (g.games || []).some(x => x.id !== game.id && x.name.toLowerCase() === nm.toLowerCase())) { $("geErr").textContent = "Gra o tej nazwie już jest."; return; }
+    const flag = (o, off) => { const c = Object.assign({}, o); if (off) c.off = true; else delete c.off; return c; };
+    const draft = new Map(ge.exps.filter(e => !e.isNew).map(e => [e.id, e]));
+    const removedIds = new Set(exps(ge.orig).filter(o => !draft.has(o.id)).map(o => o.id));
+    // aktualny stan gry (żeby nie zgubić zmian zrobionych w międzyczasie) + zmiany z okna
+    const newExps = exps(game).filter(e => !removedIds.has(e.id)).map(e => draft.has(e.id) ? flag(e, draft.get(e.id).off) : e)
+      .concat(ge.exps.filter(e => e.isNew).map(e => flag({id: e.id, name: e.name, added: e.added}, e.off)));
+    const ng = flag(Object.assign({}, game, {name: nm}), ge.baseOff);
+    if (newExps.length || exps(game).length) ng.exps = newExps;
     const added = ge.exps.filter(e => e.isNew).map(e => e.name);
-    const keepIds = new Set(ge.exps.filter(e => !e.isNew).map(e => e.id));
-    // rozszerzenia z aktualnego stanu gry (żeby nie zgubić zmian zrobionych w międzyczasie), bez usuniętych + nowe
-    const newExps = exps(game).filter(e => keepIds.has(e.id) || !exps(ge.orig).some(o => o.id === e.id))
-      .concat(ge.exps.filter(e => e.isNew).map(e => ({id: e.id, name: e.name, added: e.added})));
+    const offNow = [], onNow = [];
+    if (!!game.off !== ge.baseOff) (ge.baseOff ? offNow : onNow).push(vlabel(ng, null));
+    newExps.forEach(e => { const was = exps(game).find(o => o.id === e.id); if (!!(was ? was.off : false) !== !!e.off) (e.off ? offNow : onNow).push(nm + " + " + e.name); });
     const txt = [nm !== game.name ? "Zmiana nazwy gry " + q(game.name) + " na " + q(nm) : "",
       added.length ? "Dodanie rozszerzeń " + added.map(q).join(", ") + " do gry " + q(nm) : "",
-      ge.removed.length ? "Usunięcie rozszerzeń " + ge.removed.map(q).join(", ") + " z gry " + q(nm) : ""].filter(Boolean).join("; ");
+      ge.removed.length ? "Usunięcie rozszerzeń " + ge.removed.map(q).join(", ") + " z gry " + q(nm) : "",
+      offNow.length ? "Wykluczenie z losowania: " + offNow.map(q).join(", ") : "",
+      onNow.length ? "Przywrócenie do losowania: " + onNow.map(q).join(", ") : ""].filter(Boolean).join("; ");
     ge = null; closeOv("ge");
     if (!txt) return;
-    const ng = Object.assign({}, game, {name: nm}); if (newExps.length || exps(game).length) ng.exps = newExps;
+    if (isAllOff(ng) && ui.drawn === game.id && ui.drawnGid === g.id) ui.drawn = null;
     saveGame(g, ng, txt);
   };
+  function deleteGame(g, game){
+    if (ui.drawn === game.id) ui.drawn = null;
+    upd(g.id, {games: FV.arrayRemove(game)}, "Usunięcie gry " + q(game.name), "game-del");
+    if (coverOf(g.id, game.id)) gref(g.id).collection("covers").doc(game.id).delete().catch(() => {});
+  }
   function saveGame(g, newGame, logText){
     const games = (g.games || []).map(x => x.id === newGame.id ? newGame : x);
     return upd(g.id, {games}, logText, "game-exp");

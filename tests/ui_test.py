@@ -208,7 +208,7 @@ def edycja_gry_w_oknie(c):
     pg.click("#allList li.game:has-text('Wiedźmin') .xed"); pg.wait_for_timeout(300)
     pg.fill("#geName", "Wiedźmin: Gra Przygodowa")
     pg.fill("#geNew", "Szkoła Wilka"); pg.press("#geNew", "Enter"); pg.wait_for_timeout(100)
-    pg.click("#geExps li:has-text('Magowie') .rm"); pg.wait_for_timeout(200)
+    pg.click("#geExps li:has-text('Magowie') .gedel"); pg.wait_for_timeout(200)
     assert visible(pg, "#cf"), "usunięcie rozszerzenia bez potwierdzenia"
     pg.click("#cfYes"); pg.wait_for_timeout(200)
     assert visible(pg, "#ge"), "okno edycji powinno zostać otwarte"
@@ -216,6 +216,28 @@ def edycja_gry_w_oknie(c):
     w = g()["w1"]
     assert w["name"] == "Wiedźmin: Gra Przygodowa", w
     assert [e["name"] for e in w["exps"]] == ["Szkoła Wilka"], w["exps"]
+    return pg
+
+@test
+def wykluczenie_i_usuniecie_gry_w_oknie(c):
+    pg = c.open(seed())
+    g = lambda: {x["id"]: x for x in docs(pg)["groups/G1/shelf/main"]["games"]}
+    pg.click("#tabbar .tb[data-view=games]"); pg.click("#openList"); pg.wait_for_timeout(300)
+    assert not pg.query_selector_all("#allList .nd, #allList li.game .del, #allList .xoff"), "na liście zostały przyciski ⊘/🗑"
+    pg.click("#allList li.game:has-text('Wiedźmin') .xed"); pg.wait_for_timeout(300)
+    pg.click("#geExps li:has-text('Magowie') .geoff"); pg.wait_for_timeout(100)
+    assert "Przywróć" in pg.inner_text("#geExps li:has-text('Magowie') .geoff")
+    pg.click("#geSave"); pg.wait_for_timeout(500)
+    w = g()["w1"]
+    assert w["exps"][0].get("off") is True and not w.get("off"), w
+    pg.click("#allList li.game:has-text('Catan') .xed"); pg.wait_for_timeout(300)
+    pg.click("#geExps li .geoff"); pg.click("#geSave"); pg.wait_for_timeout(500)
+    assert g()["c1"].get("off") is True, g()["c1"]
+    pg.click("#allList li.game:has-text('Azul') .xed"); pg.wait_for_timeout(300)
+    pg.click("#geDelGame"); pg.wait_for_timeout(200)
+    assert visible(pg, "#cf"), "usunięcie gry bez potwierdzenia"
+    pg.click("#cfYes"); pg.wait_for_timeout(500)
+    assert "a1" not in g() and not visible(pg, "#ge"), "gra nie usunięta"
     return pg
 
 @test
