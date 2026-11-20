@@ -2008,6 +2008,9 @@
 
   // ===== Profil gracza i Rekordy w grach (z wyników, które widzę) =====
   let pfKey = "";
+  // ikony formy: puchar (wygrana) i nagrobek (bez wygranej)
+  const PF_CUP = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h10v2h3v3a4 4 0 0 1-4.1 4A5 5 0 0 1 13 14.8V18h3v3H8v-3h3v-3.2A5 5 0 0 1 8.1 12 4 4 0 0 1 4 8V5h3zm-1 4v1a2 2 0 0 0 1.4 1.9A5 5 0 0 1 7 8V7zm11 0v1c0 .6-.1 1.3-.4 1.9A2 2 0 0 0 18 8V7z"/></svg>';
+  const PF_GRAVE = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 19V9a6 6 0 0 1 12 0v10z"/><path class="x" d="M11 7h2v2.2h2.2v2H13V16h-2v-4.8H8.8v-2H11z"/><path d="M4 19.5h16V22H4z"/></svg>';
   function playerNames(plays, acc){
     const m = new Map();
     plays.forEach(p => (p.scores || []).forEach(sc => m.set(scoreKey(sc), sc.uid ? (acc.get(sc.uid) || sc.p) : sc.p)));
@@ -2037,7 +2040,11 @@
     const mine = plays.filter(p => (p.scores || []).some(sc => scoreKey(sc) === K)).sort((a, b) => b.at - a.at);
     const body = $("pfBody"); body.innerHTML = "";
     const kind = document.createElement("div"); kind.className = "pfkind";
-    kind.textContent = K.startsWith("u:") ? "Konto w aplikacji" : "Gracz bez konta";
+    if (K.startsWith("u:")) {
+      const r = regs[K.slice(2)];
+      kind.textContent = "Konto w aplikacji";
+      if (r && r.at) { kind.textContent += " od "; const b = document.createElement("b"); b.className = "pfacc"; b.textContent = fmt(r.at); kind.appendChild(b); }
+    } else kind.textContent = "Gracz bez konta";
     if (mine.length) [["Pierwsza partia", mine[mine.length - 1].at], ["Ostatnia partia", mine[0].at]].forEach(([l, t]) => {
       const fp = document.createElement("div"); fp.className = "pfdate"; fp.textContent = l + ": "; const b = document.createElement("b"); b.textContent = fmt(t); fp.appendChild(b); kind.appendChild(fp); });
     body.appendChild(kind);
@@ -2054,7 +2061,7 @@
     const form = document.createElement("div"); form.className = "pfform";
     const fl = document.createElement("span"); fl.className = "tl"; fl.textContent = "Forma (ostatnie partie)"; form.appendChild(fl);
     const fr = document.createElement("div"); fr.className = "pfdots";
-    mine.slice(0, 5).reverse().forEach(p => { const d = document.createElement("span"); const w = won(p); d.className = "pfd " + (w ? "w" : "l"); d.textContent = w ? "W" : "P"; d.title = playGameName(p) + " · " + fmt(p.at); d.onclick = () => toast((w ? "Wygrana: " : "Bez wygranej: ") + d.title); fr.appendChild(d); });
+    mine.slice(0, 5).reverse().forEach(p => { const d = document.createElement("span"); const w = won(p); d.className = "pfd " + (w ? "w" : "l"); d.innerHTML = w ? PF_CUP : PF_GRAVE; d.setAttribute("aria-label", w ? "wygrana" : "bez wygranej"); d.title = playGameName(p) + " · " + fmt(p.at); d.onclick = () => toast((w ? "Wygrana: " : "Bez wygranej: ") + d.title); fr.appendChild(d); });
     form.appendChild(fr); body.appendChild(form);
     // gry
     const per = new Map();
