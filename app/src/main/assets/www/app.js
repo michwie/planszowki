@@ -906,14 +906,13 @@
     const played = isPlayed(g, game);
     const ex = exps(game);
     const editing = false;
-    const moveTargets = groups.filter(x => x !== g && canEdit(x));
     const li = document.createElement("li");
     li.className = "game" + (played ? " played" : "") + (isAllOff(game) ? " off" : "");
     li.innerHTML = '<span class="gmk"></span><div class="gname"><b></b><span class="gsub"></span></div><span class="gdt"></span>' +
       (full && groups.length > 1 ? '<span class="tag"></span>' : '') +
       (full ? '<span class="gbtns"><button class="ib info" title="Informacje o grze" aria-label="Informacje o grze">ⓘ</button>' +
         (edit ? '<button class="ib xed" title="Edytuj grę i rozszerzenia" aria-label="Edytuj">✎</button>' +
-                (moveTargets.length ? '<button class="ib move" title="Przenieś do innej grupy" aria-label="Przenieś">⇄</button>' : '') : '') + '</span>' : '');
+                '' : '') + '</span>' : '');
     li.querySelector(".gmk").textContent = played ? "✓" : "○";
     const th = coverImg(g.id, game.id, "gcov"); if (th) li.insertBefore(th, li.querySelector(".gname"));
     li.querySelector("b").textContent = game.name;
@@ -925,11 +924,6 @@
       if (edit) {
         const xed = li.querySelector(".xed");
         xed.onclick = () => openGameEdit(g, game);
-        const mv = li.querySelector(".move");
-        if (mv) mv.onclick = () => {
-          if (moveTargets.length === 1) { moveGame(g, game, moveTargets[0]); return; }
-          ui.moving = ui.moving === game.id ? null : game.id; rerenderLists();
-        };
       }
     }
     // drzewko wersji (wersja podstawowa + rozszerzenia)
@@ -955,12 +949,6 @@
         };
         box.appendChild(row);
       });
-      li.appendChild(box);
-    }
-    if (full && ui.moving === game.id) {
-      const box = document.createElement("div"); box.className = "movebox";
-      box.innerHTML = "<span>Przenieś do:</span>";
-      moveTargets.forEach(o => { const c = document.createElement("button"); c.className = "chip"; c.textContent = o.name; c.onclick = () => moveGame(g, game, o); box.appendChild(c); });
       li.appendChild(box);
     }
     return li;
@@ -1008,12 +996,23 @@
     wb.textContent = allOff ? "↺ Przywróć całą grę do losowania" : "⊘ Wyklucz całą grę z losowania";
     wb.classList.toggle("on", allOff);
     wb.onclick = () => { ge.baseOff = !allOff; ge.exps.forEach(e => { e.off = !allOff; }); renderGameEdit(); };
+    const targets = groups.filter(x => x !== g && canEdit(x));
+    $("geMoveBox").hidden = !targets.length;
+    const mb = $("geMove"); mb.innerHTML = "";
+    targets.forEach(o => {
+      const c = document.createElement("button"); c.type = "button"; c.className = "gebtn gemv"; c.textContent = "⇄ " + o.name;
+      c.onclick = () => confirmDialog({title: "Przenieść grę?", text: "„" + game.name + "” zostanie przeniesiona z grupy „" + g.name + "” do grupy „" + o.name + "”. Niezapisane zmiany w tym oknie przepadną.", icon: "⇄", yes: "Przenieś",
+        onYes: () => { ge = null; closeOv("ge"); moveGame(g, game, o); }});
+      mb.appendChild(c);
+    });
     const ul = $("geExps"); ul.innerHTML = "";
     const row = (name, isOff, onToggle, onDel) => {
       const li = document.createElement("li"); if (isOff) li.className = "off";
       const nm = document.createElement("span"); nm.className = "nm"; nm.textContent = name; li.appendChild(nm);
-      li.appendChild(offBtn(isOff, onToggle));
-      if (onDel) { const d = document.createElement("button"); d.type = "button"; d.className = "gebtn gedel"; d.textContent = "🗑 Usuń"; d.title = "Usuń rozszerzenie"; d.onclick = onDel; li.appendChild(d); }
+      const bx = document.createElement("div"); bx.className = "gebtns";
+      bx.appendChild(offBtn(isOff, onToggle));
+      if (onDel) { const d = document.createElement("button"); d.type = "button"; d.className = "gebtn gedel"; d.textContent = "🗑 Usuń"; d.title = "Usuń rozszerzenie"; d.onclick = onDel; bx.appendChild(d); }
+      li.appendChild(bx);
       ul.appendChild(li);
     };
     row(ge.exps.length ? "Wersja podstawowa" : "Gra", ge.baseOff, () => { ge.baseOff = !ge.baseOff; renderGameEdit(); });

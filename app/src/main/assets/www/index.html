@@ -209,6 +209,7 @@
       <ul class="geexps" id="geExps"></ul>
       <form class="add" id="geAdd"><input type="text" id="geNew" maxlength="60" placeholder="nowe rozszerzenie…" autocomplete="off" aria-label="Nowe rozszerzenie"><button type="submit" aria-label="Dodaj rozszerzenie">+</button></form>
       <div class="ferr" id="geErr"></div>
+      <div id="geMoveBox" hidden><span class="fl">Przenieś do innej grupy</span><div class="gemove" id="geMove"></div></div>
       <button type="button" class="gebtn gedelgame" id="geDelGame">🗑 Usuń grę</button>
     </div>
     <div class="row2" style="margin-top:10px"><button class="ghost" id="geCancel">Anuluj</button><button class="ok" id="geSave">✓ Zapisz</button></div>
@@ -594,15 +595,15 @@
       <ul>
         <li><b>ⓘ</b>: informacje o grze (rozdział 6).</li>
         <li><b>✎</b>: otwiera okno <b>Edytuj grę</b>.</li>
-        <li><b>⇄</b>: przeniesienie gry do innej grupy (gdy masz kilka grup).</li>
       </ul>
       <h4>Okno „Edytuj grę”</h4>
       <ul>
         <li><b>📷 Dodaj okładkę</b>: wybierz zdjęcie z galerii albo zrób zdjęcie pudełka aparatem. Okładka zapisuje się od razu. <b>Usuń okładkę</b> ją usuwa.</li>
         <li><b>Nazwa gry</b>: popraw nazwę.</li>
-        <li><b>Losowanie i rozszerzenia</b>: lista wersji gry (wersja podstawowa i rozszerzenia). Przy każdej jest przycisk <b>⊘ Wyklucz</b>, który wyklucza ją z losowania. Przy wykluczonej wersji jest przycisk <b>↺ Przywróć</b>. Przy grze z rozszerzeniami jest też przycisk <b>⊘ Wyklucz całą grę z losowania</b>.</li>
+        <li><b>Losowanie i rozszerzenia</b>: lista wersji gry (wersja podstawowa i rozszerzenia). Obok nazwy wersji są przyciski, jeden pod drugim. <b>⊘ Wyklucz</b> wyklucza wersję z losowania, a przy wykluczonej wersji w tym miejscu jest <b>↺ Przywróć</b>. Przy grze z rozszerzeniami jest też przycisk <b>⊘ Wyklucz całą grę z losowania</b>.</li>
         <li><b>🗑 Usuń</b> przy rozszerzeniu usuwa je z gry (po potwierdzeniu).</li>
         <li>Nowe rozszerzenie: wpisz nazwę w polu <b>nowe rozszerzenie…</b> i naciśnij <b>+</b>.</li>
+        <li><b>Przenieś do innej grupy</b> (gdy masz kilka grup): naciśnij nazwę grupy i potwierdź. Gra przenosi się od razu.</li>
         <li><b>🗑 Usuń grę</b> na dole okna usuwa grę z grupy (po potwierdzeniu, od razu). Zapisane wyniki zostają.</li>
         <li><b>✓ Zapisz</b> zapisuje nazwę, rozszerzenia i wykluczenia. <b>Anuluj</b> porzuca te zmiany.</li>
       </ul>

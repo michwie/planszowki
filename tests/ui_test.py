@@ -241,6 +241,24 @@ def wykluczenie_i_usuniecie_gry_w_oknie(c):
     return pg
 
 @test
+def przeniesienie_gry_w_oknie(c):
+    d = seed()
+    d["docs"]["groups/G2"] = {"name": "Praca", "ownerId": "uA", "members": {"uA": "owner"}, "memberIds": ["uA"], "memberNames": {"uA": "Michał"}, "createdAtMs": 2}
+    d["docs"]["groups/G2/shelf/main"] = {"games": [], "players": [], "editorCode": "C", "playerCode": "D"}
+    pg = c.open(d)
+    pg.click("#tabbar .tb[data-view=games]"); pg.click("#openList"); pg.wait_for_timeout(300)
+    assert not pg.query_selector_all("#allList .move"), "na liście został przycisk ⇄"
+    pg.click("#allList li.game:has-text('Catan') .xed"); pg.wait_for_timeout(300)
+    assert visible(pg, "#geMoveBox"), "brak przenoszenia w oknie"
+    pg.click("#geMove .gemv:has-text('Praca')"); pg.wait_for_timeout(200)
+    assert visible(pg, "#cf"), "przeniesienie bez potwierdzenia"
+    pg.click("#cfYes"); pg.wait_for_timeout(600)
+    dd = docs(pg)
+    assert any(x["id"] == "c1" for x in dd["groups/G2/shelf/main"]["games"]), "gra nie trafiła do nowej grupy"
+    assert not any(x["id"] == "c1" for x in dd["groups/G1/shelf/main"]["games"]), "gra została w starej grupie"
+    return pg
+
+@test
 def wszystkie_zakladki_bez_bledow(c):
     pg = c.open(seed())
     for v in ("draw", "games", "news", "results", "more"):
