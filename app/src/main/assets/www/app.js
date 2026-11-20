@@ -976,7 +976,9 @@
   });
 
   // ================= OKNA (overlay) =================
-  function openOv(id){ $(id).hidden = false; document.body.style.overflow = "hidden"; }
+  // ostatnio otwarte okno zawsze na wierzchu (np. edycja wyniku otwarta z okna „Wszystkie wyniki”)
+  let ovTop = 20;
+  function openOv(id){ const o = $(id); o.style.zIndex = ++ovTop; o.hidden = false; document.body.style.overflow = "hidden"; }
   function closeOv(id){ $(id).hidden = true; if (!document.querySelector(".ov:not([hidden])")) document.body.style.overflow = ""; if (id === "rf") rf = null; }
   document.querySelectorAll("[data-close]").forEach(b => b.onclick = () => closeOv(b.dataset.close));
   // dotknięcie poza oknem zamyka tylko okna informacyjne – formularze (wynik, kod, kopia, usuwanie konta) zamyka się ✕ lub „wstecz”
@@ -985,7 +987,7 @@
   // przycisk "wstecz" Androida: zamyka okno, jeśli jakieś jest otwarte
   window.appBack = function(){
     const open = [...document.querySelectorAll(".ov:not([hidden])")];
-    if (open.length) { closeOv(open[open.length - 1].id); return true; }
+    if (open.length) { open.sort((a, b) => (+a.style.zIndex || 20) - (+b.style.zIndex || 20)); closeOv(open[open.length - 1].id); return true; }
     if (!$("appView").hidden && curView !== "draw") { showView("draw"); return true; }
     return false;
   };
