@@ -194,16 +194,21 @@
   </div>
 </div>
 
-<!-- ================= SZUKANIE OKŁADKI ================= -->
-<div class="ov" id="cs" hidden role="dialog" aria-modal="true" aria-label="Szukaj okładki">
+<!-- ================= EDYCJA GRY ================= -->
+<div class="ov" id="ge" hidden role="dialog" aria-modal="true" aria-label="Edytuj grę">
   <div class="ovin">
-    <div class="ovhead"><h2>Szukaj okładki</h2><button class="ovclose" data-close="cs" aria-label="Zamknij">✕</button></div>
+    <div class="ovhead"><h2>Edytuj grę</h2><button class="ovclose" data-close="ge" aria-label="Zamknij">✕</button></div>
     <div class="ovscroll" style="border-top:0">
-      <form class="add" id="csForm"><input type="text" id="csQ" maxlength="80" autocomplete="off" aria-label="Tytuł gry"><button type="submit">Szukaj</button></form>
-      <div class="csst" id="csSt"></div>
-      <div class="csgrid" id="csGrid"></div>
-      <div class="cssrc">Zdjęcia z Wikipedii. Stuknij okładkę, aby ją ustawić.</div>
+      <span class="fl">Okładka</span>
+      <div class="gecovrow"><div id="geCover"></div><div class="gecovbtns"><button type="button" class="ghost" id="geCovAdd">📷 Dodaj okładkę</button><button type="button" class="link" id="geCovDel">Usuń okładkę</button></div></div>
+      <label class="fl" for="geName">Nazwa gry</label>
+      <input type="text" id="geName" maxlength="80" autocomplete="off">
+      <span class="fl">Rozszerzenia</span>
+      <ul class="geexps" id="geExps"></ul>
+      <form class="add" id="geAdd"><input type="text" id="geNew" maxlength="60" placeholder="nowe rozszerzenie…" autocomplete="off" aria-label="Nowe rozszerzenie"><button type="submit" aria-label="Dodaj rozszerzenie">+</button></form>
+      <div class="ferr" id="geErr"></div>
     </div>
+    <div class="row2" style="margin-top:10px"><button class="ghost" id="geCancel">Anuluj</button><button class="ok" id="geSave">✓ Zapisz</button></div>
   </div>
 </div>
 
@@ -593,7 +598,8 @@
       <h4>Edycja gry i rozszerzeń</h4>
       <ol>
         <li>Naciśnij <b>✎</b> przy grze.</li>
-        <li>Okładkę dodasz na dwa sposoby. <b>📷 Własne zdjęcie</b>: wybierz zdjęcie z galerii albo zrób zdjęcie pudełka aparatem. <b>🔎 Szukaj w internecie</b>: aplikacja szuka zdjęć w Wikipedii po tytule gry. Jeśli wyniki nie pasują, popraw nazwę (np. wpisz tytuł po angielsku) i naciśnij <b>Szukaj</b>. Stuknij wybrane zdjęcie, aby ustawić je jako okładkę. <b>Usuń okładkę</b> ją usuwa.</li>
+        <li>Przycisk <b>✎</b> otwiera okno <b>Edytuj grę</b>. Możesz w nim zmienić nazwę gry, dodać rozszerzenie (wpisz nazwę i naciśnij <b>+</b>) albo usunąć rozszerzenie (<b>✕</b>). Zmiany zapisuje <b>✓ Zapisz</b>, a <b>Anuluj</b> je porzuca.</li>
+        <li>Aby dodać okładkę, naciśnij w tym oknie <b>📷 Dodaj okładkę</b> i wybierz zdjęcie z galerii albo zrób zdjęcie pudełka aparatem. Okładka zapisuje się od razu. <b>Usuń okładkę</b> ją usuwa.</li>
         <li>Popraw nazwę gry lub wpisz nazwę nowego rozszerzenia.</li>
         <li>Naciśnij <b>✓ Gotowe</b>, aby zapisać, lub <b>Anuluj</b>, aby zrezygnować.</li>
       </ol>

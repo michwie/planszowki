@@ -316,7 +316,7 @@
     if (coverSubs[gid]) return;
     coverSubs[gid] = gref(gid).collection("covers").onSnapshot(cs => {
       const m = {}; cs.docs.forEach(d => { if (d.data().img) m[d.id] = d.data().img; });
-      coversBy[gid] = m; render();
+      coversBy[gid] = m; render(); if (ge && !$("ge").hidden) renderGameEdit();
     }, () => {
       delete coverSubs[gid];
       if (attempt < 8) setTimeout(() => { const g = groupById(gid); if (me && g && canEdit(g)) subCovers(gid, attempt + 1); }, 1500 * (attempt + 1));
@@ -341,57 +341,6 @@
     inp.onchange = () => { const f = inp.files && inp.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => save(r.result); r.readAsDataURL(f); };
     inp.click();
   }
-  // szukanie okładki w Wikipedii (polskiej, potem angielskiej)
-  let csFor = null, csSeq = 0;
-  function wikiSearch(host, query){
-    const u = "https://" + host + "/w/api.php?action=query&format=json&origin=*&generator=search&gsrlimit=8&gsrnamespace=0"
-      + "&prop=pageimages&piprop=thumbnail&pithumbsize=400&gsrsearch=" + encodeURIComponent(query);
-    return fetch(u).then(r => r.json()).then(j => Object.values((j.query && j.query.pages) || {})
-      .sort((a, b) => (a.index || 0) - (b.index || 0))
-      .filter(p => p.thumbnail && p.thumbnail.source && !/\.svg/i.test(p.thumbnail.source))
-      .map(p => ({title: p.title, src: p.thumbnail.source})));
-  }
-  async function runCoverSearch(){
-    const qv = $("csQ").value.trim(); if (!qv) return;
-    const seq = ++csSeq, grid = $("csGrid");
-    grid.innerHTML = ""; $("csSt").textContent = "Szukam…";
-    let found = [];
-    try {
-      const lists = await Promise.all([
-        wikiSearch("pl.wikipedia.org", qv + " gra planszowa").catch(() => []),
-        wikiSearch("en.wikipedia.org", qv + " board game").catch(() => []),
-        wikiSearch("pl.wikipedia.org", qv).catch(() => [])
-      ]);
-      const seen = new Set();
-      lists.flat().forEach(x => { if (!seen.has(x.src)) { seen.add(x.src); found.push(x); } });
-    } catch (e) { found = []; }
-    if (seq !== csSeq) return;
-    found = found.slice(0, 12);
-    $("csSt").textContent = found.length ? "" : (navigator.onLine === false ? "Brak internetu." : "Nic nie znaleziono. Spróbuj innej nazwy, np. po angielsku.");
-    found.forEach(x => {
-      const b = document.createElement("button"); b.type = "button"; b.className = "csit";
-      const im = document.createElement("img"); im.src = x.src; im.alt = ""; im.loading = "lazy";
-      const t = document.createElement("span"); t.textContent = x.title;
-      b.append(im, t);
-      b.onclick = async () => {
-        if (!csFor) return;
-        $("csSt").textContent = "Zapisuję…";
-        try {
-          const blob = await fetch(x.src).then(r => { if (!r.ok) throw new Error("http"); return r.blob(); });
-          const url = await new Promise((res, rej) => { const fr = new FileReader(); fr.onload = () => res(fr.result); fr.onerror = rej; fr.readAsDataURL(blob); });
-          await saveCover(csFor.g, csFor.game, url);
-          closeOv("cs");
-        } catch (e) { $("csSt").textContent = "Nie udało się pobrać zdjęcia. Wybierz inne."; }
-      };
-      grid.appendChild(b);
-    });
-  }
-  function searchCover(g, game){
-    csFor = {g, game};
-    $("csQ").value = game.name; $("csGrid").innerHTML = ""; $("csSt").textContent = "";
-    openOv("cs"); runCoverSearch();
-  }
-  $("csForm").addEventListener("submit", e => { e.preventDefault(); runCoverSearch(); });
   function removeCover(g, game){
     confirmDialog({title: "Usunąć okładkę?", text: "Okładka gry „" + game.name + "” zostanie usunięta.", icon: "🗑", yes: "Usuń", danger: true,
       onYes: () => gref(g.id).collection("covers").doc(game.id).delete().catch(e => toast(errMsg(e)))});
@@ -956,7 +905,7 @@
     const edit = full && canEdit(g);
     const played = isPlayed(g, game);
     const ex = exps(game);
-    const editing = edit && ui.expEdit === game.id;
+    const editing = false;
     const moveTargets = groups.filter(x => x !== g && canEdit(x));
     const li = document.createElement("li");
     li.className = "game" + (played ? " played" : "") + (isAllOff(game) ? " off" : "");
@@ -977,8 +926,7 @@
       li.querySelector(".info").onclick = () => openGameInfo(g.id, game.id);
       if (edit) {
         const xed = li.querySelector(".xed");
-        xed.classList.toggle("on", editing);
-        xed.onclick = () => { ui.expEdit = editing ? null : game.id; ui.expArmed = null; ui.expFocus = game.id; rerenderLists(); };
+        xed.onclick = () => openGameEdit(g, game);
         const nd = li.querySelector(".nd");
         const allOff = isAllOff(game);
         nd.classList.toggle("on", allOff);
@@ -1023,39 +971,6 @@
         };
         box.appendChild(row);
       });
-      if (editing) {
-        // edycja: nazwa gry + nowe rozszerzenie; Gotowe zapisuje, Anuluj porzuca
-        const f = document.createElement("form"); f.className = "add expadd";
-        f.innerHTML = '<label class="fl">Okładka</label><div class="covrow"><button type="button" class="ghost covadd"></button><button type="button" class="ghost covweb">🔎 Szukaj w internecie</button><button type="button" class="link covdel">Usuń okładkę</button></div>' +
-          '<label class="fl">Nazwa gry</label><input type="text" class="gnm" maxlength="80" autocomplete="off">' +
-          '<label class="fl">Nowe rozszerzenie (opcjonalnie)</label><input type="text" class="xnew" maxlength="60" placeholder="nazwa rozszerzenia…" autocomplete="off">' +
-          '<div class="xbtns"><button type="button" class="xcancel">Anuluj</button><button type="submit" class="xdone">✓ Gotowe</button></div>';
-        f.querySelector(".gnm").value = game.name;
-        const hasCov = !!coverOf(g.id, game.id);
-        f.querySelector(".covadd").textContent = hasCov ? "📷 Zmień zdjęcie" : "📷 Własne zdjęcie";
-        f.querySelector(".covadd").onclick = () => pickCover(g, game);
-        f.querySelector(".covweb").onclick = () => searchCover(g, game);
-        f.querySelector(".covdel").hidden = !hasCov;
-        f.querySelector(".covdel").onclick = () => removeCover(g, game);
-        const closeEdit = () => { ui.expEdit = null; ui.expArmed = null; rerenderLists(); };
-        f.querySelector(".xcancel").onclick = closeEdit;
-        f.onsubmit = ev => {
-          ev.preventDefault();
-          const n = f.querySelector(".xnew").value.trim().replace(/\s+/g, " ");
-          const nm = f.querySelector(".gnm").value.trim().replace(/\s+/g, " ");
-          if (!nm) { toast("Wpisz nazwę gry"); return; }
-          if (nm !== game.name && (g.games || []).some(x => x.id !== game.id && x.name.toLowerCase() === nm.toLowerCase())) { toast("Gra o tej nazwie już jest"); return; }
-          if (n && ex.some(x => x.name.toLowerCase() === n.toLowerCase())) { toast("To rozszerzenie już jest"); return; }
-          if (!n && nm === game.name) { closeEdit(); return; }
-          const ng = Object.assign({}, game, {name: nm});
-          if (n) ng.exps = ex.concat({id: uid(), name: n, added: Date.now()});
-          const txt = [nm !== game.name ? "Zmiana nazwy gry " + q(game.name) + " na " + q(nm) : "", n ? "Dodanie rozszerzenia " + q(n) + " do gry " + q(nm) : ""].filter(Boolean).join("; ");
-          ui.expEdit = null; ui.expArmed = null;
-          saveGame(g, ng, txt);
-          rerenderLists();
-        };
-        box.appendChild(f);
-      }
       li.appendChild(box);
     }
     if (full && ui.moving === game.id) {
@@ -1078,6 +993,69 @@
     toast(off ? "Wykluczono z losowania" : "Przywrócono do losowania");
   }
   // zmiana jednej gry (np. lista rozszerzeń) – zapis całej listy gier grupy
+  // ===== okno edycji gry: okładka, nazwa, rozszerzenia. Zapisz zapisuje wszystko naraz, Anuluj porzuca =====
+  let ge = null;
+  function openGameEdit(g, game){
+    ge = {gid: g.id, gameId: game.id, orig: game, exps: exps(game).map(e => Object.assign({}, e)), removed: []};
+    $("geName").value = game.name; $("geNew").value = ""; $("geErr").textContent = "";
+    renderGameEdit(); openOv("ge");
+  }
+  function renderGameEdit(){
+    if (!ge) return;
+    const g = groupById(ge.gid); if (!g) { closeOv("ge"); return; }
+    const f = findGame(ge.gameId, ge.gid); if (!f) { closeOv("ge"); return; }
+    const game = f.game;
+    const box = $("geCover"); box.innerHTML = "";
+    const im = coverImg(g.id, game.id, "gecov");
+    if (im) box.appendChild(im); else { const e = document.createElement("div"); e.className = "gecov none"; e.textContent = "🎲"; box.appendChild(e); }
+    const has = !!coverOf(g.id, game.id);
+    $("geCovAdd").textContent = has ? "📷 Zmień okładkę" : "📷 Dodaj okładkę";
+    $("geCovDel").hidden = !has;
+    const ul = $("geExps"); ul.innerHTML = "";
+    if (!ge.exps.length) ul.innerHTML = '<li class="geempty">Brak rozszerzeń.</li>';
+    ge.exps.forEach(e => {
+      const li = document.createElement("li");
+      li.innerHTML = '<span class="nm"></span><button type="button" class="ib rm" aria-label="Usuń rozszerzenie">✕</button>';
+      li.querySelector(".nm").textContent = e.name + (e.isNew ? "  (nowe)" : "");
+      li.querySelector(".rm").onclick = () => {
+        if (e.isNew) { ge.exps = ge.exps.filter(x => x !== e); renderGameEdit(); return; }
+        confirmDialog({title: "Usunąć rozszerzenie?", text: "„" + e.name + "” zniknie z gry po zapisaniu zmian. Zapisane wyniki zostaną.", icon: "🗑", yes: "Usuń", danger: true,
+          onYes: () => { ge.exps = ge.exps.filter(x => x !== e); ge.removed.push(e.name); renderGameEdit(); }});
+      };
+      ul.appendChild(li);
+    });
+  }
+  $("geCovAdd").onclick = () => { const g = groupById(ge.gid), game = findGame(ge.gameId, ge.gid); if (g && game) pickCover(g, game.game || game); };
+  $("geCovDel").onclick = () => { const g = groupById(ge.gid), game = findGame(ge.gameId, ge.gid); if (g && game) removeCover(g, game.game || game); };
+  $("geAdd").addEventListener("submit", ev => {
+    ev.preventDefault();
+    const n = $("geNew").value.trim().replace(/\s+/g, " "); if (!n) return;
+    if (ge.exps.some(x => x.name.toLowerCase() === n.toLowerCase())) { $("geErr").textContent = "To rozszerzenie już jest."; return; }
+    ge.exps.push({id: uid(), name: n, added: Date.now(), isNew: true});
+    $("geNew").value = ""; $("geErr").textContent = ""; renderGameEdit(); $("geNew").focus();
+  });
+  $("geCancel").onclick = () => { ge = null; closeOv("ge"); };
+  $("geSave").onclick = () => {
+    const g = groupById(ge.gid), f = findGame(ge.gameId, ge.gid);
+    const game = f && (f.game || f); if (!g || !game) { closeOv("ge"); return; }
+    const pending = $("geNew").value.trim().replace(/\s+/g, " ");
+    if (pending && !ge.exps.some(x => x.name.toLowerCase() === pending.toLowerCase())) ge.exps.push({id: uid(), name: pending, added: Date.now(), isNew: true});
+    const nm = $("geName").value.trim().replace(/\s+/g, " ");
+    if (!nm) { $("geErr").textContent = "Wpisz nazwę gry."; return; }
+    if (nm !== game.name && (g.games || []).some(x => x.id !== game.id && x.name.toLowerCase() === nm.toLowerCase())) { $("geErr").textContent = "Gra o tej nazwie już jest."; return; }
+    const added = ge.exps.filter(e => e.isNew).map(e => e.name);
+    const keepIds = new Set(ge.exps.filter(e => !e.isNew).map(e => e.id));
+    // rozszerzenia z aktualnego stanu gry (żeby nie zgubić zmian zrobionych w międzyczasie), bez usuniętych + nowe
+    const newExps = exps(game).filter(e => keepIds.has(e.id) || !exps(ge.orig).some(o => o.id === e.id))
+      .concat(ge.exps.filter(e => e.isNew).map(e => ({id: e.id, name: e.name, added: e.added})));
+    const txt = [nm !== game.name ? "Zmiana nazwy gry " + q(game.name) + " na " + q(nm) : "",
+      added.length ? "Dodanie rozszerzeń " + added.map(q).join(", ") + " do gry " + q(nm) : "",
+      ge.removed.length ? "Usunięcie rozszerzeń " + ge.removed.map(q).join(", ") + " z gry " + q(nm) : ""].filter(Boolean).join("; ");
+    ge = null; closeOv("ge");
+    if (!txt) return;
+    const ng = Object.assign({}, game, {name: nm}); if (newExps.length || exps(game).length) ng.exps = newExps;
+    saveGame(g, ng, txt);
+  };
   function saveGame(g, newGame, logText){
     const games = (g.games || []).map(x => x.id === newGame.id ? newGame : x);
     return upd(g.id, {games}, logText, "game-exp");
@@ -1160,7 +1138,7 @@
   function closeOv(id){ $(id).hidden = true; if (!document.querySelector(".ov:not([hidden])")) document.body.style.overflow = ""; if (id === "rf") rf = null; }
   document.querySelectorAll("[data-close]").forEach(b => b.onclick = () => closeOv(b.dataset.close));
   // dotknięcie poza oknem zamyka tylko okna informacyjne – formularze (wynik, kod, kopia, usuwanie konta) zamyka się ✕ lub „wstecz”
-  const FORM_OV = new Set(["rf", "jn", "bkov", "da"]);
+  const FORM_OV = new Set(["rf", "jn", "bkov", "da", "ge"]);
   document.querySelectorAll(".ov").forEach(o => o.addEventListener("click", e => { if (e.target === o && !FORM_OV.has(o.id)) closeOv(o.id); }));
   // przycisk "wstecz" Androida: zamyka okno, jeśli jakieś jest otwarte
   window.appBack = function(){
@@ -1278,8 +1256,6 @@
     const shown = items.filter(x => !q || x.game.name.toLowerCase().includes(q) || exps(x.game).some(e => e.name.toLowerCase().includes(q)))
       .sort((a,b) => cmp(a.game.name, b.game.name));
     const ul = $("allList");
-    // zachowaj to, co wpisano w otwartej edycji, gdy lista odświeża się w trakcie
-    const keep = {x: (ul.querySelector(".expadd .xnew") || {}).value, n: (ul.querySelector(".expadd .gnm") || {}).value};
     ul.innerHTML = "";
     if (!shown.length) ul.innerHTML = '<li class="empty" style="justify-content:center;border:0">' + (items.length ? "Brak wyników." : "Nie masz jeszcze żadnych gier.") + '</li>';
     let last = "";
@@ -1288,10 +1264,6 @@
       if (L !== last) { last = L; const h = document.createElement("li"); h.className = "letter"; h.textContent = L; ul.appendChild(h); }
       ul.appendChild(gameRow(x.group, x.game, true));
     });
-    const fx = ul.querySelector(".expadd .xnew"), fn = ul.querySelector(".expadd .gnm");
-    if (fx && keep.x !== undefined) fx.value = keep.x;
-    if (fn && keep.n !== undefined) fn.value = keep.n;
-    if (ui.expFocus) { if (fx) fx.focus(); ui.expFocus = null; }
     const played = items.filter(x => isPlayed(x.group, x.game)).length;
     $("ovSum").textContent = items.length ? ("Razem: " + items.length + " · rozegrane: " + played + " · do zagrania: " + (items.length - played)) : "";
   }

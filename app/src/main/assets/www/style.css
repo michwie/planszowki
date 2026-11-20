@@ -461,7 +461,6 @@ li.game .gcov{width:34px;height:34px;object-fit:cover;border-radius:4px;flex:non
 .stage .scover{width:96px;height:96px;object-fit:cover;border-radius:8px;margin:0 auto 10px;display:block;border:1px solid var(--line);box-shadow:0 0 14px rgba(var(--glow-rgb),calc(.35*var(--gs)))}
 .gicover{display:block;max-width:100%;max-height:220px;margin:4px auto 10px;border-radius:8px;border:1px solid var(--line)}
 .covrow{flex-basis:100%;display:flex;align-items:center;gap:8px 12px;flex-wrap:wrap}
-.covrow .covweb{padding:9px 12px;border:1px solid var(--line);border-radius:4px;font-size:13px}
 .covrow .covadd{padding:9px 12px;border:1px solid var(--line);border-radius:4px;font-size:13px}
 /* ekran startowy */
 #v-home #drawStats{margin-top:0}
@@ -485,11 +484,14 @@ li.game .gcov{width:34px;height:34px;object-fit:cover;border-radius:4px;flex:non
 .h2hnone{color:var(--muted);text-align:center;font-size:14px;margin:12px 0 4px}
 .h2ht td.h2hwin{color:var(--glow)}
 
-/* szukanie okładki */
-.csst{min-height:18px;margin:10px 2px 6px;font-size:13px;color:var(--muted)}
-.csgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:10px}
-.csit{display:flex;flex-direction:column;align-items:center;gap:6px;padding:6px;border:1px solid var(--line);border-radius:6px;background:transparent;color:inherit;font:inherit;cursor:pointer}
-.csit img{width:100%;aspect-ratio:1;object-fit:contain;border-radius:4px;background:rgba(127,127,127,.12)}
-.csit span{font-size:11px;line-height:1.25;text-align:center;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
-.csit:active{transform:scale(.97)}
-.cssrc{margin-top:12px;font-size:11px;color:var(--muted);text-align:center}
+/* okno edycji gry */
+.gecovrow{display:flex;align-items:center;gap:14px;margin:4px 0 6px}
+.gecov{width:84px;height:84px;object-fit:cover;border-radius:6px;border:1px solid var(--line);display:block}
+.gecov.none{display:flex;align-items:center;justify-content:center;font-size:32px;opacity:.5}
+.gecovbtns{display:flex;flex-direction:column;align-items:flex-start;gap:8px}
+#geCovAdd{padding:9px 12px;border:1px solid var(--line);border-radius:4px;font-size:13px}
+#geName{width:100%;box-sizing:border-box}
+.geexps{list-style:none;margin:2px 0 8px;padding:0}
+.geexps li{display:flex;align-items:center;gap:8px;padding:7px 2px;border-bottom:1px solid var(--line)}
+.geexps li .nm{flex:1}
+.geexps li.geempty{color:var(--muted);font-size:13px;border:0}
