@@ -2037,7 +2037,8 @@
     const mine = plays.filter(p => (p.scores || []).some(sc => scoreKey(sc) === K)).sort((a, b) => b.at - a.at);
     const body = $("pfBody"); body.innerHTML = "";
     const kind = document.createElement("div"); kind.className = "pfkind";
-    kind.textContent = (K.startsWith("u:") ? "Konto w aplikacji" : "Gracz bez konta") + (mine.length ? " · gra od " + fmt(mine[mine.length - 1].at) : "");
+    kind.textContent = K.startsWith("u:") ? "Konto w aplikacji" : "Gracz bez konta";
+    if (mine.length) { const fp = document.createElement("div"); fp.textContent = "Pierwsza partia: " + fmt(mine[mine.length - 1].at) + " · ostatnia: " + fmt(mine[0].at); kind.appendChild(fp); }
     body.appendChild(kind);
     if (!mine.length) { const e = document.createElement("p"); e.className = "h2hnone"; e.textContent = "Brak wyników tego gracza."; body.appendChild(e); return; }
     const won = p => scoreWon(p, p.scores.find(sc => scoreKey(sc) === K));
