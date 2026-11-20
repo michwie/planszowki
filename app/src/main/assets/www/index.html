@@ -70,6 +70,12 @@
   <div class="acct"><span>zalogowano: <b id="meName"></b></span></div>
   <div class="banner" id="updBanner" hidden><span id="updText">Dostępna nowa wersja</span><button id="updBtn">Aktualizuj</button></div>
 
+  <!-- ===== ekran startowy (po uruchomieniu; bez przycisku na pasku) ===== -->
+  <div class="view" id="v-home" hidden>
+    <div id="drawStats" hidden></div>
+    <p class="homehint" id="homeHint" hidden>Wybierz zakładkę na dolnym pasku, aby losować, przeglądać gry lub wpisać wynik.</p>
+  </div>
+
   <!-- ===== zakładka: Losuj ===== -->
   <div class="view" id="v-draw">
   <section class="card">
@@ -83,7 +89,6 @@
     </div>
     <div class="count" id="count"></div>
   </section>
-  <div id="drawStats" hidden></div>
   </div>
 
   <!-- ===== zakładka: Gry ===== -->
@@ -116,6 +121,12 @@
     <button class="big" id="addResult">+ Dodaj wynik</button>
     <div class="chips" id="rankFilter" style="margin:14px 0 0"></div>
     <table class="rank" id="rank"></table>
+  </section>
+
+  <section class="card" id="h2hCard" hidden>
+    <h2>Pojedynki</h2>
+    <div class="arrow2"><select id="h2hA" aria-label="Gracz 1"></select><select id="h2hB" aria-label="Gracz 2"></select></div>
+    <div id="h2hBody"></div>
   </section>
 
   <section class="card">
@@ -394,6 +405,7 @@
       </ul>
 
       <h3>3. Nawigacja</h3>
+      <p>Po uruchomieniu aplikacja pokazuje <b>ekran startowy</b> z dwoma blokami: <b>Najczęściej grana</b> i <b>Najrzadziej grana</b> (gry z grup wybranych do losowania, liczą się wszystkie zapisane wyniki, także partie rozegrane bez losowania). Jeśli kilka gier ma tyle samo partii, pierwsza jest wyświetlona dużo, a pozostałe mniejsze pod nią. Dotknięcie tytułu otwiera informacje o grze. Ekran startowy nie ma przycisku na pasku – pojawia się przy każdym uruchomieniu.</p>
       <p>Na dole ekranu znajduje się pasek z czterema zakładkami:</p>
       <ul>
         <li><b>Losuj</b>: losowanie gry na wieczór.</li>
@@ -402,6 +414,7 @@
         <li><b>🔔 (dzwonek)</b>: aktualności, czyli kto, kiedy i co zmienił. Gdy pojawi się nowy wpis od innej osoby, dzwonek świeci na czerwono.</li>
         <li><b>Więcej</b>: instrukcja, zmiany w wersji, motyw, kopia zapasowa, wylogowanie i usuwanie konta.</li>
       </ul>
+      <p>Działania, których nie da się łatwo cofnąć (usuwanie, opuszczanie grupy, wylogowanie, import, nowy kod), aplikacja potwierdza w osobnym oknie z przyciskami <b>Anuluj</b> i np. <b>Usuń</b>.</p>
       <p>Przycisk <b>Wstecz</b> telefonu zamyka otwarte okno. Jeśli żadne okno nie jest otwarte, przenosi do zakładki <b>Losuj</b>.</p>
       <p>Okna z formularzami (wynik, kod zaproszenia, kopia zapasowa, usuwanie konta) zamyka się przyciskiem <b>✕</b> lub <b>Wstecz</b>. Dotknięcie obok okna ich nie zamyka, więc wpisane dane nie przepadną.</p>
       <p>Na dole każdej zakładki widać stan połączenia i numer zainstalowanej wersji.</p>
@@ -450,6 +463,7 @@
         <li><b>✓</b> z datą: gra lub wersja rozegrana. Przy grze z rozszerzeniami znak ✓ przy tytule pojawia się dopiero wtedy, gdy rozegrane są wszystkie jej wersje.</li>
         <li>Rozegrana gra jest wyszarzona.</li>
         <li>Pod grą z rozszerzeniami widać listę jej wersji: wersję podstawową i każde rozszerzenie, każda z własnym oznaczeniem.</li>
+        <li>Okładka gry (jeśli jest dodana) widać przy tytule, w losowaniu, na ekranie startowym i w oknie ⓘ.</li>
         <li>Napis <b>⊘ wykluczona z losowania</b> oznacza grę, która nie bierze udziału w losowaniu. Wykluczona wersja ma w drzewku znak <b>⊘</b> zamiast ○/✓.</li>
       </ul>
       <h4>Informacje o grze</h4>
@@ -482,7 +496,6 @@
         <li>Gra z rozszerzeniami jest losowana w wersjach: osobno wersja podstawowa i każde rozszerzenie.</li>
         <li>Gry i wersje wykluczone przyciskiem <b>⊘</b> są pomijane w losowaniu i w liczniku „Do rozegrania”. W blokach <b>Najczęściej grana</b> i <b>Najrzadziej grana</b> nadal są uwzględniane.</li>
         <li>Wersja gry wypada z losowania po zapisaniu wyniku. Samo naciśnięcie <b>Gramy!</b> niczego nie zapisuje.</li>
-        <li>Pod blokiem losowania są dwa bloki: <b>Najczęściej grana</b> i <b>Najrzadziej grana</b>. Pokazują grę z wybranych grup i liczbę jej partii. Liczą się wszystkie zapisane wyniki, także partie rozegrane bez losowania. Dotknięcie tytułu otwiera informacje o grze.</li>
         <li>Gdy wszystkie gry zostaną rozegrane, pojawi się przycisk <b>Zacznij nowy cykl</b>. Przycisk <b>Wyzeruj moje rozegrane</b> pod listą gier robi to samo dla jednej grupy. Obie opcje dotyczą tylko Ciebie.</li>
       </ul>
 
@@ -506,7 +519,7 @@
       <h4>Poprawianie i usuwanie wyniku</h4>
       <ul>
         <li><b>✎</b> otwiera wynik do edycji. Po zmianie gry, wersji, daty lub graczy oznaczenia rozegranych gier są poprawiane automatycznie.</li>
-        <li><b>🗑</b> usuwa wynik (naciśnij dwa razy). Gra wraca wtedy do losowania u graczy z tego wyniku, chyba że ta sama wersja jest w innym ich wyniku.</li>
+        <li><b>🗑</b> usuwa wynik (po potwierdzeniu w oknie). Gra wraca wtedy do losowania u graczy z tego wyniku, chyba że ta sama wersja jest w innym ich wyniku.</li>
       </ul>
       <h4>Przeglądanie i filtrowanie wyników</h4>
       <p>Przy każdym wyniku gracze są wypisani w osobnych liniach, od najlepszego. Puchar złoty, srebrny i brązowy oznacza 1., 2. i 3. miejsce w partii. Przy tej samej liczbie punktów gracze dzielą miejsce. W kooperacji puchar dostają tylko zwycięzcy.</p>
@@ -523,7 +536,7 @@
         <li>W zakładce <b>Gry</b> naciśnij <b>⚙</b> przy nazwie grupy.</li>
         <li>W sekcji <b>Gracze bez konta</b> naciśnij <b>Połącz z kontem</b> przy imieniu gracza.</li>
         <li>Wybierz konto z listy członków grupy.</li>
-        <li>Sprawdź liczbę znalezionych wyników i dwa razy naciśnij <b>Połącz</b>.</li>
+        <li>Sprawdź liczbę znalezionych wyników, naciśnij <b>Połącz</b> i potwierdź w oknie.</li>
       </ol>
       <ul>
         <li>Wyniki przechodzą na konto, a ranking i statystyki liczą stare i nowe wyniki razem. Osoba widzi od tej chwili także swoje wcześniejsze wyniki.</li>
@@ -533,7 +546,8 @@
       </ul>
       <p>Łączenie wykonuje właściciel lub Mistrz Gry.</p>
       <h4>Kto widzi wynik</h4>
-      <p>Wynik widzą gracze z kontem, którzy brali udział w rozgrywce, oraz osoba, która go wpisała.</p>
+      <p>Wynik widzą gracze z kontem, którzy brali udział w rozgrywce, oraz osoba, która go ostatnio zapisała. Osoba usunięta z wyniku przestaje go widzieć, nawet jeśli to ona go wpisała.</p>
+      <p>Imiona osób z kontem są zawsze wyświetlane tak, jak podano je przy rejestracji.</p>
 
       <h3>9. Ranking</h3>
       <ul>
@@ -545,23 +559,32 @@
       </ul>
       <p>Ranking jest liczony z wyników, które widzisz. Przy kilku grupach można wybrać jedną grupę lub wszystkie.</p>
 
+      <h4>Pojedynki</h4>
+      <p>Blok <b>Pojedynki</b> w zakładce <b>Wyniki</b> porównuje dwóch graczy. Wybierz ich na listach (domyślnie Ty i osoba, z którą grasz najczęściej). Widać:</p>
+      <ul>
+        <li>bilans: ile razy każdy z nich był lepszy we wspólnych partiach (liczą się punkty, a bez punktów zwycięstwo), oraz remisy,</li>
+        <li>aktualną serię (gdy ktoś był lepszy co najmniej 2 razy z rzędu) i najdłuższe serie obu graczy,</li>
+        <li>bilans w każdej grze osobno.</li>
+      </ul>
+
       <h3>10. Lista wszystkich gier</h3>
       <p>Przycisk <b>☰ Lista wszystkich gier</b> na górze zakładki <b>Gry</b> otwiera alfabetyczną listę tytułów z podziałem na litery. Pod grami widać ich rozszerzenia. Listę można zawęzić do jednej grupy i przeszukiwać, także po nazwie rozszerzenia. Oznaczenia są takie same jak w zakładce <b>Gry</b>.</p>
       <p>Przy każdej grze są przyciski (zmieniać gry mogą właściciel i Mistrz Gry):</p>
       <ul>
         <li><b>ⓘ</b>: informacje o grze (rozdział 6).</li>
-        <li><b>✎</b>: edycja gry: zmiana nazwy, dodawanie i usuwanie rozszerzeń.</li>
+        <li><b>✎</b>: edycja gry: okładka, zmiana nazwy, dodawanie i usuwanie rozszerzeń.</li>
         <li><b>⊘</b>: wykluczenie gry z losowania (przy grze z rozszerzeniami wszystkich jej wersji) lub przywrócenie jej do losowania.</li>
         <li><b>⇄</b>: przeniesienie gry do innej grupy (gdy masz kilka grup).</li>
-        <li><b>🗑</b>: usunięcie gry (naciśnij dwa razy).</li>
+        <li><b>🗑</b>: usunięcie gry (po potwierdzeniu w oknie).</li>
       </ul>
       <h4>Edycja gry i rozszerzeń</h4>
       <ol>
         <li>Naciśnij <b>✎</b> przy grze.</li>
+        <li>Aby dodać okładkę, naciśnij <b>📷 Dodaj okładkę</b> i wybierz zdjęcie z galerii albo zrób zdjęcie pudełka aparatem. <b>Usuń okładkę</b> ją usuwa.</li>
         <li>Popraw nazwę gry lub wpisz nazwę nowego rozszerzenia.</li>
         <li>Naciśnij <b>✓ Gotowe</b>, aby zapisać, lub <b>Anuluj</b>, aby zrezygnować.</li>
       </ol>
-      <p>Aby usunąć rozszerzenie, w trybie edycji dwa razy naciśnij <b>✕</b> przy jego nazwie.</p>
+      <p>Aby usunąć rozszerzenie, w trybie edycji naciśnij <b>✕</b> przy jego nazwie i potwierdź.</p>
       <h4>Wykluczanie z losowania</h4>
       <ul>
         <li>Aby wykluczyć tylko wersję podstawową albo jedno rozszerzenie, naciśnij <b>⊘</b> po prawej stronie tej wersji w drzewku pod grą.</li>
@@ -598,7 +621,7 @@
         <li>Naciśnij <b>Kopiuj</b>, aby skopiować dane do schowka.</li>
         <li>Wklej skopiowany tekst w bezpieczne miejsce, np. do notatek.</li>
       </ol>
-      <p>Kopia zawiera gry ze stanem rozegranych, wyniki, historię rozegranych gier, listę graczy i aktualności. Aby odtworzyć dane, wklej tekst kopii w okno i dwa razy naciśnij <b>Importuj</b>. Z kopii powstaną nowe grupy, a istniejące grupy pozostaną bez zmian.</p>
+      <p>Kopia zawiera gry ze stanem rozegranych, wyniki, historię rozegranych gier, listę graczy i aktualności. Aby odtworzyć dane, wklej tekst kopii w okno, naciśnij <b>Importuj</b> i potwierdź. Z kopii powstaną nowe grupy, a istniejące grupy pozostaną bez zmian.</p>
 
       <h3>14. Zmiany i aktualizacje</h3>
       <ul>

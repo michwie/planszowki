@@ -11,7 +11,12 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.VibrationEffect;
+import android.provider.MediaStore;
 import android.provider.Settings;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.util.Base64;
+import java.io.ByteArrayOutputStream;
 import android.os.Vibrator;
 import android.view.View;
 import android.view.WindowInsets;
@@ -53,6 +58,7 @@ public class MainActivity extends Activity {
     static WeakReference<MainActivity> current = new WeakReference<>(null);   // dla odbiornika statusu instalacji
     private File pendingApk;          // pobrana aktualizacja czekająca na instalację
     private boolean waitingPermission; // czekamy, aż użytkownik zezwoli na instalowanie aplikacji
+    private static final int REQ_COVER = 42;
 
     @SuppressLint({"SetJavaScriptEnabled", "AddJavascriptInterface"})
     @Override
@@ -186,6 +192,51 @@ public class MainActivity extends Activity {
         }).start();
     }
 
+    /** Okładka gry: galeria lub aparat → miniatura JPEG (maks. 320 px) → do strony jako data URL. */
+    private void pickCover() {
+        Intent gallery = new Intent(Intent.ACTION_GET_CONTENT);
+        gallery.setType("image/*");
+        gallery.addCategory(Intent.CATEGORY_OPENABLE);
+        Intent chooser = Intent.createChooser(gallery, "Okładka gry");
+        Intent camera = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+        if (camera.resolveActivity(getPackageManager()) != null) chooser.putExtra(Intent.EXTRA_INITIAL_INTENTS, new Intent[]{camera});
+        try { startActivityForResult(chooser, REQ_COVER); }
+        catch (Exception e) { js("window.onCover&&onCover(null)"); }
+    }
+
+    @Override
+    @SuppressWarnings("deprecation")
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode != REQ_COVER) return;
+        if (resultCode != RESULT_OK || data == null) { js("window.onCover&&onCover(null)"); return; }
+        new Thread(() -> {
+            try {
+                Bitmap bmp = null;
+                Uri uri = data.getData();
+                if (uri != null) {
+                    BitmapFactory.Options o = new BitmapFactory.Options(); o.inJustDecodeBounds = true;
+                    try (InputStream in = getContentResolver().openInputStream(uri)) { BitmapFactory.decodeStream(in, null, o); }
+                    int sample = 1; while (Math.max(o.outWidth, o.outHeight) / (sample * 2) >= 640) sample *= 2;
+                    BitmapFactory.Options o2 = new BitmapFactory.Options(); o2.inSampleSize = sample;
+                    try (InputStream in = getContentResolver().openInputStream(uri)) { bmp = BitmapFactory.decodeStream(in, null, o2); }
+                } else if (data.getExtras() != null) {
+                    Object b = data.getExtras().get("data");   // zdjęcie z aparatu (miniatura)
+                    if (b instanceof Bitmap) bmp = (Bitmap) b;
+                }
+                if (bmp == null) { js("window.onCover&&onCover(null)"); return; }
+                float k = 320f / Math.max(bmp.getWidth(), bmp.getHeight());
+                if (k < 1) bmp = Bitmap.createScaledBitmap(bmp, Math.round(bmp.getWidth() * k), Math.round(bmp.getHeight() * k), true);
+                ByteArrayOutputStream bos = new ByteArrayOutputStream();
+                bmp.compress(Bitmap.CompressFormat.JPEG, 80, bos);
+                String b64 = Base64.encodeToString(bos.toByteArray(), Base64.NO_WRAP);
+                js("window.onCover&&onCover('data:image/jpeg;base64," + b64 + "')");
+            } catch (Exception e) {
+                js("window.onCover&&onCover(null)");
+            }
+        }).start();
+    }
+
     @Override
     protected void onResume() {
         super.onResume();
@@ -267,6 +318,10 @@ public class MainActivity extends Activity {
                 } catch (Exception ignored) { }
             });
         }
+
+        /** Wybór okładki gry (galeria lub aparat). Wynik trafia do window.onCover(dataUrl | null). */
+        @JavascriptInterface
+        public void pickCover() { runOnUiThread(MainActivity.this::pickCover); }
 
         /** Prośba o zgodę na powiadomienia (Android 13+), by po aktualizacji pokazać „dotknij, aby otworzyć”. */
         @JavascriptInterface

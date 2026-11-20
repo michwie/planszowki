@@ -88,6 +88,17 @@ service cloud.firestore {
         allow delete: if signedIn() && roleSh() == 'owner';
       }
 
+      // Okładki gier: tylko właściciel i Mistrzowie Gry (jak szafa)
+      match /covers/{gameId} {
+        function gc() { return get(/databases/$(database)/documents/groups/$(gid)).data; }
+        function powerC() { return signedIn() && gc().members.get(me(), '') in ['owner', 'editor']; }
+        allow read, delete: if powerC();
+        allow create, update: if powerC()
+          && request.resource.data.keys().hasOnly(['img', 'by', 'updatedAt'])
+          && request.resource.data.img is string && request.resource.data.img.size() < 200000
+          && request.resource.data.img.matches('data:image/jpeg;base64,.*');
+      }
+
       // Wyniki rozgrywek danej grupy
       match /plays/{pid} {
         function g() { return get(/databases/$(database)/documents/groups/$(gid)).data; }

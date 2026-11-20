@@ -48,6 +48,8 @@
   let groupDocs = [];            // surowe dokumenty grup
   const shelfBy = {};            // gid -> szafa (gry, gracze, kody)
   const shelfSubs = {};
+  const coversBy = {};           // gid -> {gameId: dataUrl}  (okładki gier)
+  const coverSubs = {};
   const logRole = {};            // gid -> rola, z którą subskrybowano Change Log
   const playsBy = {};            // gid -> [play]
   const playSubs = {};           // gid -> unsubscribe
@@ -191,6 +193,7 @@
     $("cfText").textContent = o.text || "";
     $("cfIcon").textContent = o.icon || "?";
     $("cfYes").textContent = o.yes || "Tak";
+    $("cfYes").classList.toggle("danger-yes", !!o.danger);
     $("cfNo").textContent = o.no || "Anuluj";
     $("cfNo").onclick = () => closeOv("cf");
     $("cfYes").onclick = () => { closeOv("cf"); o.onYes && o.onYes(); };
@@ -253,6 +256,7 @@
     Object.keys(logSubs).forEach(k => { logSubs[k](); delete logSubs[k]; delete logsBy[k]; });
     Object.keys(stateSubs).forEach(k => { stateSubs[k](); delete stateSubs[k]; delete stateBy[k]; });
     Object.keys(shelfSubs).forEach(k => { shelfSubs[k](); delete shelfSubs[k]; delete shelfBy[k]; });
+    Object.keys(coverSubs).forEach(k => { coverSubs[k](); delete coverSubs[k]; delete coversBy[k]; });
     groupDocs = [];
     backfilled.clear(); loadedP.clear(); loadedS.clear(); reconciled.clear();
     if (regsUnsub) { regsUnsub(); regsUnsub = null; } regs = {};
@@ -266,7 +270,7 @@
     me = { uid: user.uid, name: user.displayName || pendingName || lsGet("pl-name-" + user.uid, "") || (user.email || "").split("@")[0] };
     $("meName").textContent = me.name;
     $("authView").hidden = true; $("appView").hidden = false; $("tabbar").hidden = false;
-    showView("draw");
+    showView("home");   // ekran startowy: najczęściej i najrzadziej grana
     setStatus("Łączenie…");
     render();
     groupsUnsub = db.collection("groups").where("memberIds", "array-contains", me.uid).onSnapshot(qs => {
@@ -274,6 +278,8 @@
       mergeGroups();
       const ids = new Set(groups.map(g => g.id));
       groups.forEach(g => { if (canEdit(g)) subShelf(g.id, 0); else if (shelfSubs[g.id]) { shelfSubs[g.id](); delete shelfSubs[g.id]; delete shelfBy[g.id]; } });
+      groups.forEach(g => { if (canEdit(g)) subCovers(g.id, 0); else if (coverSubs[g.id]) { coverSubs[g.id](); delete coverSubs[g.id]; delete coversBy[g.id]; } });
+      Object.keys(coverSubs).forEach(k => { if (!ids.has(k)) { coverSubs[k](); delete coverSubs[k]; delete coversBy[k]; } });
       Object.keys(shelfSubs).forEach(k => { if (!ids.has(k)) { shelfSubs[k](); delete shelfSubs[k]; delete shelfBy[k]; } });
       Object.keys(playSubs).forEach(k => { if (!ids.has(k)) { playSubs[k](); delete playSubs[k]; delete playsBy[k]; } });
       groups.forEach(g => {
@@ -304,6 +310,55 @@
       else { g.games = d.games || []; g.players = d.players || []; }
       return g;
     }).sort((a,b) => (a.createdAtMs || 0) - (b.createdAtMs || 0));
+  }
+  // okładki gier: groups/{gid}/covers/{gameId} = {img: dataUrl} – widzą je właściciel i Mistrzowie Gry
+  function subCovers(gid, attempt){
+    if (coverSubs[gid]) return;
+    coverSubs[gid] = gref(gid).collection("covers").onSnapshot(cs => {
+      const m = {}; cs.docs.forEach(d => { if (d.data().img) m[d.id] = d.data().img; });
+      coversBy[gid] = m; render();
+    }, () => {
+      delete coverSubs[gid];
+      if (attempt < 8) setTimeout(() => { const g = groupById(gid); if (me && g && canEdit(g)) subCovers(gid, attempt + 1); }, 1500 * (attempt + 1));
+    });
+  }
+  const coverOf = (gid, gameId) => (coversBy[gid] || {})[gameId] || "";
+  function coverImg(gid, gameId, cls){
+    const src = coverOf(gid, gameId); if (!src) return null;
+    const im = document.createElement("img"); im.className = cls; im.alt = ""; im.src = src; im.loading = "lazy";
+    return im;
+  }
+  // wybór okładki: w aplikacji – galeria lub aparat (Android), w przeglądarce – plik
+  function pickCover(g, game){
+    const save = url => {
+      if (!url) return;
+      shrinkImage(url, 320).then(img => gref(g.id).collection("covers").doc(game.id).set({img, by: me.uid, updatedAt: Date.now()}))
+        .then(() => toast("Zapisano okładkę „" + game.name + "”")).catch(e => toast(errMsg(e)));
+    };
+    if (Android && Android.pickCover) { window.onCover = url => { window.onCover = null; save(url); }; Android.pickCover(); return; }
+    const inp = document.createElement("input"); inp.type = "file"; inp.accept = "image/*";
+    inp.onchange = () => { const f = inp.files && inp.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => save(r.result); r.readAsDataURL(f); };
+    inp.click();
+  }
+  function removeCover(g, game){
+    confirmDialog({title: "Usunąć okładkę?", text: "Okładka gry „" + game.name + "” zostanie usunięta.", icon: "🗑", yes: "Usuń", danger: true,
+      onYes: () => gref(g.id).collection("covers").doc(game.id).delete().catch(e => toast(errMsg(e)))});
+  }
+  // zmniejszenie zdjęcia do max px (JPEG), żeby okładka zajmowała kilkanaście KB
+  function shrinkImage(url, max){
+    return new Promise((res, rej) => {
+      const im = new Image();
+      im.onload = () => {
+        const k = Math.min(1, max / Math.max(im.width, im.height));
+        const c = document.createElement("canvas"); c.width = Math.round(im.width * k); c.height = Math.round(im.height * k);
+        c.getContext("2d").drawImage(im, 0, 0, c.width, c.height);
+        let q = 0.8, out = c.toDataURL("image/jpeg", q);
+        while (out.length > 90000 && q > 0.4) { q -= 0.1; out = c.toDataURL("image/jpeg", q); }
+        res(out);
+      };
+      im.onerror = () => rej(new Error("Nie udało się wczytać zdjęcia"));
+      im.src = url;
+    });
   }
   function subShelf(gid, attempt){
     if (shelfSubs[gid]) return;
@@ -427,12 +482,12 @@
 
   function startRegs(user){
     regsUnsub = db.collection("registrations").onSnapshot(rs => {
-      regs = {}; rs.docs.forEach(d => regs[d.id] = d.data()); renderLog();
+      regs = {}; rs.docs.forEach(d => regs[d.id] = d.data()); render();   // imiona kont odświeżają się wszędzie
     }, () => {});
     // wpis o rejestracji (dla kont założonych przed dodaniem dziennika – z datą założenia konta)
     const ref = db.collection("registrations").doc(user.uid);
     ref.get().then(d => {
-      if (d.exists) return;
+      if (d.exists) { if (me.name && d.data().name !== me.name) return ref.update({name: me.name}); return; }
       const created = user.metadata && user.metadata.creationTime ? Date.parse(user.metadata.creationTime) : Date.now();
       return ref.set({name: me.name, at: isNaN(created) ? Date.now() : created});
     }).catch(() => {});
@@ -664,6 +719,7 @@
       const dexp = findExp(drawn.game, ui.drawnExp);
       stage.innerHTML = '<div class="name"></div><div class="xv"></div><div class="grp"></div>';
       stage.querySelector(".name").textContent = drawn.game.name;
+      const cv = coverImg(drawn.group.id, drawn.game.id, "scover"); if (cv) stage.insertBefore(cv, stage.firstChild);
       const xv = stage.querySelector(".xv");
       if (dexp) xv.textContent = "+ " + dexp.name;
       else if (exps(drawn.game).length) xv.textContent = "wersja podstawowa";
@@ -679,7 +735,8 @@
     else if (!left) stage.innerHTML = '<div class="hint">Cała pula rozegrana. Misja zakończona.</div>';
     else stage.innerHTML = '<div class="hint">oczekuję na polecenie…</div>';
     const btn = $("drawBtn");
-    if (!left && pool.length) { btn.textContent = "Zacznij nowy cykl"; btn.disabled = false; btn.onclick = resetPool; }
+    if (!left && pool.length) { btn.textContent = "Zacznij nowy cykl"; btn.disabled = false;
+      btn.onclick = () => confirmDialog({title: "Zacząć nowy cykl?", text: "Wszystkie gry z wybranych grup wrócą do Twojego losowania. Wyniki zostaną bez zmian.", icon: "↺", yes: "Zacznij", onYes: resetPool}); }
     else { btn.textContent = "Losuj grę"; btn.disabled = !left || spinning; btn.onclick = () => draw(); }
     btn.hidden = !!drawn && !spinning;
     $("afterDraw").hidden = !(drawn && !spinning);
@@ -715,29 +772,38 @@
     const max = Math.max(...arr.map(x => x.w));
     return {names: arr.filter(x => x.w === max).map(x => x.n).sort(cmp), wins: max};
   }
-  // pod przyciskiem Losuj: najczęściej i najrzadziej grana gra z wybranej puli (także bez losowania)
+  // ekran startowy: najczęściej i najrzadziej grana gra (wybrane grupy, także partie bez losowania)
   function renderDrawStats(){
     const el = $("drawStats");
     const rows = poolGames().map(x => { const ps = gamePlays(x.group.id, x.game.id); return {x, n: ps.length, last: ps.reduce((m, p) => Math.max(m, p.at), 0)}; });
+    $("homeHint").hidden = rows.length >= 2;
     if (rows.length < 2) { el.hidden = true; el.innerHTML = ""; return; }
     el.hidden = false; el.innerHTML = "";
     // dwa osobne bloki (karty), jak blok losowania
-    const card = (title, r, ties) => {
+    // blok: pierwsza gra duża (z okładką), pozostałe z tą samą liczbą partii – mniejsze, wypisane z nazwy
+    const card = (title, list) => {
       const c = document.createElement("section"); c.className = "card statcard";
-      c.innerHTML = '<h2></h2><button class="sname" type="button"></button><div class="scount"></div>';
+      c.innerHTML = '<h2></h2><div class="smain"></div><div class="scount"></div><div class="sties"></div>';
       c.querySelector("h2").textContent = title;
-      const nb = c.querySelector(".sname");
-      if (r) {
-        nb.textContent = r.x.game.name;
-        nb.onclick = () => openGameInfo(r.x.group.id, r.x.game.id);
-        c.querySelector(".scount").textContent = partii(r.n) + (ties > 0 ? " · tyle samo: " + plural(ties, "inna gra", "inne gry", "innych gier") : "");
-      } else { nb.remove(); c.querySelector(".scount").textContent = "Brak zapisanych wyników."; }
+      if (list.length) {
+        const r = list[0];
+        const main = c.querySelector(".smain");
+        const cv = coverImg(r.x.group.id, r.x.game.id, "scov"); if (cv) main.appendChild(cv);
+        const nb = document.createElement("button"); nb.type = "button"; nb.className = "sname"; nb.textContent = r.x.game.name;
+        nb.onclick = () => openGameInfo(r.x.group.id, r.x.game.id); main.appendChild(nb);
+        c.querySelector(".scount").textContent = partii(r.n) + (list.length > 1 ? " · tyle samo:" : "");
+        const ties = c.querySelector(".sties");
+        list.slice(1).forEach(t => {
+          const b = document.createElement("button"); b.type = "button"; b.className = "stie"; b.textContent = t.x.game.name;
+          b.onclick = () => openGameInfo(t.x.group.id, t.x.game.id); ties.appendChild(b);
+        });
+      } else { c.querySelector(".scount").textContent = "Brak zapisanych wyników."; }
       el.appendChild(c);
     };
-    const most = rows.slice().sort((a,b) => (b.n - a.n) || (b.last - a.last) || cmp(a.x.game.name, b.x.game.name))[0];
-    card("Najczęściej grana", most.n ? most : null, rows.filter(r => r.n === most.n).length - 1);
-    const least = rows.slice().sort((a,b) => (a.n - b.n) || (a.last - b.last) || cmp(a.x.game.name, b.x.game.name))[0];
-    card("Najrzadziej grana", least, rows.filter(r => r.n === least.n).length - 1);
+    const mostS = rows.slice().sort((a,b) => (b.n - a.n) || (b.last - a.last) || cmp(a.x.game.name, b.x.game.name));
+    card("Najczęściej grana", mostS[0].n ? mostS.filter(r => r.n === mostS[0].n) : []);
+    const leastS = rows.slice().sort((a,b) => (a.n - b.n) || (a.last - b.last) || cmp(a.x.game.name, b.x.game.name));
+    card("Najrzadziej grana", leastS.filter(r => r.n === leastS[0].n));
   }
   // okno ⓘ z informacjami o grze
   let giKey = null;
@@ -750,6 +816,7 @@
     const ps = gamePlays(g.id, game.id);
     $("giTitle").textContent = game.name;
     const body = $("giBody"); body.innerHTML = "";
+    const gc = coverImg(g.id, game.id, "gicover"); if (gc) body.appendChild(gc);
     const dl = document.createElement("dl"); dl.className = "gi";
     // etykieta nad wartością; wartość może mieć kilka linii [[nazwa, wartość], ...]
     const row = (k, v) => {
@@ -824,7 +891,8 @@
       const s = document.createElement("span"); s.textContent = "Rozegrane: " + doneV + " / " + allV + (allV > games.length ? " wersji" : ""); tools.appendChild(s);
       if (playedN) {
         const r = document.createElement("button"); r.className = "link"; r.textContent = "Wyzeruj moje rozegrane";
-        r.onclick = () => { resetMine([g], "Wyzerowanie rozegranych w grupie – wszystkie gry wróciły do puli"); toast("Wyzerowano: " + g.name); };
+        r.onclick = () => confirmDialog({title: "Wyzerować rozegrane?", text: "Wszystkie gry z grupy „" + g.name + "” wrócą do Twojego losowania. Wyniki zostaną bez zmian.", icon: "↺", yes: "Wyzeruj",
+          onYes: () => { resetMine([g], "Wyzerowanie rozegranych w grupie – wszystkie gry wróciły do puli"); toast("Wyzerowano: " + g.name); }});
         tools.appendChild(r);
       }
     }
@@ -848,6 +916,7 @@
                 (moveTargets.length ? '<button class="ib move" title="Przenieś do innej grupy" aria-label="Przenieś">⇄</button>' : '') +
                 '<button class="ib del" title="Usuń" aria-label="Usuń">🗑</button>' : '') + '</span>' : '');
     li.querySelector(".gmk").textContent = played ? "✓" : "○";
+    const th = coverImg(g.id, game.id, "gcov"); if (th) li.insertBefore(th, li.querySelector(".gname"));
     li.querySelector("b").textContent = game.name;
     li.querySelector(".gsub").textContent = isAllOff(game) ? "⊘ wykluczona z losowania" : (variants(game).some(e => isVOff(game, e)) ? "⊘ część wersji wykluczona z losowania" : "");
     if (!ex.length && played) li.querySelector(".gdt").textContent = fmt(myPlayed(g)[game.id]);
@@ -868,13 +937,9 @@
           if (moveTargets.length === 1) { moveGame(g, game, moveTargets[0]); return; }
           ui.moving = ui.moving === game.id ? null : game.id; rerenderLists();
         };
-        const del = li.querySelector(".del");
-        if (ui.armed === game.id) { del.classList.add("armed"); del.textContent = "Usuń?"; }
-        del.onclick = () => {
-          if (ui.armed !== game.id) { ui.armed = game.id; rerenderLists(); return; }
-          ui.armed = null; if (ui.drawn === game.id) ui.drawn = null;
-          upd(g.id, {games: FV.arrayRemove(game)}, "Usunięcie gry " + q(game.name), "game-del");
-        };
+        li.querySelector(".del").onclick = () => confirmDialog({title: "Usunąć grę?", text: "„" + game.name + "” zniknie z grupy „" + g.name + "”" + (ex.length ? " razem z rozszerzeniami" : "") + ". Zapisane wyniki zostaną.", icon: "🗑", yes: "Usuń", danger: true,
+          onYes: () => { if (ui.drawn === game.id) ui.drawn = null; upd(g.id, {games: FV.arrayRemove(game)}, "Usunięcie gry " + q(game.name), "game-del");
+            if (coverOf(g.id, game.id)) gref(g.id).collection("covers").doc(game.id).delete().catch(() => {}); }});
       }
     }
     // drzewko wersji (wersja podstawowa + rozszerzenia)
@@ -886,11 +951,11 @@
         const last = i === rows.length - 1 && !editing;
         const canDel = editing && r.e;
         const row = document.createElement(canDel ? "button" : "div"); if (canDel) row.type = "button";
-        row.className = "xrow" + (done ? " done" : "") + (r.e ? "" : " base") + (canDel ? " edit" : " ro") + (r.e && ui.expArmed === r.e.id ? " armed" : "");
+        row.className = "xrow" + (done ? " done" : "") + (r.e ? "" : " base") + (canDel ? " edit" : " ro");
         row.innerHTML = '<span class="br"></span><span class="mk"></span><span class="nm"></span><span class="dt"></span>';
         row.querySelector(".br").textContent = last ? "└─" : "├─";
         row.querySelector(".mk").textContent = canDel ? "✕" : (done ? "✓" : "○");
-        row.querySelector(".nm").textContent = canDel && ui.expArmed === r.e.id ? "Usunąć „" + r.name + "”?" : r.name;
+        row.querySelector(".nm").textContent = r.name;
         if (done && !editing) row.querySelector(".dt").textContent = fmt(myPlayed(g)[vkey(game, r.e)]);
         const off = isVOff(game, r.e);
         if (off && !editing) { row.classList.add("off"); row.querySelector(".mk").textContent = "⊘"; }
@@ -901,19 +966,24 @@
           row.appendChild(ob);
         }
         if (canDel) row.onclick = () => {
-          if (ui.expArmed !== r.e.id) { ui.expArmed = r.e.id; rerenderLists(); return; }
-          ui.expArmed = null;
-          saveGame(g, Object.assign({}, game, {exps: ex.filter(x => x.id !== r.e.id)}), "Usunięcie rozszerzenia " + q(r.name) + " z gry " + q(game.name));
+          confirmDialog({title: "Usunąć rozszerzenie?", text: "„" + r.name + "” zniknie z gry „" + game.name + "”. Zapisane wyniki zostaną.", icon: "🗑", yes: "Usuń", danger: true,
+            onYes: () => saveGame(g, Object.assign({}, game, {exps: ex.filter(x => x.id !== r.e.id)}), "Usunięcie rozszerzenia " + q(r.name) + " z gry " + q(game.name))});
         };
         box.appendChild(row);
       });
       if (editing) {
         // edycja: nazwa gry + nowe rozszerzenie; Gotowe zapisuje, Anuluj porzuca
         const f = document.createElement("form"); f.className = "add expadd";
-        f.innerHTML = '<label class="fl">Nazwa gry</label><input type="text" class="gnm" maxlength="80" autocomplete="off">' +
+        f.innerHTML = '<label class="fl">Okładka</label><div class="covrow"><button type="button" class="ghost covadd"></button><button type="button" class="link covdel">Usuń okładkę</button></div>' +
+          '<label class="fl">Nazwa gry</label><input type="text" class="gnm" maxlength="80" autocomplete="off">' +
           '<label class="fl">Nowe rozszerzenie (opcjonalnie)</label><input type="text" class="xnew" maxlength="60" placeholder="nazwa rozszerzenia…" autocomplete="off">' +
           '<div class="xbtns"><button type="button" class="xcancel">Anuluj</button><button type="submit" class="xdone">✓ Gotowe</button></div>';
         f.querySelector(".gnm").value = game.name;
+        const hasCov = !!coverOf(g.id, game.id);
+        f.querySelector(".covadd").textContent = hasCov ? "📷 Zmień okładkę" : "📷 Dodaj okładkę";
+        f.querySelector(".covadd").onclick = () => pickCover(g, game);
+        f.querySelector(".covdel").hidden = !hasCov;
+        f.querySelector(".covdel").onclick = () => removeCover(g, game);
         const closeEdit = () => { ui.expEdit = null; ui.expArmed = null; rerenderLists(); };
         f.querySelector(".xcancel").onclick = closeEdit;
         f.onsubmit = ev => {
@@ -1028,8 +1098,6 @@
   $("rerollBtn").onclick = () => { const f = ui.drawn && findGame(ui.drawn, ui.drawnGid); draw(f ? vkey(f.game, findExp(f.game, ui.drawnExp)) : null); };
   $("playBtn").onclick = markPlayed;
   document.addEventListener("click", e => {
-    if (ui.armed && !e.target.closest(".del")) { ui.armed = null; rerenderLists(); }
-    if (ui.resArmed && !e.target.closest(".del")) { ui.resArmed = null; renderResults(); renderAllRes(); }
   });
 
   // ================= OKNA (overlay) =================
@@ -1045,7 +1113,7 @@
   window.appBack = function(){
     const open = [...document.querySelectorAll(".ov:not([hidden])")];
     if (open.length) { open.sort((a, b) => (+a.style.zIndex || 20) - (+b.style.zIndex || 20)); closeOv(open[open.length - 1].id); return true; }
-    if (!$("appView").hidden && curView !== "draw") { showView("draw"); return true; }
+    if (!$("appView").hidden && curView !== "draw" && curView !== "home") { showView("draw"); return true; }
     return false;
   };
   // ================= ZAKŁADKI (dolny pasek) =================
@@ -1072,7 +1140,7 @@
     const pass = $("daPass").value;
     if (!pass) { $("daErr").textContent = "Wpisz hasło."; return; }
     const btn = $("daBtn");
-    if (!daArmed) { daArmed = true; btn.classList.add("armed"); btn.textContent = "Na pewno? Naciśnij jeszcze raz"; return; }
+    if (!daArmed) { confirmDialog({title: "Usunąć konto na zawsze?", text: "Tego nie da się cofnąć. Grupy, których jesteś właścicielem, zostaną usunięte razem z grami i wynikami.", icon: "⚠", yes: "Usuń konto", danger: true, onYes: () => { daArmed = true; btn.click(); }}); return; }
     btn.disabled = true; btn.textContent = "Usuwanie…"; $("daErr").textContent = "";
     const user = auth.currentUser;
     try {
@@ -1181,6 +1249,8 @@
   let gmGid = null, gmArmed = null;
   $("openGm").onclick = () => { const g = groups[ui.tab]; if (!g) return; gmGid = g.id; gmArmed = null; renderGm(); openOv("gm"); };
   const ROLE_PL = {owner: "właściciel", editor: "Mistrz Gry", player: "gracz"};
+  // imię osoby z konta: zawsze imię i nazwisko podane przy rejestracji (zapis w grupie tylko awaryjnie)
+  function uname(g, u){ return (regs[u] && regs[u].name) || ((g && g.memberNames) || {})[u] || "?"; }
   function renderGm(){
     const g = groupById(gmGid);
     const body = $("gmBody");
@@ -1215,7 +1285,7 @@
         };
         if (isOwner(g) && g.shelf) {
           const nb = document.createElement("button"); nb.className = "link"; nb.textContent = "Nowy kod (stary przestanie działać)";
-          nb.onclick = () => regenCode(g, r); wrap.appendChild(nb);
+          nb.onclick = () => confirmDialog({title: "Wygenerować nowy kod?", text: "Obecny " + label.toLowerCase() + " przestanie działać. Osoby, które już dołączyły, zostaną w grupie.", icon: "⟳", yes: "Nowy kod", onYes: () => regenCode(g, r)}); wrap.appendChild(nb);
         }
         body.appendChild(wrap);
       });
@@ -1226,12 +1296,12 @@
     add('<span class="fl">Członkowie (' + (g.memberIds || []).length + ')</span><div id="gmMembers"></div>');
     const box = $("gmMembers");
     const order = {owner: 0, editor: 1, player: 2};
-    (g.memberIds || []).slice().sort((a,b) => (order[g.members[a]] - order[g.members[b]]) || cmp((g.memberNames||{})[a] || "", (g.memberNames||{})[b] || ""))
+    (g.memberIds || []).slice().sort((a,b) => (order[g.members[a]] - order[g.members[b]]) || cmp(uname(g, a), uname(g, b)))
       .forEach(u => {
         const r = g.members[u];
         const row = document.createElement("div"); row.className = "mem";
         row.innerHTML = '<span class="mn"></span>';
-        row.querySelector(".mn").textContent = ((g.memberNames || {})[u] || "?") + (u === me.uid ? " (Ty)" : "");
+        row.querySelector(".mn").textContent = uname(g, u) + (u === me.uid ? " (Ty)" : "");
         if (isOwner(g) && r !== "owner") {
           const sel = document.createElement("select");
           sel.setAttribute("aria-label", "Rola");
@@ -1239,10 +1309,13 @@
           sel.value = r;
           sel.onchange = async () => {
             if (sel.value === "__remove") {
+              sel.value = r;
+              confirmDialog({title: "Usunąć z grupy?", text: uname(g, u) + " przestanie widzieć grupę „" + g.name + "”.", icon: "⚠", yes: "Usuń", danger: true, onYes: async () => {
               const ok = await upd(g.id, {["members." + u]: FV.delete(), memberIds: FV.arrayRemove(u), ["memberNames." + u]: FV.delete()},
-                "Usunięcie z grupy: " + ((g.memberNames || {})[u] || "?"), "member");
+                "Usunięcie z grupy: " + uname(g, u), "member");
               if (ok) toast("Usunięto z grupy");
-            } else await upd(g.id, {["members." + u]: sel.value}, "Zmiana roli: " + ((g.memberNames || {})[u] || "?") + " → " + ROLE_PL[sel.value], "member");
+              }});
+            } else await upd(g.id, {["members." + u]: sel.value}, "Zmiana roli: " + uname(g, u) + " → " + ROLE_PL[sel.value], "member");
           };
           row.appendChild(sel);
         } else {
@@ -1255,20 +1328,17 @@
       add('<button class="danger" id="gmDelete"></button>');
       const n = (g.games || []).length;
       const d = $("gmDelete");
-      d.textContent = gmArmed === "del" ? ("Na pewno usunąć grupę" + (n ? " i " + gier(n) : "") + " oraz jej wyniki?") : "Usuń grupę";
-      d.classList.toggle("armed", gmArmed === "del");
-      d.onclick = () => { if (gmArmed !== "del") { gmArmed = "del"; renderGm(); return; } deleteGroup(g); };
+      d.textContent = "Usuń grupę";
+      d.onclick = () => confirmDialog({title: "Usunąć grupę?", text: "Grupa „" + g.name + "”" + (n ? " razem z " + gier(n).replace(/^(\d+) gry$/, "$1 grami").replace(/^(\d+) gier$/, "$1 grami").replace(/^1 grę$/, "1 grą") : "") + ", wynikami i aktualnościami zostanie usunięta dla wszystkich członków. Tego nie da się cofnąć.", icon: "⚠", yes: "Usuń grupę", danger: true, onYes: () => deleteGroup(g)});
     } else {
       add('<button class="danger" id="gmLeave"></button>');
       const l = $("gmLeave");
-      l.textContent = gmArmed === "leave" ? "Na pewno opuścić grupę?" : "Opuść grupę";
-      l.classList.toggle("armed", gmArmed === "leave");
-      l.onclick = async () => {
-        if (gmArmed !== "leave") { gmArmed = "leave"; renderGm(); return; }
+      l.textContent = "Opuść grupę";
+      l.onclick = () => confirmDialog({title: "Opuścić grupę?", text: "Przestaniesz widzieć grupę „" + g.name + "”. Wrócić możesz tylko z nowym kodem zaproszenia.", icon: "⇥", yes: "Opuść", danger: true, onYes: async () => {
         try { await lcol(g.id).doc().set(logEntry("member", "Opuszczenie grupy")); } catch(e){}
         const ok = await upd(g.id, {["members." + me.uid]: FV.delete(), memberIds: FV.arrayRemove(me.uid), ["memberNames." + me.uid]: FV.delete()});
         if (ok) { closeOv("gm"); toast("Opuszczono grupę: " + g.name); }
-      };
+      }});
     }
   }
   // ---------- gracze bez konta: połączenie z kontem ----------
@@ -1280,7 +1350,7 @@
     add('<span class="fl">Gracze bez konta (' + g.players.length + ')</span><div id="gmPlayers"></div>' +
         '<p class="rolenote" style="margin-top:6px">Gdy gracz wpisywany z imienia założy konto i dołączy do grupy, połącz go z kontem – jego dotychczasowe wyniki przejdą na konto.</p>');
     const box = $("gmPlayers");
-    const accs = (g.memberIds || []).map(u => [u, (g.memberNames || {})[u] || "?"]).sort((a,b) => cmp(a[1], b[1]));
+    const accs = (g.memberIds || []).map(u => [u, uname(g, u)]).sort((a,b) => cmp(a[1], b[1]));
     g.players.slice().sort(cmp).forEach(name => {
       const row = document.createElement("div"); row.className = "mem";
       row.innerHTML = '<span class="mn"></span><button class="link mg">Połącz z kontem</button>';
@@ -1295,18 +1365,17 @@
       [...sel.options].slice(1).forEach((o, i) => o.textContent = accs[i][1]);
       sel.value = gmMerge.uid;
       sel.onchange = () => { gmMerge.uid = sel.value; gmMerge.armed = false; renderGm(); };
-      const n = playsWithName(g.id, name).length, accName = (g.memberNames || {})[gmMerge.uid] || "";
+      const n = playsWithName(g.id, name).length, accName = gmMerge.uid ? uname(g, gmMerge.uid) : "";
       f.querySelector(".mergeinfo").textContent = gmMerge.uid ? ("Znaleziono " + plural(n, "wynik", "wyniki", "wyników") + " z graczem „" + name + "”. Zostaną przypisane do konta „" + accName + "”, a „" + name + "” zniknie z listy graczy bez konta.") : "";
       const go = f.querySelector(".mgo");
       go.disabled = !gmMerge.uid;
-      go.textContent = gmMerge.armed ? "Na pewno połączyć?" : "Połącz";
-      go.classList.toggle("armed", gmMerge.armed);
-      go.onclick = () => { if (!gmMerge.armed) { gmMerge.armed = true; renderGm(); return; } mergePlayer(g, name, gmMerge.uid); };
+      go.textContent = "Połącz";
+      go.onclick = () => confirmDialog({title: "Połączyć z kontem?", text: "Wyniki gracza „" + name + "” (" + plural(n, "wynik", "wyniki", "wyników") + ") przejdą na konto „" + accName + "”.", icon: "⇄", yes: "Połącz", onYes: () => mergePlayer(g, name, gmMerge.uid)});
       box.appendChild(f);
     });
   }
   async function mergePlayer(g, name, u){
-    const accName = (g.memberNames || {})[u] || name;
+    const accName = uname(g, u) !== "?" ? uname(g, u) : name;
     const plays = playsWithName(g.id, name).filter(pl => !(pl.scores || []).some(sc => sc.uid === u));   // konto już w wyniku – pomijam
     gmMerge = null;
     try {
@@ -1345,7 +1414,7 @@
       if (!canEdit(g) || !(g.players || []).length) continue;
       for (const u of (g.memberIds || [])) {
         if (u === me.uid) continue;
-        const full = (g.memberNames || {})[u] || "", first = full.split(/\s+/)[0];
+        const full = uname(g, u), first = full.split(/\s+/)[0];
         const name = g.players.find(p => [normName(full), normName(first)].includes(normName(p)));
         if (!name || lsGet("pl-nomerge-" + g.id + "-" + normName(name) + "-" + u, false)) continue;
         if (!playsWithName(g.id, name).length) continue;
@@ -1384,7 +1453,8 @@
       const docs = []
         .concat(await grab(pcol(g.id).where("viewers", "array-contains", me.uid)))
         .concat(await grab(lcol(g.id).where("scope", "==", "group")))
-        .concat(await grab(lcol(g.id).where("viewers", "array-contains", me.uid)));
+        .concat(await grab(lcol(g.id).where("viewers", "array-contains", me.uid)))
+        .concat(await grab(gref(g.id).collection("covers")));
       const seen = new Set();
       const uniq = docs.filter(d => !seen.has(d.ref.path) && seen.add(d.ref.path));
       try { await scol(g.id).doc(me.uid).delete(); } catch(e){}
@@ -1425,7 +1495,7 @@
   let rf = null;
   function accounts(){
     const m = new Map();
-    groups.forEach(g => Object.entries(g.memberNames || {}).forEach(([u, n]) => { if ((g.memberIds || []).includes(u) && n) m.set(u, n); }));
+    groups.forEach(g => Object.entries(g.memberNames || {}).forEach(([u, n]) => { if ((g.memberIds || []).includes(u) && (n || regs[u])) m.set(u, uname(g, u)); }));
     return m;
   }
   const scoreKey = s => s.uid ? "u:" + s.uid : "n:" + s.p;
@@ -1565,13 +1635,11 @@
     const box = $("rfManageList"); box.innerHTML = "";
     allPlayers().forEach(p => {
       const b = document.createElement("button"); b.type = "button";
-      b.className = "chip" + (plArmed === p ? " on" : "");
-      b.textContent = plArmed === p ? "Usunąć „" + p + "”?" : p + "  ✕";
-      b.onclick = async () => {
-        if (plArmed !== p) { plArmed = p; renderManage(); return; }
-        plArmed = null;
+      b.className = "chip";
+      b.textContent = p + "  ✕";
+      b.onclick = () => confirmDialog({title: "Usunąć gracza z listy?", text: "„" + p + "” zniknie z listy graczy do wyboru. Zapisane wyniki zostaną.", icon: "🗑", yes: "Usuń", danger: true, onYes: async () => {
         for (const g of groups) if ((g.players || []).includes(p)) await upd(g.id, {players: FV.arrayRemove(p)}, "Usunięcie gracza z listy: " + p, "player");
-      };
+      }});
       box.appendChild(b);
     });
   }
@@ -1605,9 +1673,10 @@
     if (rf.mode === "coop") play.coopWin = rf.coopWin;
     const selExps = f ? exps(f.game).filter(e => rf.exps.has(e.id)) : (rf.orig && rf.orig.exps) || [];
     play.exps = selExps.map(e => ({id: e.id, name: e.name}));
-    // kto widzi wynik: gracze z kontem + osoba, która go wpisała
+    // kto widzi wynik: gracze z kontem + osoba, która go teraz zapisuje.
+    // Osoba usunięta z rozgrywki (także autor) przestaje widzieć wynik.
     const accountUids = [...new Set(scores.filter(x => x.uid).map(x => x.uid))];
-    play.viewers = [...new Set(accountUids.concat(play.createdBy))];
+    play.viewers = [...new Set(accountUids.concat(me.uid))];
     const g = groupById(gid);
     $("rfSave").disabled = true;
     try {
@@ -1696,6 +1765,7 @@
         t.appendChild(tr);
       });
     }
+    renderH2H(shown, acc);
     const ul = $("resList"); ul.innerHTML = "";
     if (!shown.length) { ul.innerHTML = '<li class="empty" style="justify-content:center">—</li>'; return; }
     shown.slice(0, 15).forEach(pl => ul.appendChild(resultItem(pl, acc)));
@@ -1739,17 +1809,13 @@
     fillPlayers(li.querySelector(".rs"), pl, acc);
     if (mayEdit) {
       li.querySelector(".ed").onclick = () => { ui.resArmed = null; openResult(null, null, pl); };
-      const del = li.querySelector(".del");
-      if (ui.resArmed === pl.id) { del.classList.add("armed"); del.textContent = "Usuń?"; }
-      del.onclick = () => {
-        if (ui.resArmed !== pl.id) { ui.resArmed = pl.id; renderResults(); renderAllRes(); return; }
-        ui.resArmed = null;
+      li.querySelector(".del").onclick = () => confirmDialog({title: "Usunąć wynik?", text: playLabel(pl) + " z " + fmt(pl.at) + ". Gra wróci do losowania u graczy z tej partii.", icon: "🗑", yes: "Usuń", danger: true, onYes: () => {
         commitB((b, log, extra) => {
           b.delete(pcol(pl.groupId).doc(pl.id));
           extra(b => unmarkPlay(b, pl));
           log(pl.groupId, "result", "Usunięcie wyniku: " + q(playLabel(pl)) + " z " + fmt(pl.at), pl.viewers || [me.uid]);
         }).catch(e => toast(errMsg(e)));
-      };
+      }});
     }
     return li;
   }
@@ -1812,6 +1878,66 @@
   $("arTo").onchange = e => { arF.to = e.target.value; arF.limit = 50; renderAllRes(); };
   $("arReset").onclick = () => { Object.assign(arF, {group: "all", game: "", player: "", from: "", to: "", limit: 50}); renderAllRes(); };
   $("addResult").onclick = () => openResult(null, null);
+  // ---------- Pojedynki 1 na 1 ----------
+  const h2h = {a: "", b: ""};
+  function renderH2H(plays, acc){
+    const card = $("h2hCard");
+    const names = new Map(), together = new Map();
+    plays.forEach(p => (p.scores || []).forEach(sc => names.set(scoreKey(sc), sc.uid ? (acc.get(sc.uid) || sc.p) : sc.p)));
+    if (names.size < 2) { card.hidden = true; return; }
+    card.hidden = false;
+    // domyślnie: ja i osoba, z którą najczęściej gram
+    const meKey = "u:" + me.uid;
+    if (!names.has(h2h.a)) h2h.a = names.has(meKey) ? meKey : [...names.keys()][0];
+    plays.forEach(p => { const ks = (p.scores || []).map(scoreKey); if (ks.includes(h2h.a)) ks.forEach(k => { if (k !== h2h.a) together.set(k, (together.get(k) || 0) + 1); }); });
+    if (!names.has(h2h.b) || h2h.b === h2h.a) h2h.b = [...together.entries()].sort((x, y) => y[1] - x[1])[0]?.[0] || [...names.keys()].find(k => k !== h2h.a);
+    const fill = (sel, cur) => { sel.innerHTML = ""; [...names.entries()].sort((x, y) => cmp(x[1], y[1])).forEach(([k, n]) => { const o = document.createElement("option"); o.value = k; o.textContent = n; sel.appendChild(o); }); sel.value = cur; };
+    fill($("h2hA"), h2h.a); fill($("h2hB"), h2h.b);
+    const A = h2h.a, B = h2h.b, nA = names.get(A), nB = names.get(B);
+    // wspólne partie, od najstarszej; kto był lepszy: punkty (wg trybu), a bez punktów – zwycięstwo
+    const common = plays.filter(p => { const ks = (p.scores || []).map(scoreKey); return ks.includes(A) && ks.includes(B); }).sort((x, y) => x.at - y.at);
+    const res = common.map(p => {
+      const sa = p.scores.find(sc => scoreKey(sc) === A), sb = p.scores.find(sc => scoreKey(sc) === B);
+      let d = 0;
+      if (p.mode !== "coop" && sa.pts !== undefined && sb.pts !== undefined) d = (p.mode === "min" ? -1 : 1) * Math.sign(sa.pts - sb.pts);
+      else d = (scoreWon(p, sa) ? 1 : 0) - (scoreWon(p, sb) ? 1 : 0);
+      return {p, d};
+    });
+    const wa = res.filter(r => r.d > 0).length, wb = res.filter(r => r.d < 0).length, dr = res.length - wa - wb;
+    // serie: aktualna i najdłuższa
+    let cur = 0, curWho = 0, bestA = 0, bestB = 0, run = 0, runWho = 0;
+    res.forEach(r => { if (r.d && r.d === runWho) run++; else { run = r.d ? 1 : 0; runWho = r.d; } if (runWho > 0) bestA = Math.max(bestA, run); if (runWho < 0) bestB = Math.max(bestB, run); });
+    cur = run; curWho = runWho;
+    const body = $("h2hBody"); body.innerHTML = "";
+    if (!common.length) { body.innerHTML = '<p class="h2hnone">Ci gracze nie grali jeszcze razem.</p>'; return; }
+    const top = document.createElement("div"); top.className = "h2htop";
+    top.innerHTML = '<div class="h2hp a"><span class="hn"></span><b class="hs"></b></div><div class="h2hvs">:</div><div class="h2hp b"><b class="hs"></b><span class="hn"></span></div>';
+    top.querySelector(".a .hn").textContent = nA; top.querySelector(".a .hs").textContent = wa;
+    top.querySelector(".b .hn").textContent = nB; top.querySelector(".b .hs").textContent = wb;
+    if (wa > wb) top.querySelector(".a").classList.add("lead"); if (wb > wa) top.querySelector(".b").classList.add("lead");
+    body.appendChild(top);
+    const info = document.createElement("div"); info.className = "h2hinfo";
+    const lines = [plural(common.length, "wspólna partia", "wspólne partie", "wspólnych partii") + (dr ? " · remisy: " + dr : "")];
+    if (cur >= 2) lines.push("Aktualna seria: " + (curWho > 0 ? nA : nB) + " lepszy(-a) " + cur + " razy z rzędu");
+    if (bestA || bestB) lines.push("Najdłuższa seria: " + nA + " " + bestA + " · " + nB + " " + bestB);
+    lines.forEach(t => { const d = document.createElement("div"); d.textContent = t; info.appendChild(d); });
+    body.appendChild(info);
+    // rozbicie na gry
+    const per = new Map();
+    res.forEach(r => { const f = findGame(r.p.gameId, r.p.groupId); const k = r.p.groupId + "|" + r.p.gameId; const o = per.get(k) || {name: f ? f.game.name : r.p.gameName, a: 0, b: 0, n: 0}; o.n++; if (r.d > 0) o.a++; if (r.d < 0) o.b++; per.set(k, o); });
+    const t = document.createElement("table"); t.className = "rank h2ht";
+    t.innerHTML = "<tr><th>Gra</th><th></th><th></th></tr>";
+    t.querySelectorAll("th")[1].textContent = nA.split(" ")[0]; t.querySelectorAll("th")[2].textContent = nB.split(" ")[0];
+    [...per.values()].sort((x, y) => y.n - x.n || cmp(x.name, y.name)).forEach(o => {
+      const tr = document.createElement("tr"); tr.innerHTML = "<td></td><td class='w'></td><td class='w'></td>";
+      tr.children[0].textContent = o.name + " (" + o.n + ")"; tr.children[1].textContent = o.a; tr.children[2].textContent = o.b;
+      if (o.a > o.b) tr.children[1].classList.add("h2hwin"); if (o.b > o.a) tr.children[2].classList.add("h2hwin");
+      t.appendChild(tr);
+    });
+    body.appendChild(t);
+  }
+  $("h2hA").onchange = e => { h2h.a = e.target.value; if (h2h.b === h2h.a) h2h.b = ""; renderResults(); };
+  $("h2hB").onchange = e => { h2h.b = e.target.value; renderResults(); };
   // Usunięcie wyniku: gra (wersje z tego wyniku) wraca do losowania u graczy z kontem, którzy w nim byli –
   // chyba że ta sama wersja jest jeszcze w innym wyniku z ich udziałem.
   function unmarkPlay(b, pl, keepFn){
@@ -1894,7 +2020,7 @@
       if (isNew) li.className = "new";
       li.innerHTML = '<div class="lh"><b></b><span></span></div><div class="lt"></div>';
       li.querySelector("b").innerHTML = isNew ? '<span class="lnew" title="Nowy wpis">🔔</span>' : "";
-      li.querySelector("b").appendChild(document.createTextNode(e.name || "?"));
+      li.querySelector("b").appendChild(document.createTextNode((e.by && regs[e.by] && regs[e.by].name) || e.name || "?"));
       const g = e.groupId && groupById(e.groupId);
       li.querySelector(".lh > span").textContent = fmtDT(e.at) + (g && groups.length > 1 && logGroup === "all" ? " · " + g.name : "");
       const lt = li.querySelector(".lt");
@@ -1959,12 +2085,11 @@
     const nPlays = Array.isArray(data.plays) ? data.plays.length : 0;
     const btn = $("bkImport");
     if (!importArmed) {
-      importArmed = true; btn.textContent = "Importować?";
-      bkMsg("Powstanie " + plural(data.groups.length, "nowa grupa", "nowe grupy", "nowych grup") + " (" + plural(nGames, "gra", "gry", "gier") + ", " + plural(nPlays, "wynik", "wyniki", "wyników") + "). Naciśnij jeszcze raz, aby potwierdzić.");
-      setTimeout(() => { importArmed = false; btn.textContent = "Importuj"; }, 6000);
+      confirmDialog({title: "Zaimportować kopię?", text: "Powstanie " + plural(data.groups.length, "nowa grupa", "nowe grupy", "nowych grup") + " (" + plural(nGames, "gra", "gry", "gier") + ", " + plural(nPlays, "wynik", "wyniki", "wyników") + "). Istniejące grupy zostaną bez zmian.", icon: "⛁", yes: "Importuj",
+        onYes: () => { importArmed = true; btn.click(); }});
       return;
     }
-    importArmed = false; btn.textContent = "Importuj"; btn.disabled = true;
+    importArmed = false; btn.disabled = true;
     bkMsg("Importuję…");
     try {
       const idMap = {};
