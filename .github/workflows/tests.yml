@@ -16,10 +16,11 @@ jobs:
         with:
           python-version: "3.12"
       - name: Playwright
-        run: |
-          pip install --quiet playwright
-          python -m playwright install --with-deps chromium
+        run: pip install --quiet playwright
       - name: Uruchom testy
+        # Chrome jest już zainstalowany na maszynie GitHuba – bez pobierania przeglądarki i pakietów systemowych
+        env:
+          CHROME: /usr/bin/google-chrome
         run: python tests/ui_test.py
       - uses: actions/upload-artifact@v4
         if: failure()
