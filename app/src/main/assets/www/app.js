@@ -2053,7 +2053,7 @@
     const form = document.createElement("div"); form.className = "pfform";
     const fl = document.createElement("span"); fl.className = "tl"; fl.textContent = "Forma (ostatnie partie)"; form.appendChild(fl);
     const fr = document.createElement("div"); fr.className = "pfdots";
-    mine.slice(0, 5).reverse().forEach(p => { const d = document.createElement("span"); const w = won(p); d.className = "pfd " + (w ? "w" : "l"); d.textContent = w ? "W" : "P"; d.title = playGameName(p) + " · " + fmt(p.at); fr.appendChild(d); });
+    mine.slice(0, 5).reverse().forEach(p => { const d = document.createElement("span"); const w = won(p); d.className = "pfd " + (w ? "w" : "l"); d.textContent = w ? "W" : "P"; d.title = playGameName(p) + " · " + fmt(p.at); d.onclick = () => toast((w ? "Wygrana: " : "Bez wygranej: ") + d.title); fr.appendChild(d); });
     form.appendChild(fr); body.appendChild(form);
     // gry
     const per = new Map();
