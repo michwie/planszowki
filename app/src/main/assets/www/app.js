@@ -101,27 +101,36 @@
   // Zapis paczką zmian razem z wpisem do dziennika; gdy dziennik jest niedozwolony – zapis bez niego.
   // fill(batch, log, extra): log(gid, typ, tekst, [widzowie]) – wpis do dziennika; extra(b => ...) – prywatny stan graczy.
   // Gdy reguły jeszcze na to nie pozwalają – zapis samych zmian głównych.
+  let logExtraOk = true;   // false, gdy reguły nie znają jeszcze pola playId we wpisie
   async function commitB(fill){
     const run = async full => {
       const b = db.batch();
-      fill(b, full ? (gid, t, x, viewers) => logTo(gid, t, x, b, viewers) : () => {}, full ? f => f(b) : () => {});
+      fill(b, full ? (gid, t, x, viewers, extra) => logTo(gid, t, x, b, viewers, extra) : () => {}, full ? f => f(b) : () => {});
       await b.commit();
     };
     if (logOk) {
       try { await run(true); return; }
-      catch(e){ if (!String(e.code).includes("permission-denied")) throw e; logOk = false; }
+      catch(e){
+        if (!String(e.code).includes("permission-denied")) throw e;
+        if (logExtraOk) {   // może to tylko nowe pole wpisu – spróbuj bez niego
+          logExtraOk = false;
+          try { await run(true); return; } catch(e2){ if (!String(e2.code).includes("permission-denied")) throw e2; }
+        }
+        logOk = false;
+      }
     }
     await run(false);
   }
   function stateSet(b, gid, u, data){ b.set(scol(gid).doc(u), Object.assign(data, {updatedAt: Date.now()}), {merge: true}); }
-  function logEntry(type, text, viewers){
+  function logEntry(type, text, viewers, extra){
     const e = {at: Date.now(), by: me.uid, name: me.name, type, text: String(text).slice(0, 300), scope: viewers ? "private" : "group"};
     if (viewers) e.viewers = [...new Set(viewers.concat(me.uid))];
+    if (extra && extra.playId && logExtraOk) e.playId = String(extra.playId);
     return e;
   }
-  function logTo(gid, type, text, batch, viewers){
+  function logTo(gid, type, text, batch, viewers, extra){
     if (!logOk) return;
-    const e = logEntry(type, text, viewers);
+    const e = logEntry(type, text, viewers, extra);
     if (batch) batch.set(lcol(gid).doc(), e);
     else lcol(gid).doc().set(e).catch(() => {});
   }
@@ -997,7 +1006,7 @@
   function navH(){ const n = $("tabbar"); return n && !n.hidden ? n.offsetHeight : 0; }
   function showView(v){
     curView = v;
-    if (v === "news") markNewsSeen();
+    if (v === "news") { newsPrevSeen = lsGet(newsKey(), 0) || Infinity; logLimit = LOG_STEP; markNewsSeen(); renderLog(); }
     document.querySelectorAll("#appView .view").forEach(el => el.hidden = el.id !== "v-" + v);
     document.querySelectorAll("#tabbar .tb").forEach(b => { const on = b.dataset.view === v; b.classList.toggle("on", on); b.setAttribute("aria-current", on ? "page" : "false"); });
     window.scrollTo(0, 0);
@@ -1646,16 +1655,8 @@
     const ab = $("openAllRes"); ab.hidden = !plays.length;
     ab.textContent = "☰ Wszystkie wyniki (" + plays.length + ") · filtrowanie";
   }
-  // jeden wynik na liście (ostatnie wyniki i okno „Wszystkie wyniki”)
-  function resultItem(pl, acc){
-    const g = groupById(pl.groupId);
-    const mayEdit = canEdit(g);
-    const li = document.createElement("li");
-    li.innerHTML = '<div class="rb"><div class="rt"><b></b><span></span></div><div class="rs"></div></div>' +
-      (mayEdit ? '<button class="ib ed" title="Edytuj wynik">✎</button><button class="ib del" title="Usuń wynik">🗑</button>' : '');
-    li.querySelector("b").textContent = playLabel(pl);
-    li.querySelector(".rt span").textContent = fmt(pl.at) + (groups.length > 1 && g ? " · " + g.name : "");
-    const rs = li.querySelector(".rs");
+  // gracze wyniku: każdy w osobnej linii, z pucharem za miejsce i punktami (wyniki, wszystkie wyniki, aktualności)
+  function fillPlayers(rs, pl, acc){
     const sorted = (pl.scores || []).slice().sort((a,b) => (pl.mode === "min" ? 1 : -1) * ((a.pts ?? -Infinity) - (b.pts ?? -Infinity)));
     // miejsca w partii: zwycięzcy 1., dalej według punktów (ten sam wynik = to samo miejsce); w kooperacji tylko zwycięzcy
     const hasPts = pl.mode !== "coop" && sorted.every(sc => sc.pts !== undefined);
@@ -1678,6 +1679,17 @@
       rs.appendChild(row);
     });
     if (pl.mode === "coop") { const c = document.createElement("div"); c.className = "rpc"; c.textContent = pl.coopWin ? "Kooperacja – wygrana" : "Kooperacja – przegrana"; rs.appendChild(c); }
+  }
+  // jeden wynik na liście (ostatnie wyniki i okno „Wszystkie wyniki”)
+  function resultItem(pl, acc){
+    const g = groupById(pl.groupId);
+    const mayEdit = canEdit(g);
+    const li = document.createElement("li");
+    li.innerHTML = '<div class="rb"><div class="rt"><b></b><span></span></div><div class="rs"></div></div>' +
+      (mayEdit ? '<button class="ib ed" title="Edytuj wynik">✎</button><button class="ib del" title="Usuń wynik">🗑</button>' : '');
+    li.querySelector("b").textContent = playLabel(pl);
+    li.querySelector(".rt span").textContent = fmt(pl.at) + (groups.length > 1 && g ? " · " + g.name : "");
+    fillPlayers(li.querySelector(".rs"), pl, acc);
     if (mayEdit) {
       li.querySelector(".ed").onclick = () => { ui.resArmed = null; openResult(null, null, pl); };
       const del = li.querySelector(".del");
@@ -1775,7 +1787,33 @@
 
   // ================= CHANGE LOG =================
   let logGroup = "all";
-  const LOG_MAX = 5;   // Aktualności pokazują najwyżej 5 najnowszych wpisów
+  const LOG_STEP = 20;   // Aktualności: 20 wpisów, przycisk „Starsze” doczytuje kolejne 20
+  let logLimit = LOG_STEP, newsPrevSeen = Infinity;
+  $("logMore").onclick = () => { logLimit += LOG_STEP; renderLog(); };
+  // wpis o wyniku wygląda jak w zakładce Wyniki: gra, potem gracze w osobnych liniach
+  function renderLogResult(lt, e, acc){
+    if (e.type !== "result") return false;
+    const m = String(e.text).match(/^(Dodanie|Zmiana|Usunięcie) wyniku: „(.+?)”\s*(?:–\s*(.*)|z (.*))?$/);
+    if (!m) return false;
+    const head = document.createElement("div"); head.className = "lrh";
+    head.innerHTML = '<span class="lra"></span><b></b>';
+    head.querySelector(".lra").textContent = m[1] === "Dodanie" ? "Nowy wynik" : (m[1] === "Zmiana" ? "Zmiana wyniku" : "Usunięcie wyniku");
+    head.querySelector("b").textContent = m[2];
+    lt.appendChild(head);
+    if (m[1] === "Usunięcie") { const d = document.createElement("div"); d.className = "lrd"; d.textContent = "partia z " + (m[4] || ""); lt.appendChild(d); return true; }
+    const box = document.createElement("div"); box.className = "res lres"; const rs = document.createElement("div"); rs.className = "rs"; box.appendChild(rs);
+    // gracze z treści wpisu – pokazują stan wyniku z chwili tego wpisu
+    let rest = m[3] || "", coop = "";
+    const cm = rest.match(/\s*\((kooperacja – (?:wygrana|przegrana))\)$/); if (cm) { coop = cm[1]; rest = rest.slice(0, cm.index); }
+    const scores = rest.split(", ").filter(Boolean).map(t => {
+      const win = t.startsWith("🏆 "); t = t.replace(/^🏆 /, "");
+      const pm = t.match(/^(.*?)\s+(-?\d+(?:[.,]\d+)?)$/);
+      return pm ? {p: pm[1], pts: parseFloat(pm[2].replace(",", ".")), win} : {p: t, win};
+    });
+    fillPlayers(rs, {scores, mode: coop ? "coop" : (scores.every(x => x.pts !== undefined) && scores.some(x => x.win) && scores.find(x => x.win).pts < Math.max(...scores.map(x => x.pts)) ? "min" : "max"), coopWin: coop.endsWith("wygrana"), winners: scores.filter(x => x.win).map(x => x.p)}, acc);
+    lt.appendChild(box);
+    return true;
+  }
   function renderLog(){
     if (!me) return;
     const fEl = $("logFilter"); fEl.innerHTML = ""; fEl.hidden = groups.length < 2;
@@ -1783,28 +1821,35 @@
     [{id:"all", name:"Wszystko"}].concat(groups.map(g => ({id:g.id, name:g.name}))).forEach(o => {
       const b = document.createElement("button");
       b.className = "chip" + (logGroup === o.id ? " on" : ""); b.textContent = o.name;
-      b.onclick = () => { logGroup = o.id; renderLog(); };
+      b.onclick = () => { logGroup = o.id; logLimit = LOG_STEP; renderLog(); };
       fEl.appendChild(b);
     });
     let items = Object.values(logsBy).flat();
     if (logGroup === "all") {
       const known = new Set([me.uid, ...accounts().keys()]);
-      Object.entries(regs).forEach(([u, r]) => { if (known.has(u)) items.push({at: r.at, name: r.name, text: "Rejestracja konta w aplikacji", type: "register"}); });
+      Object.entries(regs).forEach(([u, r]) => { if (known.has(u)) items.push({at: r.at, by: u, name: r.name, text: "Rejestracja konta w aplikacji", type: "register"}); });
     } else items = items.filter(e => e.groupId === logGroup);
     items.sort((a,b) => b.at - a.at);
     updateNewsDot();
     const ul = $("logList"); ul.innerHTML = "";
     if (!items.length) ul.innerHTML = '<li class="empty" style="justify-content:center">Brak wpisów.</li>';
-    items.slice(0, LOG_MAX).forEach(e => {
+    const acc = accounts();
+    items.slice(0, logLimit).forEach(e => {
       const li = document.createElement("li");
+      const isNew = e.by !== me.uid && e.at > newsPrevSeen;   // nowe od ostatniej wizyty – mały dzwonek
+      if (isNew) li.className = "new";
       li.innerHTML = '<div class="lh"><b></b><span></span></div><div class="lt"></div>';
-      li.querySelector("b").textContent = e.name || "?";
+      li.querySelector("b").innerHTML = isNew ? '<span class="lnew" title="Nowy wpis">🔔</span>' : "";
+      li.querySelector("b").appendChild(document.createTextNode(e.name || "?"));
       const g = e.groupId && groupById(e.groupId);
-      li.querySelector("span").textContent = fmtDT(e.at) + (g && groups.length > 1 && logGroup === "all" ? " · " + g.name : "");
-      li.querySelector(".lt").textContent = e.text;
+      li.querySelector(".lh > span").textContent = fmtDT(e.at) + (g && groups.length > 1 && logGroup === "all" ? " · " + g.name : "");
+      const lt = li.querySelector(".lt");
+      if (!renderLogResult(lt, e, acc)) lt.textContent = e.text;
       ul.appendChild(li);
     });
-    $("logMore").hidden = true;
+    const more = $("logMore");
+    more.hidden = items.length <= logLimit;
+    more.textContent = "Starsze (" + (items.length - logLimit) + ")";
   }
 
   // ---------- Aktualności: dzwonek świeci na czerwono, gdy jest nowy wpis od kogoś innego ----------

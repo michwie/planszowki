@@ -439,3 +439,12 @@ h1 .h1dice{display:inline-block;margin-right:10px;text-shadow:none;font-size:.95
 .tabbar .bdot{position:absolute;top:1px;right:1px;width:10px;height:10px;border-radius:50%;background:#ff3b3b;box-shadow:0 0 0 2px var(--bg),0 0 8px #ff3b3b}
 @keyframes bellRing{0%,70%,100%{transform:rotate(0)}75%{transform:rotate(14deg)}80%{transform:rotate(-12deg)}85%{transform:rotate(9deg)}90%{transform:rotate(-6deg)}95%{transform:rotate(3deg)}}
 @media (prefers-reduced-motion: reduce){ .tabbar .tb.unread .ti svg{animation:none} }
+/* Aktualności: wpisy o wynikach jak w zakładce Wyniki, nowe wpisy z dzwoneczkiem */
+.log .lrh{display:flex;align-items:baseline;gap:8px;margin-top:2px}
+.log .lrh .lra{font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--muted)}
+.log .lrh b{font-weight:400;color:var(--ink);font-size:15px}
+.log .lrd{font-size:12px;color:var(--muted)}
+.log .lres .rs{margin-top:4px}
+.log li.new{background:linear-gradient(90deg,rgba(255,59,59,.08),transparent 60%)}
+.log .lnew{font-size:12px;margin-right:6px;filter:drop-shadow(0 0 3px rgba(255,59,59,.7))}
+#logMore{display:block;width:100%;margin-top:10px;padding:10px;border:1px solid var(--line);border-radius:4px;text-align:center}
