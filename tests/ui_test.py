@@ -168,8 +168,11 @@ def imiona_z_rejestracji(c):
 def pojedynki(c):
     pg = c.open(seed())
     pg.click("#tabbar .tb[data-view=results]"); pg.wait_for_timeout(300)
-    assert visible(pg, "#h2hCard"), "brak bloku Pojedynki"
-    assert pg.inner_text("#h2hBody").strip(), "pusty blok Pojedynki"
+    assert visible(pg, "#openH2h"), "brak przycisku Pojedynki"
+    pg.click("#openH2h"); pg.wait_for_timeout(300)
+    assert visible(pg, "#h2hOv"), "nie otwiera się okno Pojedynki"
+    assert pg.inner_text("#h2hBody").strip(), "puste okno Pojedynki"
+    assert visible(pg, ".h2hleg"), "brak legendy paska"
     return pg
 
 @test

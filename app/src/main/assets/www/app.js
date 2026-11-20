@@ -1924,7 +1924,7 @@
   // ---------- Pojedynki 1 na 1 ----------
   const h2h = {a: "", b: ""};
   function renderH2H(plays, acc){
-    const card = $("h2hCard");
+    const card = $("openH2h");
     const names = new Map(), together = new Map();
     plays.forEach(p => (p.scores || []).forEach(sc => names.set(scoreKey(sc), sc.uid ? (acc.get(sc.uid) || sc.p) : sc.p)));
     if (names.size < 2) { card.hidden = true; return; }
@@ -2000,6 +2000,7 @@
     });
     body.appendChild(t);
   }
+  $("openH2h").onclick = () => openOv("h2hOv");
   $("h2hA").onchange = e => { h2h.a = e.target.value; if (h2h.b === h2h.a) h2h.b = ""; renderResults(); };
   $("h2hB").onchange = e => { h2h.b = e.target.value; renderResults(); };
   // Usunięcie wyniku: gra (wersje z tego wyniku) wraca do losowania u graczy z kontem, którzy w nim byli –

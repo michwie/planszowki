@@ -123,11 +123,7 @@
     <table class="rank" id="rank"></table>
   </section>
 
-  <section class="card" id="h2hCard" hidden>
-    <h2>Pojedynki</h2>
-    <div class="h2hsel"><select id="h2hA" aria-label="Gracz 1"></select><span class="h2hvsl">VS</span><select id="h2hB" aria-label="Gracz 2"></select></div>
-    <div id="h2hBody"></div>
-  </section>
+  <button class="listbtn h2hopen" id="openH2h" hidden>⚔ Pojedynki</button>
 
   <section class="card">
     <h2>Ostatnie wyniki</h2>
@@ -213,6 +209,17 @@
       <button type="button" class="gebtn gedelgame" id="geDelGame">🗑 Usuń grę</button>
     </div>
     <div class="row2" style="margin-top:10px"><button class="ghost" id="geCancel">Anuluj</button><button class="ok" id="geSave">✓ Zapisz</button></div>
+  </div>
+</div>
+
+<!-- ================= POJEDYNKI ================= -->
+<div class="ov" id="h2hOv" hidden role="dialog" aria-modal="true" aria-label="Pojedynki">
+  <div class="ovin">
+    <div class="ovhead"><h2>Pojedynki</h2><button class="ovclose" data-close="h2hOv" aria-label="Zamknij">✕</button></div>
+    <div class="ovscroll" style="border-top:0">
+      <div class="h2hsel"><select id="h2hA" aria-label="Gracz 1"></select><span class="h2hvsl">VS</span><select id="h2hB" aria-label="Gracz 2"></select></div>
+      <div id="h2hBody"></div>
+    </div>
   </div>
 </div>
 
@@ -582,11 +589,15 @@
       <p>Ranking jest liczony z wyników, które widzisz. Przy kilku grupach można wybrać jedną grupę lub wszystkie.</p>
 
       <h4>Pojedynki</h4>
-      <p>Blok <b>Pojedynki</b> w zakładce <b>Wyniki</b> porównuje dwóch graczy. Wybierz ich na listach (domyślnie Ty i osoba, z którą grasz najczęściej). Widać:</p>
+      <p>Przycisk <b>⚔ Pojedynki</b> w zakładce <b>Wyniki</b> (pod rankingiem) otwiera okno, które porównuje dwóch graczy. Przycisk jest widoczny, gdy w wynikach jest co najmniej dwóch graczy. Wybierz graczy na listach u góry okna (domyślnie Ty i osoba, z którą grasz najczęściej). W oknie widać:</p>
       <ul>
-        <li>bilans: ile razy każdy z nich był lepszy we wspólnych partiach (liczą się punkty, a bez punktów zwycięstwo), oraz remisy,</li>
-        <li>aktualną serię (gdy ktoś był lepszy co najmniej 2 razy z rzędu) i najdłuższe serie obu graczy,</li>
-        <li>bilans w każdej grze osobno.</li>
+        <li><b>Wynik pojedynku</b>: duże liczby pod wybranymi graczami mówią, ile razy każdy z nich był lepszy we wspólnych partiach. Liczą się punkty, a w partiach bez punktów zwycięstwo. Liczba osoby, która prowadzi, jest wyróżniona.</li>
+        <li><b>Pasek z legendą</b>: proporcja wygranych pierwszego gracza (kolor motywu), remisów (szary) i wygranych drugiego gracza (bursztynowy).</li>
+        <li><b>Wspólne partie</b>: ile partii rozegrali razem.</li>
+        <li><b>Remisy</b>: partie, w których żaden z nich nie był lepszy.</li>
+        <li><b>Aktualna seria</b>: ile razy z rzędu ostatnio wygrywa ta sama osoba (od 2 razy). Gdy serii nie ma, widać „brak serii”.</li>
+        <li><b>Najdłuższa seria</b>: rekordowe serie obu graczy, w tej samej kolejności co na listach, i imię rekordzisty.</li>
+        <li>Tabela z bilansem w każdej grze osobno.</li>
       </ul>
 
       <h3>10. Lista wszystkich gier</h3>
