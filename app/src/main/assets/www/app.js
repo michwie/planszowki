@@ -2038,7 +2038,8 @@
     const body = $("pfBody"); body.innerHTML = "";
     const kind = document.createElement("div"); kind.className = "pfkind";
     kind.textContent = K.startsWith("u:") ? "Konto w aplikacji" : "Gracz bez konta";
-    if (mine.length) { const fp = document.createElement("div"); fp.textContent = "Pierwsza partia: " + fmt(mine[mine.length - 1].at) + " · ostatnia: " + fmt(mine[0].at); kind.appendChild(fp); }
+    if (mine.length) [["Pierwsza partia", mine[mine.length - 1].at], ["Ostatnia partia", mine[0].at]].forEach(([l, t]) => {
+      const fp = document.createElement("div"); fp.className = "pfdate"; fp.textContent = l + ": "; const b = document.createElement("b"); b.textContent = fmt(t); fp.appendChild(b); kind.appendChild(fp); });
     body.appendChild(kind);
     if (!mine.length) { const e = document.createElement("p"); e.className = "h2hnone"; e.textContent = "Brak wyników tego gracza."; body.appendChild(e); return; }
     const won = p => scoreWon(p, p.scores.find(sc => scoreKey(sc) === K));
