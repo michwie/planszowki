@@ -473,9 +473,15 @@ li.game .gcov{width:34px;height:34px;object-fit:cover;border-radius:4px;flex:non
 .homehint{color:var(--muted);text-align:center;font-size:14px;margin:30px 10px}
 @media (min-width:600px){ #v-home{flex:1;display:flex;flex-direction:column;justify-content:center} }
 /* pojedynki 1 na 1 */
-.h2hsel{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px;margin-bottom:4px}
-.h2hsel select{min-width:0;width:100%}
-.h2hvsl{font-family:var(--font-head);font-weight:800;font-size:12px;letter-spacing:2px;color:var(--muted)}
+.h2hsel{display:grid;grid-template-columns:1fr auto 1fr;align-items:stretch;gap:8px;margin-bottom:4px}
+.h2hpick{position:relative;display:flex;align-items:center;gap:6px;min-width:0;min-height:52px;padding:8px 10px;border:1px solid var(--line);border-radius:3px;background:var(--input-bg);cursor:pointer}
+.h2hpick:focus-within{border-color:var(--glow)}
+.h2hpick .pn{flex:1;min-width:0;display:flex;flex-direction:column;line-height:1.25;overflow-wrap:anywhere}
+.h2hpick .pn b{font-weight:700;color:var(--ink)}
+.h2hpick .pn span{font-size:13px;color:var(--muted)}
+.h2hpick .pc{color:var(--muted);font-size:12px}
+.h2hpick select{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;padding:0;border:0}
+.h2hvsl{align-self:center;font-family:var(--font-head);font-weight:800;font-size:12px;letter-spacing:2px;color:var(--muted)}
 .h2hscore{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px;margin:10px 0 8px}
 .h2hscore .hs{text-align:center;font-family:var(--font-head);font-size:44px;font-weight:800;line-height:1;color:var(--ink)}
 .h2hscore .hs.lead{color:var(--glow);text-shadow:0 0 12px rgba(var(--glow-rgb),calc(.6*var(--gs)))}

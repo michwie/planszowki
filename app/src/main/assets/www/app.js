@@ -1936,6 +1936,10 @@
     if (!names.has(h2h.b) || h2h.b === h2h.a) h2h.b = [...together.entries()].sort((x, y) => y[1] - x[1])[0]?.[0] || [...names.keys()].find(k => k !== h2h.a);
     const fill = (sel, cur) => { sel.innerHTML = ""; [...names.entries()].sort((x, y) => cmp(x[1], y[1])).forEach(([k, n]) => { const o = document.createElement("option"); o.value = k; o.textContent = n; sel.appendChild(o); }); sel.value = cur; };
     fill($("h2hA"), h2h.a); fill($("h2hB"), h2h.b);
+    // widoczna nazwa: imię w pierwszej linii, nazwisko w drugiej (lista wyboru otwiera się po stuknięciu)
+    const two = (el, n) => { el.innerHTML = ""; const parts = String(n || "").trim().split(/\s+/); const b = document.createElement("b"); b.textContent = parts[0] || ""; el.appendChild(b);
+      if (parts.length > 1) { const sp = document.createElement("span"); sp.textContent = parts.slice(1).join(" "); el.appendChild(sp); } };
+    two($("h2hAn"), names.get(h2h.a)); two($("h2hBn"), names.get(h2h.b));
     const A = h2h.a, B = h2h.b, nA = names.get(A), nB = names.get(B);
     // wspólne partie, od najstarszej; kto był lepszy: punkty (wg trybu), a bez punktów – zwycięstwo
     const common = plays.filter(p => { const ks = (p.scores || []).map(scoreKey); return ks.includes(A) && ks.includes(B); }).sort((x, y) => x.at - y.at);
