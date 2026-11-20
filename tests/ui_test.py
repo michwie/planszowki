@@ -190,6 +190,30 @@ def wylogowanie_z_potwierdzeniem(c):
     assert visible(pg, "#authView"), "po wylogowaniu powinien być ekran logowania"
     return pg
 
+# 1x1 JPEG
+JPG = bytes.fromhex("ffd8ffe000104a46494600010100000100010000ffdb004300080606070605080707070909080a0c140d0c0b0b0c1912130f141d1a1f1e1d1a1c1c20242e2720222c231c1c2837292c30313434341f27393d38323c2e333432ffc0000b080001000101011100ffc4001f0000010501010101010100000000000000000102030405060708090a0bffc400b5100002010303020403050504040000017d01020300041105122131410613516107227114328191a1082342b1c11552d1f02433627282090a161718191a25262728292a3435363738393a434445464748494a535455565758595a636465666768696a737475767778797a838485868788898a92939495969798999aa2a3a4a5a6a7a8a9aab2b3b4b5b6b7b8b9bac2c3c4c5c6c7c8c9cad2d3d4d5d6d7d8d9dae1e2e3e4e5e6e7e8e9eaf1f2f3f4f5f6f7f8f9faffda0008010100003f00fbd3ffd9")
+
+@test
+def okladka_z_wikipedii(c):
+    pg = c.open(seed())
+    api = {"query": {"pages": {"1": {"index": 1, "title": "Catan (gra)", "thumbnail": {"source": "https://upload.wikimedia.org/catan.jpg"}}}}}
+    pg.route("https://*.wikipedia.org/**", lambda r: r.fulfill(status=200, content_type="application/json",
+             headers={"Access-Control-Allow-Origin": "*"}, body=json.dumps(api)))
+    pg.route("https://upload.wikimedia.org/**", lambda r: r.fulfill(status=200, content_type="image/jpeg",
+             headers={"Access-Control-Allow-Origin": "*"}, body=JPG))
+    pg.click("#tabbar .tb[data-view=games]"); pg.click("#openList"); pg.wait_for_timeout(300)
+    pg.click("#allList li.game:has-text('Catan') .xed"); pg.wait_for_timeout(200)
+    pg.click("#allList .covweb"); pg.wait_for_timeout(800)
+    assert visible(pg, "#cs"), "brak okna szukania okładki"
+    assert pg.input_value("#csQ") == "Catan", "tytuł nie został wpisany"
+    items = pg.query_selector_all("#csGrid .csit")
+    assert len(items) == 1, "wyniki: %d" % len(items)
+    items[0].click(); pg.wait_for_timeout(800)
+    cov = docs(pg).get("groups/G1/covers/c1")
+    assert cov and cov["img"].startswith("data:image/jpeg;base64,"), "okładka nie zapisana"
+    assert not visible(pg, "#cs"), "okno powinno się zamknąć"
+    return pg
+
 @test
 def wszystkie_zakladki_bez_bledow(c):
     pg = c.open(seed())

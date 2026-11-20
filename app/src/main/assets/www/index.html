@@ -194,6 +194,19 @@
   </div>
 </div>
 
+<!-- ================= SZUKANIE OKŁADKI ================= -->
+<div class="ov" id="cs" hidden role="dialog" aria-modal="true" aria-label="Szukaj okładki">
+  <div class="ovin">
+    <div class="ovhead"><h2>Szukaj okładki</h2><button class="ovclose" data-close="cs" aria-label="Zamknij">✕</button></div>
+    <div class="ovscroll" style="border-top:0">
+      <form class="add" id="csForm"><input type="text" id="csQ" maxlength="80" autocomplete="off" aria-label="Tytuł gry"><button type="submit">Szukaj</button></form>
+      <div class="csst" id="csSt"></div>
+      <div class="csgrid" id="csGrid"></div>
+      <div class="cssrc">Zdjęcia z Wikipedii. Stuknij okładkę, aby ją ustawić.</div>
+    </div>
+  </div>
+</div>
+
 <!-- ================= WYNIK ================= -->
 <div class="ov" id="rf" hidden role="dialog" aria-modal="true" aria-label="Wynik">
   <div class="ovin">
@@ -580,7 +593,7 @@
       <h4>Edycja gry i rozszerzeń</h4>
       <ol>
         <li>Naciśnij <b>✎</b> przy grze.</li>
-        <li>Aby dodać okładkę, naciśnij <b>📷 Dodaj okładkę</b> i wybierz zdjęcie z galerii albo zrób zdjęcie pudełka aparatem. <b>Usuń okładkę</b> ją usuwa.</li>
+        <li>Okładkę dodasz na dwa sposoby. <b>📷 Własne zdjęcie</b>: wybierz zdjęcie z galerii albo zrób zdjęcie pudełka aparatem. <b>🔎 Szukaj w internecie</b>: aplikacja szuka zdjęć w Wikipedii po tytule gry. Jeśli wyniki nie pasują, popraw nazwę (np. wpisz tytuł po angielsku) i naciśnij <b>Szukaj</b>. Stuknij wybrane zdjęcie, aby ustawić je jako okładkę. <b>Usuń okładkę</b> ją usuwa.</li>
         <li>Popraw nazwę gry lub wpisz nazwę nowego rozszerzenia.</li>
         <li>Naciśnij <b>✓ Gotowe</b>, aby zapisać, lub <b>Anuluj</b>, aby zrezygnować.</li>
       </ol>

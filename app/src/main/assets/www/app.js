@@ -329,17 +329,69 @@
     return im;
   }
   // wybór okładki: w aplikacji – galeria lub aparat (Android), w przeglądarce – plik
+  function saveCover(g, game, url){
+    if (!url) return Promise.resolve();
+    return shrinkImage(url, 320).then(img => gref(g.id).collection("covers").doc(game.id).set({img, by: me.uid, updatedAt: Date.now()}))
+      .then(() => toast("Zapisano okładkę „" + game.name + "”")).catch(e => toast(errMsg(e)));
+  }
   function pickCover(g, game){
-    const save = url => {
-      if (!url) return;
-      shrinkImage(url, 320).then(img => gref(g.id).collection("covers").doc(game.id).set({img, by: me.uid, updatedAt: Date.now()}))
-        .then(() => toast("Zapisano okładkę „" + game.name + "”")).catch(e => toast(errMsg(e)));
-    };
+    const save = url => saveCover(g, game, url);
     if (Android && Android.pickCover) { window.onCover = url => { window.onCover = null; save(url); }; Android.pickCover(); return; }
     const inp = document.createElement("input"); inp.type = "file"; inp.accept = "image/*";
     inp.onchange = () => { const f = inp.files && inp.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => save(r.result); r.readAsDataURL(f); };
     inp.click();
   }
+  // szukanie okładki w Wikipedii (polskiej, potem angielskiej)
+  let csFor = null, csSeq = 0;
+  function wikiSearch(host, query){
+    const u = "https://" + host + "/w/api.php?action=query&format=json&origin=*&generator=search&gsrlimit=8&gsrnamespace=0"
+      + "&prop=pageimages&piprop=thumbnail&pithumbsize=400&gsrsearch=" + encodeURIComponent(query);
+    return fetch(u).then(r => r.json()).then(j => Object.values((j.query && j.query.pages) || {})
+      .sort((a, b) => (a.index || 0) - (b.index || 0))
+      .filter(p => p.thumbnail && p.thumbnail.source && !/\.svg/i.test(p.thumbnail.source))
+      .map(p => ({title: p.title, src: p.thumbnail.source})));
+  }
+  async function runCoverSearch(){
+    const qv = $("csQ").value.trim(); if (!qv) return;
+    const seq = ++csSeq, grid = $("csGrid");
+    grid.innerHTML = ""; $("csSt").textContent = "Szukam…";
+    let found = [];
+    try {
+      const lists = await Promise.all([
+        wikiSearch("pl.wikipedia.org", qv + " gra planszowa").catch(() => []),
+        wikiSearch("en.wikipedia.org", qv + " board game").catch(() => []),
+        wikiSearch("pl.wikipedia.org", qv).catch(() => [])
+      ]);
+      const seen = new Set();
+      lists.flat().forEach(x => { if (!seen.has(x.src)) { seen.add(x.src); found.push(x); } });
+    } catch (e) { found = []; }
+    if (seq !== csSeq) return;
+    found = found.slice(0, 12);
+    $("csSt").textContent = found.length ? "" : (navigator.onLine === false ? "Brak internetu." : "Nic nie znaleziono. Spróbuj innej nazwy, np. po angielsku.");
+    found.forEach(x => {
+      const b = document.createElement("button"); b.type = "button"; b.className = "csit";
+      const im = document.createElement("img"); im.src = x.src; im.alt = ""; im.loading = "lazy";
+      const t = document.createElement("span"); t.textContent = x.title;
+      b.append(im, t);
+      b.onclick = async () => {
+        if (!csFor) return;
+        $("csSt").textContent = "Zapisuję…";
+        try {
+          const blob = await fetch(x.src).then(r => { if (!r.ok) throw new Error("http"); return r.blob(); });
+          const url = await new Promise((res, rej) => { const fr = new FileReader(); fr.onload = () => res(fr.result); fr.onerror = rej; fr.readAsDataURL(blob); });
+          await saveCover(csFor.g, csFor.game, url);
+          closeOv("cs");
+        } catch (e) { $("csSt").textContent = "Nie udało się pobrać zdjęcia. Wybierz inne."; }
+      };
+      grid.appendChild(b);
+    });
+  }
+  function searchCover(g, game){
+    csFor = {g, game};
+    $("csQ").value = game.name; $("csGrid").innerHTML = ""; $("csSt").textContent = "";
+    openOv("cs"); runCoverSearch();
+  }
+  $("csForm").addEventListener("submit", e => { e.preventDefault(); runCoverSearch(); });
   function removeCover(g, game){
     confirmDialog({title: "Usunąć okładkę?", text: "Okładka gry „" + game.name + "” zostanie usunięta.", icon: "🗑", yes: "Usuń", danger: true,
       onYes: () => gref(g.id).collection("covers").doc(game.id).delete().catch(e => toast(errMsg(e)))});
@@ -974,14 +1026,15 @@
       if (editing) {
         // edycja: nazwa gry + nowe rozszerzenie; Gotowe zapisuje, Anuluj porzuca
         const f = document.createElement("form"); f.className = "add expadd";
-        f.innerHTML = '<label class="fl">Okładka</label><div class="covrow"><button type="button" class="ghost covadd"></button><button type="button" class="link covdel">Usuń okładkę</button></div>' +
+        f.innerHTML = '<label class="fl">Okładka</label><div class="covrow"><button type="button" class="ghost covadd"></button><button type="button" class="ghost covweb">🔎 Szukaj w internecie</button><button type="button" class="link covdel">Usuń okładkę</button></div>' +
           '<label class="fl">Nazwa gry</label><input type="text" class="gnm" maxlength="80" autocomplete="off">' +
           '<label class="fl">Nowe rozszerzenie (opcjonalnie)</label><input type="text" class="xnew" maxlength="60" placeholder="nazwa rozszerzenia…" autocomplete="off">' +
           '<div class="xbtns"><button type="button" class="xcancel">Anuluj</button><button type="submit" class="xdone">✓ Gotowe</button></div>';
         f.querySelector(".gnm").value = game.name;
         const hasCov = !!coverOf(g.id, game.id);
-        f.querySelector(".covadd").textContent = hasCov ? "📷 Zmień okładkę" : "📷 Dodaj okładkę";
+        f.querySelector(".covadd").textContent = hasCov ? "📷 Zmień zdjęcie" : "📷 Własne zdjęcie";
         f.querySelector(".covadd").onclick = () => pickCover(g, game);
+        f.querySelector(".covweb").onclick = () => searchCover(g, game);
         f.querySelector(".covdel").hidden = !hasCov;
         f.querySelector(".covdel").onclick = () => removeCover(g, game);
         const closeEdit = () => { ui.expEdit = null; ui.expArmed = null; rerenderLists(); };
