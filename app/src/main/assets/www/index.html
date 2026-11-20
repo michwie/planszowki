@@ -105,6 +105,7 @@
     </div>
     <div id="noGroups" class="empty" hidden>Nie masz jeszcze żadnej grupy. Utwórz ją przyciskiem „+ grupa” albo dołącz do grupy znajomych kodem.</div>
   </section>
+  <button class="listbtn h2hopen" id="openRec" hidden>🏅 Rekordy w grach</button>
   <section class="card" id="gamesCard">
     <h2>Moje gry</h2>
     <button class="listbtn" id="openList" style="width:100%">☰ Lista gier · dodaj i edytuj</button>
@@ -116,6 +117,7 @@
   <!-- ===== zakładka: Wyniki ===== -->
   <div class="view" id="v-results" hidden>
   <section class="card mergehint" id="mergeHint" hidden></section>
+  <button class="listbtn h2hopen" id="openPf" hidden>👤 Profil gracza</button>
   <section class="card">
     <h2>Wyniki</h2>
     <button class="big" id="addResult">+ Dodaj wynik</button>
@@ -209,6 +211,28 @@
       <button type="button" class="gebtn gedelgame" id="geDelGame">🗑 Usuń grę</button>
     </div>
     <div class="row2" style="margin-top:10px"><button class="ghost" id="geCancel">Anuluj</button><button class="ok" id="geSave">✓ Zapisz</button></div>
+  </div>
+</div>
+
+<!-- ================= PROFIL GRACZA ================= -->
+<div class="ov" id="pfOv" hidden role="dialog" aria-modal="true" aria-label="Profil gracza">
+  <div class="ovin">
+    <div class="ovhead"><h2>Profil gracza</h2><button class="ovclose" data-close="pfOv" aria-label="Zamknij">✕</button></div>
+    <div class="ovscroll" style="border-top:0">
+      <label class="h2hpick pfpick"><span class="pn" id="pfN"></span><span class="pc">▾</span><select id="pfSel" aria-label="Gracz"></select></label>
+      <div id="pfBody"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= REKORDY W GRACH ================= -->
+<div class="ov" id="recOv" hidden role="dialog" aria-modal="true" aria-label="Rekordy w grach">
+  <div class="ovin">
+    <div class="ovhead"><h2>Rekordy w grach</h2><button class="ovclose" data-close="recOv" aria-label="Zamknij">✕</button></div>
+    <div class="ovscroll" style="border-top:0">
+      <input type="text" id="recSearch" placeholder="szukaj gry…" autocomplete="off" aria-label="Szukaj gry">
+      <div id="recBody"></div>
+    </div>
   </div>
 </div>
 
@@ -485,7 +509,16 @@
         <li>Na górze listy wpisz tytuł w polu <b>nazwa nowej gry</b>. Jeśli masz kilka grup, wybierz obok grupę.</li>
         <li>Naciśnij <b>+</b>.</li>
       </ol>
-      <p>Zakładka <b>Gry</b> ma dwa bloki: <b>Zarządzanie grupą</b> (wybór grupy, nazwa, ⚙ członkowie i kody) oraz <b>Moje gry</b> (gry wybranej grupy i ich stan). Gry są ułożone alfabetycznie. Działania na grach (informacje, edycja, wykluczenie z losowania, przenoszenie, usuwanie) są na liście wszystkich gier, opisanej w rozdziale 10.</p>
+      <p>Zakładka <b>Gry</b> ma dwa bloki: <b>Zarządzanie grupą</b> (wybór grupy, nazwa, ⚙ członkowie i kody) oraz <b>Moje gry</b> (gry wybranej grupy i ich stan). Gry są ułożone alfabetycznie. Działania na grach (informacje, edycja, wykluczenie z losowania, przenoszenie, usuwanie) są na liście wszystkich gier, opisanej w rozdziale 10. Między blokami jest przycisk <b>🏅 Rekordy w grach</b>.</p>
+      <h4>Rekordy w grach</h4>
+      <p>Przycisk <b>🏅 Rekordy w grach</b> w zakładce <b>Gry</b> (między <b>Zarządzanie grupą</b> a <b>Moje gry</b>) otwiera okno z kartami gier, w które graliście. Pole <b>szukaj gry…</b> zawęża listę. Na karcie gry widać:</p>
+      <ul>
+        <li>liczbę partii i średnią liczbę punktów,</li>
+        <li><b>🏆 Rekord</b>: najlepszy wynik punktowy, kto go zdobył i kiedy. W grach, w których wygrywa najmniej punktów, rekordem jest najniższy wynik,</li>
+        <li><b>▼ Najsłabszy wynik</b>: wynik z drugiego końca skali,</li>
+        <li><b>👑 Najwięcej wygranych</b>: osoba (lub osoby przy remisie) z największą liczbą wygranych w tej grze.</li>
+      </ul>
+      <p>Rekordy są liczone z wyników, które widzisz. Gry bez wpisanych punktów mają tylko liczbę partii i najwięcej wygranych.</p>
       <h4>Oznaczenia na liście gier</h4>
       <ul>
         <li><b>○</b>: gra lub wersja do zagrania.</li>
@@ -587,6 +620,18 @@
         <li>O miejscu decyduje liczba wygranych. Przy tej samej liczbie wygranych wyżej jest osoba z wyższym procentem wygranych. Osoby z taką samą liczbą wygranych i takim samym procentem zajmują to samo miejsce.</li>
       </ul>
       <p>Ranking jest liczony z wyników, które widzisz. Przy kilku grupach można wybrać jedną grupę lub wszystkie.</p>
+
+      <h4>Profil gracza</h4>
+      <p>Przycisk <b>👤 Profil gracza</b> na górze zakładki <b>Wyniki</b> otwiera okno ze statystykami jednego gracza. Domyślnie widać Twój profil, innego gracza wybierzesz na liście u góry okna. W profilu są:</p>
+      <ul>
+        <li><b>Partie</b>, <b>Wygrane</b>, <b>% wygranych</b> i liczba partii <b>W tym miesiącu</b>,</li>
+        <li><b>Forma</b>: wynik ostatnich 5 partii, od najstarszej do najnowszej (<b>W</b> wygrana, <b>P</b> przegrana),</li>
+        <li><b>Ulubiona gra</b>: gra z największą liczbą partii,</li>
+        <li><b>Najlepsza gra</b>: gra z najwyższym procentem wygranych (liczona od 2 partii w grze),</li>
+        <li><b>Rekord punktów</b>: najwyższy wynik w grach, w których wygrywa najwięcej punktów, z nazwą gry i datą,</li>
+        <li><b>Najczęściej gra z</b>, <b>Najczęściej pokonuje</b> i <b>Najtrudniejszy rywal</b> (osoba, z którą ten gracz najczęściej przegrywa). Partie kooperacyjne nie liczą się do pokonanych i przegranych.</li>
+      </ul>
+      <p>Profil jest liczony z wyników, które widzisz, ze wszystkich grup.</p>
 
       <h4>Pojedynki</h4>
       <p>Przycisk <b>⚔ Pojedynki</b> w zakładce <b>Wyniki</b> (pod rankingiem) otwiera okno, które porównuje dwóch graczy. Przycisk jest widoczny, gdy w wynikach jest co najmniej dwóch graczy. Wybierz graczy na listach u góry okna (domyślnie Ty i osoba, z którą grasz najczęściej). W oknie widać:</p>

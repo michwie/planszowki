@@ -1809,6 +1809,7 @@
       });
     }
     renderH2H(shown, acc);
+    renderProfile(); renderRecords();
     const ul = $("resList"); ul.innerHTML = "";
     if (!shown.length) { ul.innerHTML = '<li class="empty" style="justify-content:center">—</li>'; return; }
     shown.slice(0, 15).forEach(pl => ul.appendChild(resultItem(pl, acc)));
@@ -2004,6 +2005,134 @@
     });
     body.appendChild(t);
   }
+
+  // ===== Profil gracza i Rekordy w grach (z wyników, które widzę) =====
+  let pfKey = "";
+  function playerNames(plays, acc){
+    const m = new Map();
+    plays.forEach(p => (p.scores || []).forEach(sc => m.set(scoreKey(sc), sc.uid ? (acc.get(sc.uid) || sc.p) : sc.p)));
+    return m;
+  }
+  const playGameName = p => { const f = findGame(p.gameId, p.groupId); return f ? f.game.name : p.gameName; };
+  function twoLine(el, n){
+    el.innerHTML = ""; const parts = String(n || "").trim().split(/\s+/);
+    const b = document.createElement("b"); b.textContent = parts[0] || ""; el.appendChild(b);
+    if (parts.length > 1) { const sp = document.createElement("span"); sp.textContent = parts.slice(1).join(" "); el.appendChild(sp); }
+  }
+  function tile(label, value, sub, txt){
+    const d = document.createElement("div"); d.className = "h2htile" + (txt ? " txt" : "");
+    d.innerHTML = '<span class="tl"></span><b class="tv"></b><span class="ts"></span>';
+    d.querySelector(".tl").textContent = label; d.querySelector(".tv").textContent = value; d.querySelector(".ts").textContent = sub || "";
+    return d;
+  }
+  function renderProfile(){
+    const plays = allPlays(), acc = accounts(), names = playerNames(plays, acc);
+    $("openPf").hidden = !names.size;
+    if (!names.size) return;
+    if (!names.has(pfKey)) pfKey = names.has("u:" + me.uid) ? "u:" + me.uid : [...names.keys()][0];
+    const sel = $("pfSel"); sel.innerHTML = "";
+    [...names.entries()].sort((x, y) => cmp(x[1], y[1])).forEach(([k, n]) => { const o = document.createElement("option"); o.value = k; o.textContent = n + (k === "u:" + me.uid ? " (Ty)" : ""); sel.appendChild(o); });
+    sel.value = pfKey; twoLine($("pfN"), names.get(pfKey));
+    const K = pfKey;
+    const mine = plays.filter(p => (p.scores || []).some(sc => scoreKey(sc) === K)).sort((a, b) => b.at - a.at);
+    const body = $("pfBody"); body.innerHTML = "";
+    const kind = document.createElement("div"); kind.className = "pfkind";
+    kind.textContent = (K.startsWith("u:") ? "Konto w aplikacji" : "Gracz bez konta") + (mine.length ? " · gra od " + fmt(mine[mine.length - 1].at) : "");
+    body.appendChild(kind);
+    if (!mine.length) { const e = document.createElement("p"); e.className = "h2hnone"; e.textContent = "Brak wyników tego gracza."; body.appendChild(e); return; }
+    const won = p => scoreWon(p, p.scores.find(sc => scoreKey(sc) === K));
+    const wins = mine.filter(won).length;
+    const now = new Date(), monthStart = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+    const g1 = document.createElement("div"); g1.className = "h2htiles";
+    g1.append(tile("Partie", String(mine.length), ""), tile("Wygrane", String(wins), ""),
+      tile("% wygranych", Math.round(100 * wins / mine.length) + "%", ""),
+      tile("W tym miesiącu", String(mine.filter(p => p.at >= monthStart).length), "partie"));
+    body.appendChild(g1);
+    // forma: ostatnie 5 partii
+    const form = document.createElement("div"); form.className = "pfform";
+    const fl = document.createElement("span"); fl.className = "tl"; fl.textContent = "Forma (ostatnie partie)"; form.appendChild(fl);
+    const fr = document.createElement("div"); fr.className = "pfdots";
+    mine.slice(0, 5).reverse().forEach(p => { const d = document.createElement("span"); const w = won(p); d.className = "pfd " + (w ? "w" : "l"); d.textContent = w ? "W" : "P"; d.title = playGameName(p) + " · " + fmt(p.at); fr.appendChild(d); });
+    form.appendChild(fr); body.appendChild(form);
+    // gry
+    const per = new Map();
+    mine.forEach(p => { const k = p.groupId + "|" + p.gameId; const o = per.get(k) || {name: playGameName(p), n: 0, w: 0}; o.n++; if (won(p)) o.w++; per.set(k, o); });
+    const games = [...per.values()];
+    const fav = games.slice().sort((a, b) => b.n - a.n || cmp(a.name, b.name))[0];
+    const best = games.filter(o => o.n >= 2).sort((a, b) => b.w / b.n - a.w / a.n || b.n - a.n)[0];
+    let rec = null;
+    mine.forEach(p => { const sc = p.scores.find(x => scoreKey(x) === K); if (p.mode === "max" && sc.pts !== undefined && (!rec || sc.pts > rec.pts)) rec = {pts: sc.pts, p}; });
+    // rywale
+    const opp = new Map();
+    mine.forEach(p => {
+      const sa = p.scores.find(x => scoreKey(x) === K);
+      p.scores.forEach(sb => { const k = scoreKey(sb); if (k === K) return; const o = opp.get(k) || {n: 0, beat: 0, lost: 0}; o.n++;
+        if (p.mode !== "coop") { const wa = scoreWon(p, sa), wb = scoreWon(p, sb); if (wa && !wb) o.beat++; if (wb && !wa) o.lost++; }
+        opp.set(k, o); });
+    });
+    const oppL = [...opp.entries()];
+    const top = (f) => oppL.filter(([, o]) => f(o) > 0).sort((a, b) => f(b[1]) - f(a[1]) || cmp(names.get(a[0]), names.get(b[0])))[0];
+    const often = top(o => o.n), beats = top(o => o.beat), nem = top(o => o.lost);
+    const g2 = document.createElement("div"); g2.className = "h2htiles";
+    g2.append(
+      tile("Ulubiona gra", fav.name, plural(fav.n, "partia", "partie", "partii"), true),
+      tile("Najlepsza gra", best ? best.name : "–", best ? Math.round(100 * best.w / best.n) + "% wygranych z " + best.n : "od 2 partii w grze", true),
+      tile("Rekord punktów", rec ? String(rec.pts) : "–", rec ? playGameName(rec.p) + " · " + fmt(rec.p.at) : "brak punktów", !rec),
+      tile("Najczęściej gra z", often ? names.get(often[0]) : "–", often ? plural(often[1].n, "partia", "partie", "partii") : "", true),
+      tile("Najczęściej pokonuje", beats ? names.get(beats[0]) : "–", beats ? plural(beats[1].beat, "raz", "razy", "razy") : "", true),
+      tile("Najtrudniejszy rywal", nem ? names.get(nem[0]) : "–", nem ? "przegrane: " + nem[1].lost : "", true));
+    body.appendChild(g2);
+  }
+  $("openPf").onclick = () => { renderProfile(); openOv("pfOv"); };
+  $("pfSel").onchange = e => { pfKey = e.target.value; renderProfile(); };
+
+  function renderRecords(){
+    const plays = allPlays(), acc = accounts();
+    $("openRec").hidden = !plays.length;
+    if ($("recOv").hidden) return;
+    const qv = $("recSearch").value.trim().toLowerCase();
+    const per = new Map();
+    plays.forEach(p => { const k = p.groupId + "|" + p.gameId; const o = per.get(k) || {gid: p.groupId, gameId: p.gameId, name: playGameName(p), plays: []}; o.plays.push(p); per.set(k, o); });
+    const list = [...per.values()].filter(o => !qv || o.name.toLowerCase().includes(qv)).sort((a, b) => cmp(a.name, b.name));
+    const body = $("recBody"); body.innerHTML = "";
+    if (!list.length) { body.innerHTML = '<p class="h2hnone">' + (per.size ? "Brak gier o tej nazwie." : "Brak wyników.") + '</p>'; return; }
+    const nm = sc => sc.uid ? (acc.get(sc.uid) || sc.p) : sc.p;
+    list.forEach(o => {
+      const card = document.createElement("div"); card.className = "reccard";
+      const head = document.createElement("div"); head.className = "rechead";
+      const cv = coverImg(o.gid, o.gameId, "reccov"); if (cv) head.appendChild(cv);
+      const ht = document.createElement("div"); ht.className = "rect";
+      const b = document.createElement("b"); b.textContent = o.name; ht.appendChild(b);
+      const all = []; o.plays.forEach(p => (p.scores || []).forEach(sc => { if (sc.pts !== undefined) all.push({sc, p}); }));
+      const sub = document.createElement("span");
+      sub.textContent = plural(o.plays.length, "partia", "partie", "partii") + (all.length ? " · średnio " + (Math.round(10 * all.reduce((t, x) => t + x.sc.pts, 0) / all.length) / 10).toString().replace(".", ",") + " pkt" : "");
+      ht.appendChild(sub); head.appendChild(ht); card.appendChild(head);
+      const rows = [];
+      if (all.length) {
+        const minMode = o.plays.filter(p => p.mode === "min").length > o.plays.filter(p => p.mode === "max").length;
+        const sorted = all.slice().sort((x, y) => (minMode ? x.sc.pts - y.sc.pts : y.sc.pts - x.sc.pts) || x.p.at - y.p.at);
+        const bestR = sorted[0], worstR = sorted[sorted.length - 1];
+        rows.push(["🏆", "Rekord" + (minMode ? " (najmniej pkt)" : ""), bestR.sc.pts + " pkt", nm(bestR.sc) + " · " + fmt(bestR.p.at), "best"]);
+        if (sorted.length > 1) rows.push(["▼", "Najsłabszy wynik", worstR.sc.pts + " pkt", nm(worstR.sc) + " · " + fmt(worstR.p.at), ""]);
+      }
+      const wc = new Map();
+      o.plays.forEach(p => (p.scores || []).forEach(sc => { if (scoreWon(p, sc)) { const k = scoreKey(sc); const x = wc.get(k) || {n: 0, name: nm(sc)}; x.n++; wc.set(k, x); } }));
+      const lead = [...wc.values()].sort((a, b) => b.n - a.n || cmp(a.name, b.name));
+      if (lead.length) { const topN = lead[0].n, tied = lead.filter(x => x.n === topN).map(x => x.name);
+        rows.push(["👑", "Najwięcej wygranych", plural(topN, "wygrana", "wygrane", "wygranych"), tied.join(", "), ""]); }
+      const t = document.createElement("div"); t.className = "recrows";
+      rows.forEach(([ic, l, v, who, cls]) => {
+        const r = document.createElement("div"); r.className = "recrow " + cls;
+        r.innerHTML = '<span class="ri"></span><span class="rl"><span class="rlab"></span><span class="rwho"></span></span><b class="rv"></b>';
+        r.querySelector(".ri").textContent = ic; r.querySelector(".rlab").textContent = l; r.querySelector(".rwho").textContent = who; r.querySelector(".rv").textContent = v;
+        t.appendChild(r);
+      });
+      if (!rows.length) { const e = document.createElement("div"); e.className = "recnone"; e.textContent = "Brak punktów w wynikach tej gry."; t.appendChild(e); }
+      card.appendChild(t); body.appendChild(card);
+    });
+  }
+  $("openRec").onclick = () => { $("recSearch").value = ""; openOv("recOv"); renderRecords(); };
+  $("recSearch").oninput = () => renderRecords();
   $("openH2h").onclick = () => openOv("h2hOv");
   $("h2hA").onchange = e => { h2h.a = e.target.value; if (h2h.b === h2h.a) h2h.b = ""; renderResults(); };
   $("h2hB").onchange = e => { h2h.b = e.target.value; renderResults(); };

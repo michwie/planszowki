@@ -262,6 +262,34 @@ def przeniesienie_gry_w_oknie(c):
     return pg
 
 @test
+def profil_gracza(c):
+    pg = c.open(seed())
+    pg.click("#tabbar .tb[data-view=results]"); pg.wait_for_timeout(300)
+    assert visible(pg, "#openPf"), "brak przycisku Profil gracza"
+    pg.click("#openPf"); pg.wait_for_timeout(300)
+    assert visible(pg, "#pfOv")
+    t = pg.inner_text("#pfBody")
+    # Michał: 3 partie (p1 wygrana, p2 przegrana, p3 wygrana)
+    assert "PARTIE\n3" in t.upper() and "67%" in t, t
+    assert "Kasia Nowak" in t, "brak rywala"
+    pg.select_option("#pfSel", "n:Marta <3"); pg.wait_for_timeout(200)
+    assert "Gracz bez konta" in pg.inner_text("#pfBody")
+    return pg
+
+@test
+def rekordy_w_grach(c):
+    pg = c.open(seed())
+    pg.click("#tabbar .tb[data-view=games]"); pg.wait_for_timeout(200)
+    assert visible(pg, "#openRec"), "brak przycisku Rekordy w grach"
+    pg.click("#openRec"); pg.wait_for_timeout(300)
+    t = pg.inner_text("#recBody")
+    assert "Azul" in t and "10 pkt" in t and "Wiedźmin" in t, t
+    pg.fill("#recSearch", "wied"); pg.wait_for_timeout(200)
+    t = pg.inner_text("#recBody")
+    assert "Wiedźmin" in t and "Azul" not in t, t
+    return pg
+
+@test
 def wszystkie_zakladki_bez_bledow(c):
     pg = c.open(seed())
     for v in ("draw", "games", "news", "results", "more"):
