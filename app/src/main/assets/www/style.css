@@ -431,3 +431,11 @@ h1 .h1dice{display:inline-block;margin-right:10px;text-shadow:none;font-size:.95
 .res .rp.m-silver{color:#c9d1d9}
 .res .rp.m-bronze{color:#cd7f32}
 .res .rp.m-gold{color:#f5c518}
+/* dzwonek Aktualności: większy, bez podpisu; czerwony przy nowych wpisach */
+.tabbar .tb.tbbell{justify-content:center}
+.tabbar .tb.tbbell .ti{width:34px;height:34px;position:relative}
+.tabbar .tb.tbbell .ti svg{width:32px;height:32px}
+.tabbar .tb.unread .ti svg{color:#ff3b3b;filter:drop-shadow(0 0 4px rgba(255,59,59,.9)) drop-shadow(0 0 10px rgba(255,59,59,.6));animation:bellRing 2.4s ease-in-out infinite;transform-origin:50% 15%}
+.tabbar .bdot{position:absolute;top:1px;right:1px;width:10px;height:10px;border-radius:50%;background:#ff3b3b;box-shadow:0 0 0 2px var(--bg),0 0 8px #ff3b3b}
+@keyframes bellRing{0%,70%,100%{transform:rotate(0)}75%{transform:rotate(14deg)}80%{transform:rotate(-12deg)}85%{transform:rotate(9deg)}90%{transform:rotate(-6deg)}95%{transform:rotate(3deg)}}
+@media (prefers-reduced-motion: reduce){ .tabbar .tb.unread .ti svg{animation:none} }

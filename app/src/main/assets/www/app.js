@@ -997,6 +997,7 @@
   function navH(){ const n = $("tabbar"); return n && !n.hidden ? n.offsetHeight : 0; }
   function showView(v){
     curView = v;
+    if (v === "news") markNewsSeen();
     document.querySelectorAll("#appView .view").forEach(el => el.hidden = el.id !== "v-" + v);
     document.querySelectorAll("#tabbar .tb").forEach(b => { const on = b.dataset.view === v; b.classList.toggle("on", on); b.setAttribute("aria-current", on ? "page" : "false"); });
     window.scrollTo(0, 0);
@@ -1774,7 +1775,7 @@
 
   // ================= CHANGE LOG =================
   let logGroup = "all";
-  const LOG_MAX = 5;   // Change Log pokazuje najwyżej 5 najnowszych wpisów
+  const LOG_MAX = 5;   // Aktualności pokazują najwyżej 5 najnowszych wpisów
   function renderLog(){
     if (!me) return;
     const fEl = $("logFilter"); fEl.innerHTML = ""; fEl.hidden = groups.length < 2;
@@ -1791,6 +1792,7 @@
       Object.entries(regs).forEach(([u, r]) => { if (known.has(u)) items.push({at: r.at, name: r.name, text: "Rejestracja konta w aplikacji", type: "register"}); });
     } else items = items.filter(e => e.groupId === logGroup);
     items.sort((a,b) => b.at - a.at);
+    updateNewsDot();
     const ul = $("logList"); ul.innerHTML = "";
     if (!items.length) ul.innerHTML = '<li class="empty" style="justify-content:center">Brak wpisów.</li>';
     items.slice(0, LOG_MAX).forEach(e => {
@@ -1803,6 +1805,31 @@
       ul.appendChild(li);
     });
     $("logMore").hidden = true;
+  }
+
+  // ---------- Aktualności: dzwonek świeci na czerwono, gdy jest nowy wpis od kogoś innego ----------
+  const newsKey = () => "pl-news-seen-" + (me ? me.uid : "");
+  function newestNews(){
+    let t = 0;
+    Object.values(logsBy).flat().forEach(e => { if (e.by !== me.uid && e.at > t) t = e.at; });
+    const known = new Set([...accounts().keys()]);
+    Object.entries(regs).forEach(([u, r]) => { if (u !== me.uid && known.has(u) && r.at > t) t = r.at; });
+    return t;
+  }
+  function updateNewsDot(){
+    if (!me) return;
+    let seen = lsGet(newsKey(), 0);
+    if (!seen) { seen = Date.now(); lsSet(newsKey(), seen); }   // pierwsze uruchomienie: stare wpisy nie świecą
+    if (curView === "news") { markNewsSeen(); return; }
+    const unread = newestNews() > seen;
+    $("newsDot").hidden = !unread;
+    document.querySelector('#tabbar .tb[data-view="news"]').classList.toggle("unread", unread);
+  }
+  function markNewsSeen(){
+    if (!me) return;
+    lsSet(newsKey(), Math.max(Date.now(), newestNews()));
+    $("newsDot").hidden = true;
+    document.querySelector('#tabbar .tb[data-view="news"]').classList.remove("unread");
   }
 
   // ================= KOPIA ZAPASOWA / IMPORT =================

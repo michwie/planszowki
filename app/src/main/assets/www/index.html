@@ -122,13 +122,16 @@
       <button class="mitem danger-item" id="openDelAcc"><span class="mi">⚠</span>Usuń konto</button>
     </section>
 
+  </div>
+
+  <!-- ===== zakładka: Aktualności (dzwonek) ===== -->
+  <div class="view" id="v-news" hidden>
   <section class="card">
-    <h2>Change Log</h2>
+    <h2>Aktualności</h2>
     <div class="chips" id="logFilter"></div>
     <ul class="log" id="logList"></ul>
     <button class="link" id="logMore" hidden>Pokaż więcej</button>
   </section>
-
   </div>
 
   <!-- ===== stopka: widoczna w każdej zakładce ===== -->
@@ -144,6 +147,7 @@
 <nav class="tabbar" id="tabbar" hidden aria-label="Nawigacja">
   <button class="tb on" data-view="draw"><span class="ti"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="3.5" width="17" height="17" rx="3.5"/><circle class="pip" cx="8.2" cy="8.2" r="1.3"/><circle class="pip" cx="15.8" cy="8.2" r="1.3"/><circle class="pip" cx="12" cy="12" r="1.3"/><circle class="pip" cx="8.2" cy="15.8" r="1.3"/><circle class="pip" cx="15.8" cy="15.8" r="1.3"/></svg></span><span class="tl">Losuj</span></button>
   <button class="tb" data-view="games"><span class="ti"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="12.5" width="18" height="7.5" rx="1.5"/><rect x="5" y="4" width="14" height="8.5" rx="1.5"/><path d="M9.5 8.2h5"/><path d="M8 16.2h8"/></svg></span><span class="tl">Gry</span></button>
+  <button class="tb tbbell" data-view="news" aria-label="Aktualności"><span class="ti"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M6 16.5V11a6 6 0 0 1 12 0v5.5l1.5 2h-15z"/><path d="M10 20.5a2 2 0 0 0 4 0"/><path d="M12 3v2"/></svg><span class="bdot" id="newsDot" hidden></span></span></button>
   <button class="tb" data-view="results"><span class="ti"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4h8v5.5a4 4 0 0 1-8 0z"/><path d="M8 6H5.2a2.6 2.6 0 0 0 2.9 4.2"/><path d="M16 6h2.8a2.6 2.6 0 0 1-2.9 4.2"/><path d="M12 13.5V17"/><path d="M8.5 20h7l-1-3h-5z"/></svg></span><span class="tl">Wyniki</span></button>
   <button class="tb" data-view="more"><span class="ti"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 7h15"/><path d="M4.5 12h15"/><path d="M4.5 17h15"/></svg></span><span class="tl">Więcej</span></button>
 </nav>
@@ -226,7 +230,7 @@
   <div class="ovin">
     <div class="ovhead"><h2>Kopia zapasowa</h2><button class="ovclose" data-close="bkov" aria-label="Zamknij">✕</button></div>
     <div class="ovscroll bk" style="border-top:0">
-      <p style="margin-top:6px">„Kopiuj” zapisuje do schowka wszystko z Twoich grup: listy gier ze stanem rozegranych, wyniki, historię rozegranych gier, listę graczy i Change Log. Wklej tekst np. do notatek.</p>
+      <p style="margin-top:6px">„Kopiuj” zapisuje do schowka wszystko z Twoich grup: listy gier ze stanem rozegranych, wyniki, historię rozegranych gier, listę graczy i aktualności. Wklej tekst np. do notatek.</p>
       <p>„Importuj” tworzy z wklejonej kopii nowe grupy na Twoim koncie – istniejące grupy zostają bez zmian. Działa też z kopią z poprzedniej wersji aplikacji (z Claude).</p>
       <textarea id="bkText" spellcheck="false" placeholder="tu wklej tekst kopii zapasowej…"></textarea>
       <div class="row2">
@@ -365,7 +369,8 @@
         <li><b>Losuj</b>: losowanie gry na wieczór.</li>
         <li><b>Gry</b>: grupy, lista gier, rozszerzenia, członkowie i kody zaproszeń.</li>
         <li><b>Wyniki</b>: dodawanie wyników i ranking, ostatnie wyniki (każdy gracz w osobnej linii, z punktami).</li>
-        <li><b>Więcej</b>: instrukcja, historia wersji, motyw, kopia zapasowa, wylogowanie, usuwanie konta i Change Log.</li>
+        <li><b>🔔 (dzwonek)</b>: aktualności, czyli kto, kiedy i co zmienił. Gdy pojawi się nowy wpis od innej osoby, dzwonek świeci na czerwono.</li>
+        <li><b>Więcej</b>: instrukcja, zmiany w wersji, motyw, kopia zapasowa, wylogowanie i usuwanie konta.</li>
       </ul>
       <p>Przycisk <b>Wstecz</b> telefonu zamyka otwarte okno. Jeśli żadne okno nie jest otwarte, przenosi do zakładki <b>Losuj</b>.</p>
       <p>Okna z formularzami (wynik, kod zaproszenia, kopia zapasowa, usuwanie konta) zamyka się przyciskiem <b>✕</b> lub <b>Wstecz</b>. Dotknięcie obok okna ich nie zamyka, więc wpisane dane nie przepadną.</p>
@@ -376,7 +381,7 @@
       <ul>
         <li><b>Właściciel</b>: osoba, która utworzyła grupę. Ma wszystkie uprawnienia, w tym nadawanie ról, generowanie kodów zaproszeń, usuwanie osób i usuwanie grupy.</li>
         <li><b>Mistrz Gry</b>: widzi gry grupy, dodaje, przenosi i usuwa gry, losuje, wpisuje i poprawia wyniki, zmienia nazwę grupy.</li>
-        <li><b>Gracz</b>: bierze udział w rozgrywkach. Nie widzi gier grupy ani jej Change Logu, nie losuje i nie wpisuje wyników. Widzi wyniki rozgrywek, w których grał, oraz ranking.</li>
+        <li><b>Gracz</b>: bierze udział w rozgrywkach. Nie widzi gier grupy ani jej aktualności o zmianach w grupie, nie losuje i nie wpisuje wyników. Widzi wyniki rozgrywek, w których grał, oraz ranking.</li>
       </ul>
       <h4>Tworzenie grupy</h4>
       <ol>
@@ -425,7 +430,7 @@
         <li>liczba rozegranych partii (przy grze z rozszerzeniami także podział na wersje),</li>
         <li>osoba, która najczęściej wygrywa, z liczbą wygranych.</li>
       </ul>
-      <p>Statystyki są liczone z wyników, które widzisz: rozgrywek z Twoim udziałem i wyników wpisanych przez Ciebie. Dla gier dodanych przed wersją 1.3 daty dodania gry i rozszerzeń pochodzą z Change Logu i mogą być niedostępne.</p>
+      <p>Statystyki są liczone z wyników, które widzisz: rozgrywek z Twoim udziałem i wyników wpisanych przez Ciebie. Dla gier dodanych przed wersją 1.3 daty dodania gry i rozszerzeń pochodzą z aktualności i mogą być niedostępne.</p>
       <h4>Stan rozegranych gier</h4>
       <ul>
         <li>Gra jest oznaczana jako rozegrana automatycznie, po zapisaniu wyniku. Nie można jej oznaczyć ręcznie.</li>
@@ -534,8 +539,9 @@
         <li>Wykluczenie dotyczy całej grupy, czyli wszystkich osób, które losują z jej gier. Nie zmienia stanu rozegranych gier ani wyników.</li>
       </ul>
 
-      <h3>11. Change Log</h3>
-      <p>Sekcja <b>Change Log</b> w zakładce <b>Więcej</b> pokazuje 5 najnowszych zdarzeń: kto, kiedy i co zmienił. Rejestrowane są m.in. zmiany gier, członków, ról, kodów zaproszeń i wyników.</p>
+      <h3>11. Aktualności</h3>
+      <p>Zakładka z dzwonkiem <b>🔔</b> na dolnym pasku (między <b>Gry</b> a <b>Wyniki</b>) pokazuje 5 najnowszych zdarzeń: kto, kiedy i co zmienił. Rejestrowane są m.in. zmiany gier, członków, ról, kodów zaproszeń i wyników.</p>
+      <p>Gdy pojawi się nowy wpis dodany przez inną osobę, dzwonek świeci na czerwono i ma czerwoną kropkę. Po otwarciu zakładki oznaczenie znika.</p>
       <ul>
         <li>Zdarzenia grupy widzą właściciel i Mistrzowie Gry.</li>
         <li>Wpis o wyniku widzą gracze z kontem, którzy brali udział w rozgrywce, oraz osoba, która go wpisała.</li>
@@ -561,7 +567,7 @@
         <li>Naciśnij <b>Kopiuj</b>, aby skopiować dane do schowka.</li>
         <li>Wklej skopiowany tekst w bezpieczne miejsce, np. do notatek.</li>
       </ol>
-      <p>Kopia zawiera gry ze stanem rozegranych, wyniki, historię rozegranych gier, listę graczy i Change Log. Aby odtworzyć dane, wklej tekst kopii w okno i dwa razy naciśnij <b>Importuj</b>. Z kopii powstaną nowe grupy, a istniejące grupy pozostaną bez zmian.</p>
+      <p>Kopia zawiera gry ze stanem rozegranych, wyniki, historię rozegranych gier, listę graczy i aktualności. Aby odtworzyć dane, wklej tekst kopii w okno i dwa razy naciśnij <b>Importuj</b>. Z kopii powstaną nowe grupy, a istniejące grupy pozostaną bez zmian.</p>
 
       <h3>14. Zmiany i aktualizacje</h3>
       <ul>
