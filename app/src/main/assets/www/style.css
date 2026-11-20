@@ -415,3 +415,12 @@ h1 .h1dice{display:inline-block;margin-right:10px;text-shadow:none;font-size:.95
 .ardate input{flex:1;min-width:0;padding:9px 8px}
 .arsum{font-size:13px;color:var(--muted);padding:8px 2px;border-top:1px solid var(--line)}
 #openAllRes{margin-top:10px;margin-bottom:0}
+/* wynik: każdy gracz w osobnej linii */
+.res .rs{margin-top:6px}
+.res .rp{display:flex;align-items:baseline;gap:6px;padding:2px 0;font-size:14px;color:var(--ink)}
+.res .rp .rpw{flex:none;width:18px;text-align:center;font-size:12px}
+.res .rp .rpn{flex:1;min-width:0;word-break:break-word}
+.res .rp .rpp{flex:none;font-family:var(--font-head);font-weight:700;min-width:28px;text-align:right}
+.res .rp.win{color:var(--amber)}
+.res .rp:not(.win){color:var(--muted)}
+.res .rpc{font-size:12px;color:var(--muted);margin-top:2px;font-style:italic}

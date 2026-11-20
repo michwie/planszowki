@@ -1655,15 +1655,17 @@
     li.querySelector(".rt span").textContent = fmt(pl.at) + (groups.length > 1 && g ? " · " + g.name : "");
     const rs = li.querySelector(".rs");
     const sorted = (pl.scores || []).slice().sort((a,b) => (pl.mode === "min" ? 1 : -1) * ((a.pts ?? -Infinity) - (b.pts ?? -Infinity)));
-    sorted.forEach((sc, i) => {
-      const sp = document.createElement("span");
+    // każdy gracz w osobnej linii: puchar dla zwycięzcy, imię, punkty po prawej
+    sorted.forEach(sc => {
       const won = scoreWon(pl, sc);
-      if (won) sp.className = "win";
-      sp.textContent = (won ? "🏆 " : "") + (sc.uid ? (acc.get(sc.uid) || sc.p) : sc.p) + (sc.pts !== undefined ? " " + sc.pts : "");
-      rs.appendChild(sp);
-      if (i < sorted.length - 1) rs.appendChild(document.createTextNode(" · "));
+      const row = document.createElement("div"); row.className = "rp" + (won ? " win" : "");
+      row.innerHTML = '<span class="rpw"></span><span class="rpn"></span><span class="rpp"></span>';
+      row.querySelector(".rpw").textContent = won ? "🏆" : "";
+      row.querySelector(".rpn").textContent = sc.uid ? (acc.get(sc.uid) || sc.p) : sc.p;
+      row.querySelector(".rpp").textContent = sc.pts !== undefined ? sc.pts : "";
+      rs.appendChild(row);
     });
-    if (pl.mode === "coop") rs.appendChild(document.createTextNode(pl.coopWin ? "  (kooperacja – wygrana)" : "  (kooperacja – przegrana)"));
+    if (pl.mode === "coop") { const c = document.createElement("div"); c.className = "rpc"; c.textContent = pl.coopWin ? "Kooperacja – wygrana" : "Kooperacja – przegrana"; rs.appendChild(c); }
     if (mayEdit) {
       li.querySelector(".ed").onclick = () => { ui.resArmed = null; openResult(null, null, pl); };
       const del = li.querySelector(".del");
