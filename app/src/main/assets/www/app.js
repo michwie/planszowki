@@ -171,7 +171,8 @@
         lsSet("pl-name-" + cred.user.uid, name);
         await cred.user.updateProfile({displayName: name});
         if (me && me.uid === cred.user.uid) { me.name = name; $("meName").textContent = name; }
-        startApp(cred.user);
+        try { await cred.user.sendEmailVerification(); } catch(e){}
+        enterApp(cred.user);
       } else {
         await auth.signInWithEmailAndPassword(email, pass);
       }
@@ -206,9 +207,43 @@
   }
 
   auth.onAuthStateChanged(user => {
-    if (user) startApp(user);
+    if (user) enterApp(user);
     else stopApp();
   });
+  // ---------- potwierdzenie adresu e-mail (nowe konta) ----------
+  try { auth.languageCode = "pl"; } catch(e){}
+  const VERIFY_FROM = Date.parse("2026-11-20T09:10:00Z");   // konta założone wcześniej nie muszą potwierdzać adresu
+  function needsVerify(u){
+    const c = Date.parse(u && u.metadata && u.metadata.creationTime);
+    return !!u && !u.emailVerified && !(!isNaN(c) && c < VERIFY_FROM);
+  }
+  function enterApp(u){
+    if (needsVerify(u)) { showVerify(u); return; }
+    $("verifyView").hidden = true;
+    startApp(u);
+  }
+  function showVerify(u){
+    $("authView").hidden = true; $("appView").hidden = true; $("tabbar").hidden = true;
+    $("verifyView").hidden = false;
+    $("vEmail").textContent = u.email || "";
+  }
+  async function checkVerified(silent){
+    const u = auth.currentUser; if (!u) return;
+    try { await u.reload(); } catch(e){ if (!silent) $("vMsg").textContent = errMsg(e); return; }
+    if (auth.currentUser.emailVerified) {
+      try { await auth.currentUser.getIdToken(true); } catch(e){}
+      $("vMsg").textContent = ""; toast("Adres potwierdzony – witaj w Planszomacie!");
+      enterApp(auth.currentUser);
+    } else if (!silent) $("vMsg").textContent = "Adres nie jest jeszcze potwierdzony. Kliknij link w wiadomości e-mail.";
+  }
+  $("vCheck").onclick = () => checkVerified(false);
+  $("vResend").onclick = async () => {
+    try { await auth.currentUser.sendEmailVerification(); $("vMsg").textContent = ""; toast("Wysłano nowy link na " + auth.currentUser.email); }
+    catch(e){ $("vMsg").textContent = String(e.code).includes("too-many-requests") ? "Za dużo prób – odczekaj kilka minut." : errMsg(e); }
+  };
+  $("vLogout").onclick = () => auth.signOut();
+  // po powrocie z poczty sprawdź automatycznie
+  document.addEventListener("visibilitychange", () => { if (!document.hidden && !$("verifyView").hidden) checkVerified(true); });
 
   function stopApp(){
     me = null;
@@ -222,7 +257,7 @@
     if (regsUnsub) { regsUnsub(); regsUnsub = null; } regs = {};
     if (prefsUnsub) { prefsUnsub(); prefsUnsub = null; }
     groups = [];
-    $("appView").hidden = true; $("tabbar").hidden = true; $("authView").hidden = false;
+    $("appView").hidden = true; $("tabbar").hidden = true; $("verifyView").hidden = true; $("authView").hidden = false;
     setAuthMode("login");
   }
   function startApp(user){

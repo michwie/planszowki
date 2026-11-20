@@ -452,3 +452,6 @@ h1 .h1dice{display:inline-block;margin-right:10px;text-shadow:none;font-size:.95
 .log li.lsep-new{color:#ff3b3b;text-shadow:0 0 6px rgba(255,59,59,.5);padding-top:2px}
 .log li.new + li:not(.new):not(.lsep){border-top:0}
 .log li.new .lh b{color:#ff6b6b}
+#verifyView .vtxt{font-size:14px;line-height:1.55;margin:0 0 10px;color:var(--ink)}
+#verifyView .vmuted{color:var(--muted);font-size:13px}
+#verifyView .link{display:block;margin:10px auto 0}
