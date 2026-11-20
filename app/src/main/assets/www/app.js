@@ -184,7 +184,18 @@
     try { await auth.sendPasswordResetEmail(email); $("aErr").textContent = ""; toast("Wysłano e-mail z linkiem do zmiany hasła"); }
     catch(err){ $("aErr").textContent = authErr(err); }
   };
-  $("logout").onclick = () => { if (confirmTap($("logout"), "Na pewno?")) auth.signOut(); };
+  // okno potwierdzenia (w stylu motywu)
+  function confirmDialog(o){
+    $("cfTitle").textContent = o.title || "Na pewno?";
+    $("cfText").textContent = o.text || "";
+    $("cfIcon").textContent = o.icon || "?";
+    $("cfYes").textContent = o.yes || "Tak";
+    $("cfNo").textContent = o.no || "Anuluj";
+    $("cfNo").onclick = () => closeOv("cf");
+    $("cfYes").onclick = () => { closeOv("cf"); o.onYes && o.onYes(); };
+    openOv("cf");
+  }
+  $("logout").onclick = () => confirmDialog({title: "Wylogować się?", text: "Aby znów korzystać z aplikacji, trzeba będzie zalogować się e-mailem i hasłem.", icon: "⎋", yes: "Wyloguj", onYes: () => auth.signOut()});
 
   // dwustopniowe potwierdzenie dla zwykłych przycisków
   function confirmTap(btn, armedText){
@@ -1834,9 +1845,16 @@
     const ul = $("logList"); ul.innerHTML = "";
     if (!items.length) ul.innerHTML = '<li class="empty" style="justify-content:center">Brak wpisów.</li>';
     const acc = accounts();
+    const isNewE = e => e.by !== me.uid && e.at > newsPrevSeen;   // nowe od ostatniej wizyty
+    // nowe wpisy (od innych, od ostatniej wizyty) na górze, pod nimi reszta
+    items = items.filter(isNewE).concat(items.filter(e => !isNewE(e)));
+    const nNew = items.slice(0, logLimit).filter(isNewE).length;
+    let sepOld = false;
+    if (nNew) { const h = document.createElement("li"); h.className = "lsep lsep-new"; h.textContent = "🔔 Nowe (" + nNew + ")"; ul.appendChild(h); }
     items.slice(0, logLimit).forEach(e => {
+      const isNew = isNewE(e);
+      if (nNew && !isNew && !sepOld) { sepOld = true; const h = document.createElement("li"); h.className = "lsep"; h.textContent = "Wcześniej"; ul.appendChild(h); }
       const li = document.createElement("li");
-      const isNew = e.by !== me.uid && e.at > newsPrevSeen;   // nowe od ostatniej wizyty – mały dzwonek
       if (isNew) li.className = "new";
       li.innerHTML = '<div class="lh"><b></b><span></span></div><div class="lt"></div>';
       li.querySelector("b").innerHTML = isNew ? '<span class="lnew" title="Nowy wpis">🔔</span>' : "";
