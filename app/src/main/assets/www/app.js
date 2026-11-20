@@ -917,6 +917,7 @@
     }); toast("Przeniesiono do: " + to.name); } catch(e){ toast(errMsg(e)); }
   }
   function renderHist(){
+    if (!$("hist")) return;   // blok „Ostatnio rozegrane” usunięty – historia zostaje w danych (kopia zapasowa)
     const el = $("hist"); el.innerHTML = "";
     const items = [];
     groups.forEach(g => myHistory(g).forEach(h => items.push(Object.assign({group: g.name}, h))));

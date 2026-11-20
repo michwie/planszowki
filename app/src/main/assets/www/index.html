@@ -108,11 +108,6 @@
     <ul class="res" id="resList"></ul>
     <button class="listbtn" id="openAllRes" hidden>☰ Wszystkie wyniki · filtrowanie</button>
   </section>
-
-  <section class="card">
-    <h2>Ostatnio rozegrane</h2>
-    <ul class="hist" id="hist"></ul>
-  </section>
   </div>
 
   <!-- ===== zakładka: Więcej ===== -->
@@ -231,7 +226,7 @@
   <div class="ovin">
     <div class="ovhead"><h2>Kopia zapasowa</h2><button class="ovclose" data-close="bkov" aria-label="Zamknij">✕</button></div>
     <div class="ovscroll bk" style="border-top:0">
-      <p style="margin-top:6px">„Kopiuj” zapisuje do schowka wszystko z Twoich grup: listy gier ze stanem rozegranych, wyniki, ostatnio rozegrane, listę graczy i Change Log. Wklej tekst np. do notatek.</p>
+      <p style="margin-top:6px">„Kopiuj” zapisuje do schowka wszystko z Twoich grup: listy gier ze stanem rozegranych, wyniki, historię rozegranych gier, listę graczy i Change Log. Wklej tekst np. do notatek.</p>
       <p>„Importuj” tworzy z wklejonej kopii nowe grupy na Twoim koncie – istniejące grupy zostają bez zmian. Działa też z kopią z poprzedniej wersji aplikacji (z Claude).</p>
       <textarea id="bkText" spellcheck="false" placeholder="tu wklej tekst kopii zapasowej…"></textarea>
       <div class="row2">
@@ -369,7 +364,7 @@
       <ul>
         <li><b>Losuj</b>: losowanie gry na wieczór.</li>
         <li><b>Gry</b>: grupy, lista gier, rozszerzenia, członkowie i kody zaproszeń.</li>
-        <li><b>Wyniki</b>: dodawanie wyników i ranking, ostatnie wyniki (każdy gracz w osobnej linii, z punktami) oraz ostatnio rozegrane gry.</li>
+        <li><b>Wyniki</b>: dodawanie wyników i ranking, ostatnie wyniki (każdy gracz w osobnej linii, z punktami).</li>
         <li><b>Więcej</b>: instrukcja, historia wersji, motyw, kopia zapasowa, wylogowanie, usuwanie konta i Change Log.</li>
       </ul>
       <p>Przycisk <b>Wstecz</b> telefonu zamyka otwarte okno. Jeśli żadne okno nie jest otwarte, przenosi do zakładki <b>Losuj</b>.</p>
@@ -381,7 +376,7 @@
       <ul>
         <li><b>Właściciel</b>: osoba, która utworzyła grupę. Ma wszystkie uprawnienia, w tym nadawanie ról, generowanie kodów zaproszeń, usuwanie osób i usuwanie grupy.</li>
         <li><b>Mistrz Gry</b>: widzi gry grupy, dodaje, przenosi i usuwa gry, losuje, wpisuje i poprawia wyniki, zmienia nazwę grupy.</li>
-        <li><b>Gracz</b>: bierze udział w rozgrywkach. Nie widzi gier grupy ani jej Change Logu, nie losuje i nie wpisuje wyników. Widzi wyniki rozgrywek, w których grał, ranking i swoje ostatnio rozegrane gry.</li>
+        <li><b>Gracz</b>: bierze udział w rozgrywkach. Nie widzi gier grupy ani jej Change Logu, nie losuje i nie wpisuje wyników. Widzi wyniki rozgrywek, w których grał, oraz ranking.</li>
       </ul>
       <h4>Tworzenie grupy</h4>
       <ol>
@@ -566,7 +561,7 @@
         <li>Naciśnij <b>Kopiuj</b>, aby skopiować dane do schowka.</li>
         <li>Wklej skopiowany tekst w bezpieczne miejsce, np. do notatek.</li>
       </ol>
-      <p>Kopia zawiera gry ze stanem rozegranych, wyniki, ostatnio rozegrane gry, listę graczy i Change Log. Aby odtworzyć dane, wklej tekst kopii w okno i dwa razy naciśnij <b>Importuj</b>. Z kopii powstaną nowe grupy, a istniejące grupy pozostaną bez zmian.</p>
+      <p>Kopia zawiera gry ze stanem rozegranych, wyniki, historię rozegranych gier, listę graczy i Change Log. Aby odtworzyć dane, wklej tekst kopii w okno i dwa razy naciśnij <b>Importuj</b>. Z kopii powstaną nowe grupy, a istniejące grupy pozostaną bez zmian.</p>
 
       <h3>14. Zmiany i aktualizacje</h3>
       <ul>
