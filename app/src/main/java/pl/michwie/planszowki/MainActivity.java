@@ -59,6 +59,9 @@ public class MainActivity extends Activity {
     private File pendingApk;          // pobrana aktualizacja czekająca na instalację
     private boolean waitingPermission; // czekamy, aż użytkownik zezwoli na instalowanie aplikacji
     private static final int REQ_COVER = 42;
+    private static final int REQ_SAVE = 43;
+    private static final int REQ_OPEN = 44;
+    private String pendingSaveText = null;
 
     @SuppressLint({"SetJavaScriptEnabled", "AddJavascriptInterface"})
     @Override
@@ -204,10 +207,60 @@ public class MainActivity extends Activity {
         catch (Exception e) { js("window.onCover&&onCover(null)"); }
     }
 
+    /** Kopia zapasowa: zapis tekstu do pliku wybranego przez użytkownika (systemowe okno „Zapisz”). */
+    private void saveTextFile(String name, String text) {
+        pendingSaveText = text;
+        Intent i = new Intent(Intent.ACTION_CREATE_DOCUMENT);
+        i.addCategory(Intent.CATEGORY_OPENABLE);
+        i.setType("text/plain");
+        i.putExtra(Intent.EXTRA_TITLE, name);
+        try { startActivityForResult(i, REQ_SAVE); }
+        catch (Exception e) { pendingSaveText = null; js("window.onFileSaved&&onFileSaved(false)"); }
+    }
+
+    /** Kopia zapasowa: wybór pliku tekstowego i przekazanie jego treści do strony. */
+    private void openTextFile() {
+        Intent i = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+        i.addCategory(Intent.CATEGORY_OPENABLE);
+        i.setType("*/*");
+        i.putExtra(Intent.EXTRA_MIME_TYPES, new String[]{"text/plain", "text/*", "application/octet-stream"});
+        try { startActivityForResult(i, REQ_OPEN); }
+        catch (Exception e) { js("window.onTextFile&&onTextFile(null)"); }
+    }
+
+    private void handleFileResult(int requestCode, int resultCode, Intent data) {
+        Uri uri = (resultCode == RESULT_OK && data != null) ? data.getData() : null;
+        if (requestCode == REQ_SAVE) {
+            final String text = pendingSaveText; pendingSaveText = null;
+            if (uri == null || text == null) { js("window.onFileSaved&&onFileSaved(false)"); return; }
+            new Thread(() -> {
+                boolean ok = false;
+                try (OutputStream out = getContentResolver().openOutputStream(uri, "wt")) {
+                    if (out != null) { out.write(text.getBytes(java.nio.charset.StandardCharsets.UTF_8)); ok = true; }
+                } catch (Exception ignored) {}
+                js("window.onFileSaved&&onFileSaved(" + ok + ")");
+            }).start();
+        } else {
+            if (uri == null) { js("window.onTextFile&&onTextFile(null)"); return; }
+            new Thread(() -> {
+                try (InputStream in = getContentResolver().openInputStream(uri)) {
+                    ByteArrayOutputStream bos = new ByteArrayOutputStream();
+                    byte[] buf = new byte[8192]; int n, total = 0;
+                    while (in != null && (n = in.read(buf)) > 0) { bos.write(buf, 0, n); total += n; if (total > 20 * 1024 * 1024) throw new Exception("too big"); }
+                    String text = new String(bos.toByteArray(), java.nio.charset.StandardCharsets.UTF_8);
+                    js("window.onTextFile&&onTextFile(" + org.json.JSONObject.quote(text) + ")");
+                } catch (Exception e) {
+                    js("window.onTextFile&&onTextFile(null)");
+                }
+            }).start();
+        }
+    }
+
     @Override
     @SuppressWarnings("deprecation")
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == REQ_SAVE || requestCode == REQ_OPEN) { handleFileResult(requestCode, resultCode, data); return; }
         if (requestCode != REQ_COVER) return;
         if (resultCode != RESULT_OK || data == null) { js("window.onCover&&onCover(null)"); return; }
         new Thread(() -> {
@@ -322,6 +375,14 @@ public class MainActivity extends Activity {
         /** Wybór okładki gry (galeria lub aparat). Wynik trafia do window.onCover(dataUrl | null). */
         @JavascriptInterface
         public void pickCover() { runOnUiThread(MainActivity.this::pickCover); }
+
+        /** Zapis kopii zapasowej do pliku tekstowego. Wynik: window.onFileSaved(true|false). */
+        @JavascriptInterface
+        public void saveTextFile(String name, String text) { runOnUiThread(() -> MainActivity.this.saveTextFile(name, text)); }
+
+        /** Wczytanie kopii zapasowej z pliku tekstowego. Wynik: window.onTextFile(tekst | null). */
+        @JavascriptInterface
+        public void openTextFile() { runOnUiThread(MainActivity.this::openTextFile); }
 
         /** Prośba o zgodę na powiadomienia (Android 13+), by po aktualizacji pokazać „dotknij, aby otworzyć”. */
         @JavascriptInterface

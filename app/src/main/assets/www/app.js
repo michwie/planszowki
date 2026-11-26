@@ -189,6 +189,13 @@
   };
   // okno potwierdzenia (w stylu motywu)
   function confirmDialog(o){
+    // o.typeName: trzeba wpisać tę nazwę, żeby odblokować przycisk potwierdzenia
+    const tb = $("cfTypeBox"), ti = $("cfType");
+    tb.hidden = !o.typeName; ti.value = "";
+    const norm = x => String(x || "").trim().replace(/\s+/g, " ").toLowerCase();
+    const sync = () => { $("cfYes").disabled = !!o.typeName && norm(ti.value) !== norm(o.typeName); };
+    if (o.typeName) { $("cfTypeName").textContent = o.typeName; ti.oninput = sync; }
+    sync();
     $("cfTitle").textContent = o.title || "Na pewno?";
     $("cfText").textContent = o.text || "";
     $("cfIcon").textContent = o.icon || "?";
@@ -196,8 +203,9 @@
     $("cfYes").classList.toggle("danger-yes", !!o.danger);
     $("cfNo").textContent = o.no || "Anuluj";
     $("cfNo").onclick = () => closeOv("cf");
-    $("cfYes").onclick = () => { closeOv("cf"); o.onYes && o.onYes(); };
+    $("cfYes").onclick = () => { if ($("cfYes").disabled) return; closeOv("cf"); o.onYes && o.onYes(); };
     openOv("cf");
+    if (o.typeName) setTimeout(() => ti.focus(), 50);
   }
   $("logout").onclick = () => confirmDialog({title: "Wylogować się?", text: "Aby znów korzystać z aplikacji, trzeba będzie zalogować się e-mailem i hasłem.", icon: "⎋", yes: "Wyloguj", onYes: () => auth.signOut()});
 
@@ -290,7 +298,9 @@
       });
       Object.keys(logSubs).forEach(k => { if (!ids.has(k)) { logSubs[k](); delete logSubs[k]; delete logsBy[k]; } });
       Object.keys(stateSubs).forEach(k => { if (!ids.has(k)) { stateSubs[k](); delete stateSubs[k]; delete stateBy[k]; } });
-      if (!qs.metadata.fromCache) groups.forEach(g => backfillPlays(g));
+      if (!qs.metadata.fromCache) { groups.forEach(g => backfillPlays(g)); purgeExpired(); }
+      $("trashCount").textContent = trashed.length ? "(" + trashed.length + ")" : "";
+      if (!$("trashOv").hidden) renderTrash();
       setStatus(qs.metadata.fromCache ? "Tryb offline – zmiany wyślę po połączeniu" : "Połączono ✓");
       render();
     }, err => { setStatus("Błąd połączenia z bazą: " + errMsg(err)); });
@@ -301,8 +311,11 @@
 
   // Grupa = dokument grupy (nazwa, członkowie) + szafa (gry, gracze, kody) dla właściciela i edytorów.
   // Starsze grupy trzymały gry w dokumencie grupy – wtedy bierzemy je stamtąd, a właściciel przenosi je do szafy.
+  const TRASH_DAYS = 30;
+  let trashed = [];   // grupy w koszu (tylko właściciel)
   function mergeGroups(){
-    groups = groupDocs.map(d => {
+    trashed = groupDocs.filter(d => d.deletedAt && (d.members || {})[me.uid] === "owner").sort((a, b) => b.deletedAt - a.deletedAt);
+    groups = groupDocs.filter(d => !d.deletedAt).map(d => {
       const g = Object.assign({}, d);
       const sh = shelfBy[d.id];
       if (!canEdit(g)) { g.games = []; g.players = []; delete g.inviteCode; }
@@ -1200,6 +1213,7 @@
     }
     try {
       const uidMe = me.uid;
+      for (const d of trashed.slice()) { try { await purgeGroup(d, true); } catch(e){} }
       for (const g of groups.slice()) {
         if (isOwner(g)) { await deleteGroup(g, true); continue; }
         // usuń mnie z wyników tej grupy
@@ -1372,7 +1386,9 @@
       const n = (g.games || []).length;
       const d = $("gmDelete");
       d.textContent = "Usuń grupę";
-      d.onclick = () => confirmDialog({title: "Usunąć grupę?", text: "Grupa „" + g.name + "”" + (n ? " razem z " + gier(n).replace(/^(\d+) gry$/, "$1 grami").replace(/^(\d+) gier$/, "$1 grami").replace(/^1 grę$/, "1 grą") : "") + ", wynikami i aktualnościami zostanie usunięta dla wszystkich członków. Tego nie da się cofnąć.", icon: "⚠", yes: "Usuń grupę", danger: true, onYes: () => deleteGroup(g)});
+      d.onclick = () => confirmDialog({title: "Przenieść grupę do kosza?", icon: "🗑", yes: "Do kosza", danger: true, typeName: g.name,
+        text: "Grupa „" + g.name + "”" + (n ? " razem z " + gier(n).replace(/^(\d+) gry$/, "$1 grami").replace(/^(\d+) gier$/, "$1 grami").replace(/^1 grę$/, "1 grą") : "") + " i wynikami zniknie dla wszystkich członków. Przez " + TRASH_DAYS + " dni możesz ją przywrócić w Więcej › Kosz.",
+        onYes: () => trashGroup(g)});
     } else {
       add('<button class="danger" id="gmLeave"></button>');
       const l = $("gmLeave");
@@ -1489,6 +1505,48 @@
     }
     toast("Nie udało się wygenerować kodu");
   }
+  async function trashGroup(g){
+    const ok = await upd(g.id, {deletedAt: Date.now(), deletedBy: me.uid}, "Przeniesienie grupy do kosza", "group");
+    if (ok) { closeOv("gm"); ui.tab = 0; toast("Grupa „" + g.name + "” jest w koszu"); }
+  }
+  async function restoreGroup(d){
+    try {
+      await commitB((b, log) => {
+        b.update(gref(d.id), {deletedAt: FV.delete(), deletedBy: FV.delete(), updatedAt: Date.now()});
+        log(d.id, "group", "Przywrócenie grupy z kosza");
+      });
+      toast("Przywrócono grupę „" + d.name + "”");
+    } catch(e){ toast(errMsg(e)); }
+  }
+  // trwałe usunięcie grupy z kosza (kody zaproszeń trzeba doczytać, bo szafa grupy w koszu nie jest śledzona)
+  async function purgeGroup(d, silent){
+    let sh = {};
+    try { const x = await sref(d.id).get(); if (x.exists) sh = x.data(); } catch(e){}
+    return deleteGroup(Object.assign({}, d, {shelf: true, editorCode: sh.editorCode, playerCode: sh.playerCode}), silent);
+  }
+  let purging = false;
+  async function purgeExpired(){
+    if (purging) return; purging = true;
+    try { for (const d of trashed.filter(x => Date.now() - x.deletedAt > TRASH_DAYS * 86400000)) await purgeGroup(d, true); }
+    catch(e){} finally { purging = false; }
+  }
+  function renderTrash(){
+    const ul = $("trashList"); if (!ul) return; ul.innerHTML = "";
+    $("trashEmpty").hidden = trashed.length > 0;
+    trashed.forEach(d => {
+      const li = document.createElement("li"); li.className = "trashit";
+      const until = d.deletedAt + TRASH_DAYS * 86400000;
+      li.innerHTML = '<div class="ti"><b></b><span></span></div><div class="gebtns"><button type="button" class="gebtn trest">↺ Przywróć</button><button type="button" class="gebtn gedel tdel">🗑 Usuń na zawsze</button></div>';
+      li.querySelector("b").textContent = d.name;
+      li.querySelector("span").textContent = "w koszu od " + fmt(d.deletedAt) + " · trwałe usunięcie " + fmt(until);
+      li.querySelector(".trest").onclick = () => restoreGroup(d);
+      li.querySelector(".tdel").onclick = () => confirmDialog({title: "Usunąć grupę na zawsze?", icon: "⚠", yes: "Usuń na zawsze", danger: true, typeName: d.name,
+        text: "Grupa „" + d.name + "” razem z grami, wynikami i aktualnościami zostanie trwale usunięta. Tego nie da się cofnąć.",
+        onYes: () => purgeGroup(d).then(() => toast("Usunięto grupę na zawsze"))});
+      ul.appendChild(li);
+    });
+  }
+  $("openTrash").onclick = () => { renderTrash(); openOv("trashOv"); };
   async function deleteGroup(g, silent){
     try {
       // usuwamy to, co wolno nam odczytać: widoczne wyniki, wpisy grupy i własne wpisy prywatne, swój stan
@@ -2272,7 +2330,7 @@
 
   // ================= KOPIA ZAPASOWA / IMPORT =================
   function bkMsg(t, err){ const m = $("bkMsg"); m.textContent = t; m.className = "msg" + (err ? " err" : ""); }
-  $("bkCopy").onclick = async () => {
+  function backupText(){
     const data = { v: 2, exportedAt: Date.now(),
       groups: groups.filter(canEdit).map(g => ({ id: g.id, name: g.name,
         games: (g.games || []).map(x => ({id: x.id, name: x.name, played: isVPlayed(g, x, null), playedAt: myPlayed(g)[x.id] || null, off: !!x.off,
@@ -2281,7 +2339,33 @@
         log: (logsBy[g.id] || []).map(e => ({at: e.at, name: e.name, type: e.type, text: e.text, scope: e.scope || "group"})) })),
       plays: allPlays().map(p => Object.assign({}, p)),
       registrations: Object.entries(regs).map(([u, r]) => ({uid: u, name: r.name, at: r.at})) };
-    const text = "PLANSZOWKI-KOPIA " + new Date().toLocaleDateString("pl-PL") + "\n" + JSON.stringify(data);
+    return "PLANSZOWKI-KOPIA " + new Date().toLocaleDateString("pl-PL") + "\n" + JSON.stringify(data);
+  }
+  $("bkSave").onclick = () => {
+    const text = backupText();
+    const d = new Date(), p2 = n => String(n).padStart(2, "0");
+    const name = "Planszomat-kopia-" + d.getFullYear() + "-" + p2(d.getMonth() + 1) + "-" + p2(d.getDate()) + ".txt";
+    if (Android && Android.saveTextFile) {
+      window.onFileSaved = ok => { window.onFileSaved = null; bkMsg(ok ? "Zapisano plik kopii zapasowej." : "Nie zapisano pliku.", !ok); };
+      Android.saveTextFile(name, text); return;
+    }
+    const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([text], {type: "text/plain;charset=utf-8"})); a.download = name;
+    document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+    bkMsg("Zapisano plik " + name + ".");
+  };
+  $("bkLoad").onclick = () => {
+    const done = t => {
+      if (t == null) { bkMsg("Nie wczytano pliku.", true); return; }
+      $("bkText").value = String(t).trim(); importArmed = false;
+      bkMsg("Wczytano plik. Sprawdź i naciśnij „Importuj”.");
+    };
+    if (Android && Android.openTextFile) { window.onTextFile = t => { window.onTextFile = null; done(t); }; Android.openTextFile(); return; }
+    const inp = document.createElement("input"); inp.type = "file"; inp.accept = ".txt,text/plain";
+    inp.onchange = () => { const f = inp.files && inp.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => done(r.result); r.onerror = () => done(null); r.readAsText(f, "utf-8"); };
+    inp.click();
+  };
+  $("bkCopy").onclick = async () => {
+    const text = backupText();
     $("bkText").value = text;
     if (Android && Android.copy) { Android.copy(text); bkMsg("Skopiowano do schowka. Wklej to w bezpieczne miejsce."); return; }
     try { await navigator.clipboard.writeText(text); bkMsg("Skopiowano do schowka. Wklej to w bezpieczne miejsce."); }

@@ -142,6 +142,7 @@
       <button class="mitem" id="openChanges"><span class="mi">✦</span>Zmiany!</button>
       <button class="mitem" id="openTheme"><span class="mi">◐</span>Motyw: <span id="themeName">Matrix</span></button>
       <button class="mitem" id="openBk"><span class="mi">⛁</span>Kopia zapasowa</button>
+      <button class="mitem" id="openTrash"><span class="mi">🗑</span>Kosz <span id="trashCount"></span></button>
       <button class="mitem" id="logout"><span class="mi">⎋</span>Wyloguj</button>
       <button class="mitem danger-item" id="openDelAcc"><span class="mi">⚠</span>Usuń konto</button>
     </section>
@@ -236,6 +237,18 @@
   </div>
 </div>
 
+<!-- ================= KOSZ ================= -->
+<div class="ov" id="trashOv" hidden role="dialog" aria-modal="true" aria-label="Kosz">
+  <div class="ovin">
+    <div class="ovhead"><h2>Kosz</h2><button class="ovclose" data-close="trashOv" aria-label="Zamknij">✕</button></div>
+    <div class="ovscroll" style="border-top:0">
+      <p class="rolenote" style="margin-top:4px">Usunięte grupy, których jesteś właścicielem, są tu przez 30 dni. Potem zostają usunięte na zawsze.</p>
+      <p class="h2hnone" id="trashEmpty">Kosz jest pusty.</p>
+      <ul class="trashl" id="trashList"></ul>
+    </div>
+  </div>
+</div>
+
 <!-- ================= POJEDYNKI ================= -->
 <div class="ov" id="h2hOv" hidden role="dialog" aria-modal="true" aria-label="Pojedynki">
   <div class="ovin">
@@ -309,8 +322,9 @@
   <div class="ovin">
     <div class="ovhead"><h2>Kopia zapasowa</h2><button class="ovclose" data-close="bkov" aria-label="Zamknij">✕</button></div>
     <div class="ovscroll bk" style="border-top:0">
-      <p style="margin-top:6px">„Kopiuj” zapisuje do schowka wszystko z Twoich grup: listy gier ze stanem rozegranych, wyniki, historię rozegranych gier, listę graczy i aktualności. Wklej tekst np. do notatek.</p>
-      <p>„Importuj” tworzy z wklejonej kopii nowe grupy na Twoim koncie – istniejące grupy zostają bez zmian. Działa też z kopią z poprzedniej wersji aplikacji (z Claude).</p>
+      <p style="margin-top:6px">Kopia obejmuje wszystko z Twoich grup: listy gier ze stanem rozegranych, wyniki, historię rozegranych gier, listę graczy i aktualności.</p>
+      <div class="row2"><button class="ok" id="bkSave">💾 Zapisz plik</button><button class="ghost" id="bkLoad">📂 Wczytaj plik</button></div>
+      <p style="margin-top:12px">„Importuj” tworzy z kopii (wczytanej z pliku albo wklejonej poniżej) nowe grupy na Twoim koncie – istniejące grupy zostają bez zmian.</p>
       <textarea id="bkText" spellcheck="false" placeholder="tu wklej tekst kopii zapasowej…"></textarea>
       <div class="row2">
         <button class="ok" id="bkCopy">Kopiuj</button>
@@ -369,6 +383,7 @@
       <div class="updicon" id="cfIcon">?</div>
       <div class="updver" id="cfTitle"></div>
       <div class="updst" id="cfText"></div>
+      <div class="cftype" id="cfTypeBox" hidden><label for="cfType">Aby potwierdzić, wpisz nazwę grupy: <b id="cfTypeName"></b></label><input type="text" id="cfType" autocomplete="off" autocapitalize="off" spellcheck="false"></div>
       <div class="row2" style="margin-top:16px"><button class="ghost" id="cfNo">Anuluj</button><button class="ok" id="cfYes">Tak</button></div>
     </div>
   </div>
@@ -514,7 +529,7 @@
         <tr><td><b>Gry</b></td><td>grupy, członkowie, kody zaproszeń, lista gier, rekordy</td></tr>
         <tr><td><b>🔔</b></td><td>aktualności, czyli historia zmian w grupach</td></tr>
         <tr><td><b>Wyniki</b></td><td>wyniki, ranking, profil gracza, pojedynki</td></tr>
-        <tr><td><b>Więcej</b></td><td>instrukcja, zmiany w wersjach, motyw, kopia zapasowa, konto</td></tr>
+        <tr><td><b>Więcej</b></td><td>instrukcja, zmiany w wersjach, motyw, kopia zapasowa, kosz, konto</td></tr>
       </table>
       <p>Na dole każdej zakładki widoczny jest stan połączenia i numer zainstalowanej wersji.</p>
       <h4>3.3. Okna i potwierdzenia</h4>
@@ -560,7 +575,7 @@
         <li><b>Kody zaproszeń</b> (właściciel i Mistrz Gry): <b>Kod dla Mistrza Gry</b> i <b>Kod dla gracza</b>. Rola nowej osoby zależy od kodu, który otrzyma. Przyciski <b>Kopiuj</b> i <b>Udostępnij</b> służą do przekazania kodu. Przycisk <b>Nowy kod</b> (tylko właściciel) unieważnia dotychczasowy kod; osoby, które już dołączyły, pozostają w grupie.</li>
         <li><b>Członkowie</b>: lista osób w grupie z rolami. Właściciel zmienia rolę osoby na liście wyboru przy jej nazwisku. Opcja <b>usuń z grupy</b> usuwa osobę po potwierdzeniu.</li>
         <li><b>Gracze bez konta</b> (właściciel i Mistrz Gry): osoby wpisywane do wyników z imienia, bez konta w aplikacji (punkt 5.2.1).</li>
-        <li><b>Usuń grupę</b> (właściciel) lub <b>Opuść grupę</b> (pozostali członkowie).</li>
+        <li><b>Usuń grupę</b> (właściciel) lub <b>Opuść grupę</b> (pozostali członkowie). Usunięta grupa trafia do kosza (punkt 8.5). Aby potwierdzić usunięcie, wpisz nazwę grupy.</li>
       </ul>
       <h4>5.2.1. Łączenie gracza bez konta z kontem</h4>
       <p>Jeśli osoba wpisywana wcześniej z imienia założy konto i dołączy do grupy, jej dotychczasowe wyniki można przenieść na konto.</p>
@@ -726,27 +741,35 @@
         <li>Motyw i ustawienie animacji są zapisywane na koncie i włączają się automatycznie na innym urządzeniu po zalogowaniu.</li>
       </ul>
       <h4>8.4. Kopia zapasowa</h4>
-      <p>Tworzenie kopii:</p>
+      <p>Tworzenie kopii w pliku:</p>
       <ol>
         <li>Naciśnij <b>Kopia zapasowa</b>.</li>
-        <li>Naciśnij <b>Kopiuj</b>.</li>
-        <li>Wklej skopiowany tekst w bezpieczne miejsce, np. do notatek.</li>
+        <li>Naciśnij <b>💾 Zapisz plik</b>.</li>
+        <li>Wybierz miejsce zapisu i zatwierdź. Plik ma nazwę <b>Planszomat-kopia-RRRR-MM-DD.txt</b>.</li>
       </ol>
-      <p>Przywracanie danych:</p>
+      <p>Przywracanie danych z pliku:</p>
       <ol>
-        <li>Wklej tekst kopii w pole okna <b>Kopia zapasowa</b>.</li>
+        <li>W oknie <b>Kopia zapasowa</b> naciśnij <b>📂 Wczytaj plik</b> i wybierz plik kopii.</li>
         <li>Naciśnij <b>Importuj</b> i potwierdź.</li>
       </ol>
+      <p>Kopię można też przenieść przez schowek: przycisk <b>Kopiuj</b> kopiuje jej tekst, a tekst wklejony w pole okna importuje się przyciskiem <b>Importuj</b>.</p>
       <p>Kopia zawiera gry ze stanem rozegranych, wyniki, historię rozgrywek, listę graczy i aktualności. Import tworzy nowe grupy; istniejące grupy pozostają bez zmian.</p>
-      <h4>8.5. Wyloguj</h4>
+      <h4>8.5. Kosz</h4>
+      <p>Usunięta grupa nie znika od razu. Trafia do kosza, a dla wszystkich członków przestaje być widoczna. Kosz widzi tylko właściciel grupy. Liczba w nawiasie przy pozycji <b>Kosz</b> to liczba grup w koszu.</p>
+      <ul>
+        <li><b>↺ Przywróć</b>: przywraca grupę razem z grami, wynikami i członkami.</li>
+        <li><b>🗑 Usuń na zawsze</b>: trwale usuwa grupę. Aby potwierdzić, wpisz nazwę grupy.</li>
+      </ul>
+      <p class="note">Uwaga: grupy w koszu są trwale usuwane po 30 dniach. Przy każdej grupie widoczna jest data trwałego usunięcia.</p>
+      <h4>8.6. Wyloguj</h4>
       <p>Wylogowuje z aplikacji po potwierdzeniu.</p>
-      <h4>8.6. Usuń konto</h4>
+      <h4>8.7. Usuń konto</h4>
       <ol>
         <li>Naciśnij <b>Usuń konto</b>.</li>
         <li>Wpisz hasło.</li>
         <li>Naciśnij <b>Usuń moje konto</b> i potwierdź.</li>
       </ol>
-      <p class="note">Uwaga: usunięcie konta jest nieodwracalne. Usuwane są konto, adres e-mail, Twoje wpisy w wynikach, członkostwo w grupach, stan rozegranych gier i ustawienia. Grupy, których jesteś właścicielem, są usuwane razem z grami i wynikami.</p>
+      <p class="note">Uwaga: usunięcie konta jest nieodwracalne. Usuwane są konto, adres e-mail, Twoje wpisy w wynikach, członkostwo w grupach, stan rozegranych gier i ustawienia. Grupy, których jesteś właścicielem, także te w koszu, są usuwane razem z grami i wynikami.</p>
 
       <h3>9. Aktualizacje</h3>
       <p>Gdy dostępna jest nowa wersja, na górze ekranu wyświetla się pasek <b>Dostępna nowa wersja</b>.</p>

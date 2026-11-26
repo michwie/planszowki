@@ -290,6 +290,61 @@ def rekordy_w_grach(c):
     return pg
 
 @test
+def kosz_i_potwierdzenie_nazwa(c):
+    pg = c.open(seed())
+    pg.click("#tabbar .tb[data-view=games]"); pg.click("#openGm"); pg.wait_for_timeout(300)
+    pg.click("#gmDelete"); pg.wait_for_timeout(200)
+    assert visible(pg, "#cfTypeBox"), "brak pola na nazwę grupy"
+    assert pg.is_disabled("#cfYes"), "przycisk powinien być zablokowany"
+    pg.fill("#cfType", "Zła nazwa"); assert pg.is_disabled("#cfYes")
+    pg.fill("#cfType", " dom "); assert not pg.is_disabled("#cfYes"), "nazwa bez względu na wielkość liter powinna odblokować"
+    pg.click("#cfYes"); pg.wait_for_timeout(600)
+    g = docs(pg)["groups/G1"]
+    assert g.get("deletedAt"), "grupa nie trafiła do kosza"
+    assert "groups/G1/plays/p1" in docs(pg), "wyniki nie mogą zniknąć przy przeniesieniu do kosza"
+    assert "dom" not in pg.inner_text("#tabs").lower(), "grupa w koszu nie powinna być widoczna"
+    pg.click("#tabbar .tb[data-view=more]"); pg.click("#openTrash"); pg.wait_for_timeout(300)
+    assert "Dom" in pg.inner_text("#trashList")
+    pg.click("#trashList .trest"); pg.wait_for_timeout(600)
+    assert not docs(pg)["groups/G1"].get("deletedAt"), "grupa nie została przywrócona"
+    assert "Kosz jest pusty" in pg.inner_text("#trashOv")
+    pg.click("[data-close=trashOv]"); pg.click("#tabbar .tb[data-view=games]"); pg.wait_for_timeout(300)
+    assert "dom" in pg.inner_text("#tabs").lower(), "przywrócona grupa nie wróciła"
+    return pg
+
+@test
+def kosz_usun_na_zawsze_i_po_30_dniach(c):
+    d = seed()
+    d["docs"]["groups/G1"]["deletedAt"] = 1  # dawno temu -> powinna zniknąć sama
+    d["docs"]["groups/G2"] = {"name": "Praca", "ownerId": "uA", "members": {"uA": "owner"}, "memberIds": ["uA"], "memberNames": {"uA": "Michał"}, "createdAtMs": 2,
+                              "deletedAt": 1794600000000 + 10**12}  # świeżo w koszu
+    d["docs"]["groups/G2/shelf/main"] = {"games": [], "players": [], "editorCode": "C", "playerCode": "D"}
+    pg = c.open(d)
+    pg.wait_for_timeout(800)
+    assert "groups/G1" not in docs(pg), "grupa starsza niż 30 dni nie została usunięta"
+    pg.click("#tabbar .tb[data-view=more]"); pg.click("#openTrash"); pg.wait_for_timeout(300)
+    pg.click("#trashList .tdel"); pg.wait_for_timeout(200)
+    assert pg.is_disabled("#cfYes")
+    pg.fill("#cfType", "Praca"); pg.click("#cfYes"); pg.wait_for_timeout(800)
+    assert "groups/G2" not in docs(pg), "grupa nie została usunięta na zawsze"
+    return pg
+
+@test
+def kopia_do_pliku_i_z_pliku(c):
+    pg = c.open(seed())
+    pg.click("#tabbar .tb[data-view=more]"); pg.click("#openBk"); pg.wait_for_timeout(300)
+    with pg.expect_download() as dl:
+        pg.click("#bkSave")
+    path = dl.value.path(); text = open(path, encoding="utf-8").read()
+    assert dl.value.suggested_filename.startswith("Planszomat-kopia-") and dl.value.suggested_filename.endswith(".txt"), dl.value.suggested_filename
+    assert text.startswith("PLANSZOWKI-KOPIA") and "Wiedźmin" in text, "zła treść kopii"
+    with pg.expect_file_chooser() as fc:
+        pg.click("#bkLoad")
+    fc.value.set_files(path); pg.wait_for_timeout(400)
+    assert pg.input_value("#bkText").startswith("PLANSZOWKI-KOPIA"), "plik nie został wczytany"
+    return pg
+
+@test
 def wszystkie_zakladki_bez_bledow(c):
     pg = c.open(seed())
     for v in ("draw", "games", "news", "results", "more"):
