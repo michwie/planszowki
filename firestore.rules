@@ -163,6 +163,22 @@ service cloud.firestore {
         && request.resource.data.keys().hasOnly(['theme', 'fx', 'updatedAt']);
     }
 
+    // Kopie zapasowe na serwerze: tylko właściciel konta; kopia nie jest zmieniana, tylko tworzona i usuwana
+    match /backups/{u}/snaps/{sid} {
+      allow read, delete: if signedIn() && me() == u;
+      allow create: if signedIn() && me() == u
+        && request.resource.data.keys().hasOnly(['at', 'parts', 'size', 'groups', 'plays'])
+        && request.resource.data.parts is int && request.resource.data.parts >= 1 && request.resource.data.parts <= 20;
+      allow update: if false;
+      match /parts/{n} {
+        allow read, delete: if signedIn() && me() == u;
+        allow create: if signedIn() && me() == u
+          && request.resource.data.keys().hasOnly(['t'])
+          && request.resource.data.t is string && request.resource.data.t.size() <= 300000;
+        allow update: if false;
+      }
+    }
+
     // Wszystko inne zamknięte
     match /{document=**} {
       allow read, write: if false;

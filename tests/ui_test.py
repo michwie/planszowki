@@ -28,6 +28,9 @@ def play(gid, name, at, scores, by="uA"):
             "winners": [s["p"] for s in scores if s.get("win")],
             "viewers": sorted({s["uid"] for s in scores if s.get("uid")} | {by}), "createdBy": by, "exps": []}
 
+# 1x1 JPEG
+JPG = bytes.fromhex("ffd8ffe000104a46494600010100000100010000ffdb004300080606070605080707070909080a0c140d0c0b0b0c1912130f141d1a1f1e1d1a1c1c20242e2720222c231c1c2837292c30313434341f27393d38323c2e333432ffc0000b080001000101011100ffc4001f0000010501010101010100000000000000000102030405060708090a0bffc400b5100002010303020403050504040000017d01020300041105122131410613516107227114328191a1082342b1c11552d1f02433627282090a161718191a25262728292a3435363738393a434445464748494a535455565758595a636465666768696a737475767778797a838485868788898a92939495969798999aa2a3a4a5a6a7a8a9aab2b3b4b5b6b7b8b9bac2c3c4c5c6c7c8c9cad2d3d4d5d6d7d8d9dae1e2e3e4e5e6e7e8e9eaf1f2f3f4f5f6f7f8f9faffda0008010100003f00fbd3ffd9")
+
 M = {"p": "Michał", "uid": "uA"}
 K = {"p": "Kasia", "uid": "uK"}
 
@@ -347,6 +350,72 @@ def kopia_do_pliku_i_import_z_pliku(c):
     pg.click("#cfYes"); pg.wait_for_timeout(1500)
     after = len([k for k in docs(pg) if k.startswith("groups/") and k.count("/") == 1])
     assert after == before + 1, "import nie utworzył grupy (%d -> %d)" % (before, after)
+    return pg
+
+@test
+def kopie_na_serwerze(c):
+    pg = c.open(seed())
+    pg.wait_for_timeout(9000)   # automatyczna kopia po starcie
+    snaps = [k for k in docs(pg) if k.startswith("backups/uA/snaps/") and k.count("/") == 3]
+    assert len(snaps) == 1, "brak automatycznej kopii: %s" % snaps
+    parts = [k for k in docs(pg) if k.startswith(snaps[0] + "/parts/")]
+    assert parts and docs(pg)[parts[0]]["t"].startswith("PLANSZOWKI-KOPIA")
+    # ponowne uruchomienie tego samego dnia nie robi drugiej kopii
+    pg.reload(); pg.wait_for_timeout(9000)
+    assert len([k for k in docs(pg) if k.startswith("backups/uA/snaps/") and k.count("/") == 3]) == 1, "druga kopia tego samego dnia"
+    # stare kopie: zostają 3 najnowsze
+    pg.evaluate("""() => { const S = JSON.parse(localStorage.getItem('__fbmock'));
+      for (const k of Object.keys(S.docs)) if (k.startsWith('backups/')) delete S.docs[k];
+      [1,2,3].forEach(i => { S.docs['backups/uA/snaps/' + i] = {at: i * 86400000, parts: 1, size: 5, groups: 1, plays: 0};
+                             S.docs['backups/uA/snaps/' + i + '/parts/0'] = {t: 'x'}; });
+      localStorage.setItem('__fbmock', JSON.stringify(S)); }""")
+    pg.reload(); pg.wait_for_timeout(9000)
+    snaps = sorted(k for k in docs(pg) if k.startswith("backups/uA/snaps/") and k.count("/") == 3)
+    assert len(snaps) == 3 and "backups/uA/snaps/1" not in snaps, snaps
+    assert "backups/uA/snaps/1/parts/0" not in docs(pg), "nie usunięto części starej kopii"
+    # przywracanie z listy w oknie kopii
+    pg.click("#tabbar .tb[data-view=more]"); pg.click("#openBk"); pg.wait_for_timeout(600)
+    assert len(pg.query_selector_all("#snapList li")) == 3
+    before = len([k for k in docs(pg) if k.startswith("groups/") and k.count("/") == 1])
+    pg.click("#snapList li >> nth=0 >> .srest"); pg.wait_for_timeout(600)
+    assert visible(pg, "#cf"), "brak potwierdzenia przywrócenia"
+    pg.click("#cfYes"); pg.wait_for_timeout(1500)
+    assert len([k for k in docs(pg) if k.startswith("groups/") and k.count("/") == 1]) == before + 1, "przywrócenie nie utworzyło grupy"
+    return pg
+
+@test
+def nowa_grupa_w_oknie_z_unikalna_nazwa(c):
+    pg = c.open(seed())
+    n = lambda: len([k for k in docs(pg) if k.startswith("groups/") and k.count("/") == 1])
+    before = n()
+    pg.click("#tabbar .tb[data-view=games]"); pg.click("#tabs .addg"); pg.wait_for_timeout(300)
+    assert visible(pg, "#ngOv"), "brak okna nowej grupy"
+    assert n() == before, "grupa nie może powstać bez potwierdzenia"
+    pg.click("#ngBtn"); pg.wait_for_timeout(200)
+    assert "nazwę" in pg.inner_text("#ngErr"), "pusta nazwa powinna być odrzucona"
+    pg.fill("#ngName", " dom "); pg.click("#ngBtn"); pg.wait_for_timeout(200)
+    assert "już grupę" in pg.inner_text("#ngErr") and n() == before, "powtórzona nazwa powinna być odrzucona"
+    pg.fill("#ngName", "Klub planszówkowy"); pg.click("#ngBtn"); pg.wait_for_timeout(800)
+    assert n() == before + 1 and not visible(pg, "#ngOv"), "grupa nie została utworzona"
+    assert any(v.get("name") == "Klub planszówkowy" for k, v in docs(pg).items() if k.startswith("groups/") and k.count("/") == 1)
+    pg.click("#tabs .addg"); pg.wait_for_timeout(200); pg.click("#ngCancel"); pg.wait_for_timeout(200)
+    assert not visible(pg, "#ngOv") and n() == before + 1, "Anuluj nie powinno tworzyć grupy"
+    return pg
+
+@test
+def powiekszenie_okladki(c):
+    d = seed()
+    import base64
+    d["docs"]["groups/G1/covers/a1"] = {"img": "data:image/jpeg;base64," + base64.b64encode(JPG).decode(), "by": "uA", "updatedAt": 1}
+    pg = c.open(d)
+    pg.click("#tabbar .tb[data-view=games]"); pg.wait_for_timeout(300)
+    pg.click("#list li.game:has-text('Azul') .gcov"); pg.wait_for_timeout(300)
+    assert visible(pg, "#imgOv") and pg.inner_text("#imgCap") == "Azul", "brak powiększonej okładki"
+    pg.click("#imgOv"); pg.wait_for_timeout(300)
+    assert not visible(pg, "#imgOv"), "okno okładki się nie zamyka"
+    pg.click("#openList"); pg.wait_for_timeout(300)
+    pg.click("#allList li.game:has-text('Azul') .gcov"); pg.wait_for_timeout(300)
+    assert visible(pg, "#imgOv"), "brak powiększenia na liście gier"
     return pg
 
 @test

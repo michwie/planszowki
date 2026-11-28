@@ -258,7 +258,7 @@
   document.addEventListener("visibilitychange", () => { if (!document.hidden && !$("verifyView").hidden) checkVerified(true); });
 
   function stopApp(){
-    me = null;
+    me = null; clearTimeout(snapTimer); snapList = [];
     if (groupsUnsub) { groupsUnsub(); groupsUnsub = null; }
     Object.keys(playSubs).forEach(k => { playSubs[k](); delete playSubs[k]; delete playsBy[k]; });
     Object.keys(logSubs).forEach(k => { logSubs[k](); delete logSubs[k]; delete logsBy[k]; });
@@ -305,6 +305,7 @@
       render();
     }, err => { setStatus("Błąd połączenia z bazą: " + errMsg(err)); });
     startRegs(user);
+    scheduleAutoSnap();
     subPrefs(user);
     checkUpdate();
   }
@@ -341,6 +342,9 @@
     const im = document.createElement("img"); im.className = cls; im.alt = ""; im.src = src; im.loading = "lazy";
     return im;
   }
+  // powiększona okładka (naciśnięcie miniatury); naciśnięcie w dowolnym miejscu zamyka
+  function showCover(src, name){ $("imgBig").src = src; $("imgCap").textContent = name || ""; openOv("imgOv"); }
+  $("imgOv").onclick = () => closeOv("imgOv");
   // wybór okładki: w aplikacji – galeria lub aparat (Android), w przeglądarce – plik
   function saveCover(g, game, url){
     if (!url) return Promise.resolve();
@@ -927,7 +931,8 @@
         (edit ? '<button class="ib xed" title="Edytuj grę i rozszerzenia" aria-label="Edytuj">✎</button>' +
                 '' : '') + '</span>' : '');
     li.querySelector(".gmk").textContent = played ? "✓" : "○";
-    const th = coverImg(g.id, game.id, "gcov"); if (th) li.insertBefore(th, li.querySelector(".gname"));
+    const th = coverImg(g.id, game.id, "gcov");
+    if (th) { th.title = "Powiększ okładkę"; th.onclick = e => { e.stopPropagation(); showCover(th.src, game.name); }; li.insertBefore(th, li.querySelector(".gname")); }
     li.querySelector("b").textContent = game.name;
     li.querySelector(".gsub").textContent = isAllOff(game) ? "⊘ wykluczona z losowania" : (variants(game).some(e => isVOff(game, e)) ? "⊘ część wersji wykluczona z losowania" : "");
     if (!ex.length && played) li.querySelector(".gdt").textContent = fmt(myPlayed(g)[game.id]);
@@ -1146,17 +1151,38 @@
     const g = groups[ui.tab]; if (!g || !canEdit(g)) return;
     const v = e.target.value.trim();
     clearTimeout(nameTimer);
+    if (v && isOwner(g) && ownNameTaken(v, g.id)) { nameTimer = setTimeout(() => toast("Masz już grupę o nazwie „" + v + "”"), 600); return; }
     if (v) nameTimer = setTimeout(() => upd(g.id, {name: v.slice(0, 40)}, "Zmiana nazwy grupy na " + q(v.slice(0, 40)), "group"), 1200);
   });
   $("groupName").addEventListener("blur", () => renderGroup());
-  async function addGroup(){
-    if (groups.length >= MAX_GROUPS) return;
-    const id = await createGroup("Nowa grupa");
-    if (!id) return;
-    ui.tab = groups.length; // nowa grupa trafi na koniec po odświeżeniu
-    toast("Dodano grupę – wpisz jej nazwę");
-    setTimeout(() => { const i = groups.findIndex(g => g.id === id); if (i >= 0) { ui.tab = i; renderGroup(); const gn = $("groupName"); gn.focus(); gn.select(); } }, 400);
+  // nazwy własnych grup (także w koszu) muszą być unikalne
+  const grpName = x => String(x || "").trim().replace(/\s+/g, " ").toLowerCase();
+  const ownNameTaken = (name, exceptId) => groupDocs.some(d => d.id !== exceptId && (d.members || {})[me.uid] === "owner" && grpName(d.name) === grpName(name));
+  function uniqueName(base){
+    let n = String(base || "Grupa").slice(0, 40), i = 1;
+    while (ownNameTaken(n)) { i++; n = (String(base).slice(0, 30) + " (kopia" + (i > 2 ? " " + (i - 1) : "") + ")"); }
+    return n;
   }
+  function addGroup(){
+    if (groups.length >= MAX_GROUPS) return;
+    $("ngName").value = ""; $("ngErr").textContent = ""; $("ngBtn").disabled = false;
+    openOv("ngOv"); setTimeout(() => $("ngName").focus(), 50);
+  }
+  $("ngForm").addEventListener("submit", async e => {
+    e.preventDefault();
+    const name = $("ngName").value.trim().replace(/\s+/g, " ");
+    if (name.length < 2) { $("ngErr").textContent = "Wpisz nazwę grupy (co najmniej 2 znaki)."; return; }
+    if (ownNameTaken(name)) { $("ngErr").textContent = "Masz już grupę o tej nazwie (sprawdź też Więcej › Kosz)."; return; }
+    if (groups.length >= MAX_GROUPS) { $("ngErr").textContent = "Osiągnięto limit grup."; return; }
+    $("ngBtn").disabled = true;
+    const id = await createGroup(name.slice(0, 40));
+    $("ngBtn").disabled = false;
+    if (!id) return;
+    closeOv("ngOv");
+    toast("Utworzono grupę „" + name + "”");
+    setTimeout(() => { const i = groups.findIndex(g => g.id === id); if (i >= 0) { ui.tab = i; renderGroup(); } }, 400);
+  });
+  $("ngCancel").onclick = () => closeOv("ngOv");
   $("rerollBtn").onclick = () => { const f = ui.drawn && findGame(ui.drawn, ui.drawnGid); draw(f ? vkey(f.game, findExp(f.game, ui.drawnExp)) : null); };
   $("playBtn").onclick = markPlayed;
   document.addEventListener("click", e => {
@@ -1169,7 +1195,7 @@
   function closeOv(id){ $(id).hidden = true; if (!document.querySelector(".ov:not([hidden])")) document.body.style.overflow = ""; if (id === "rf") rf = null; }
   document.querySelectorAll("[data-close]").forEach(b => b.onclick = () => closeOv(b.dataset.close));
   // dotknięcie poza oknem zamyka tylko okna informacyjne – formularze (wynik, kod, kopia, usuwanie konta) zamyka się ✕ lub „wstecz”
-  const FORM_OV = new Set(["rf", "jn", "bkov", "da", "ge"]);
+  const FORM_OV = new Set(["rf", "jn", "bkov", "da", "ge", "ngOv"]);
   document.querySelectorAll(".ov").forEach(o => o.addEventListener("click", e => { if (e.target === o && !FORM_OV.has(o.id)) closeOv(o.id); }));
   // przycisk "wstecz" Androida: zamyka okno, jeśli jakieś jest otwarte
   window.appBack = function(){
@@ -1189,7 +1215,7 @@
     window.scrollTo(0, 0);
   }
   document.querySelectorAll("#tabbar .tb").forEach(b => b.onclick = () => showView(b.dataset.view));
-  $("openBk").onclick = () => { bkMsg(""); openOv("bkov"); };
+  $("openBk").onclick = () => { bkMsg(""); renderSnaps(); openOv("bkov"); loadSnaps().then(renderSnaps); };
   // ================= USUWANIE KONTA =================
   $("openDelAcc").onclick = () => {
     $("daPass").value = ""; $("daErr").textContent = ""; daArmed = false; $("daBtn").textContent = "Usuń moje konto"; $("daBtn").classList.remove("armed");
@@ -1230,6 +1256,7 @@
         try { await lcol(g.id).doc().set(logEntry("member", "Usunięcie konta")); } catch(e){}
         await gref(g.id).update({["members." + uidMe]: FV.delete(), memberIds: FV.arrayRemove(uidMe), ["memberNames." + uidMe]: FV.delete()});
       }
+      try { await deleteAllSnaps(); } catch(e){}
       try { await db.collection("registrations").doc(uidMe).delete(); } catch(e){}
       try { await db.collection("prefs").doc(uidMe).delete(); } catch(e){}
       try { Object.keys(localStorage).filter(k => k.includes(uidMe)).forEach(k => localStorage.removeItem(k)); } catch(e){}
@@ -2399,7 +2426,7 @@
           if (ex.length) gm.exps = ex;
           return gm;
         });
-        const gname = String(og.name || "Grupa").slice(0, 40);
+        const gname = uniqueName(String(og.name || "Grupa").slice(0, 40));
         const histSrc = Array.isArray(og.history) ? og.history : (Array.isArray(data.history) ? data.history.filter(h => h.group === og.name) : []);
         const history = histSrc.filter(h => h && h.id && h.name).map(h => ({id: String(h.id), name: String(h.name), at: Number(h.at) || Date.now()})).slice(0, 50);
         const players = (Array.isArray(og.players) ? og.players : (Array.isArray(data.players) ? data.players : [])).map(p => String(p).slice(0, 30));
@@ -2442,6 +2469,85 @@
     } catch(e){ bkMsg("Import przerwany: " + errMsg(e), true); }
     finally { btn.disabled = false; }
   };
+
+
+  // ================= KOPIE NA SERWERZE =================
+  // Przy uruchomieniu (najwyżej raz dziennie) kopia grup trafia do backups/{uid}/snaps; trzymamy 3 ostatnie.
+  // Kopia jest dzielona na części (dokument Firestore ma limit 1 MB).
+  const SNAP_KEEP = 3, SNAP_CHUNK = 300000;
+  let snapTimer = null, snapList = [];
+  const snapCol = () => db.collection("backups").doc(me.uid).collection("snaps");
+  const dayStr = ts => { const d = new Date(ts); return d.getFullYear() + "-" + (d.getMonth() + 1) + "-" + d.getDate(); };
+  function dataReady(){
+    return groups.length > 0 && groups.every(g => loadedP.has(g.id) && (!canEdit(g) || shelfBy[g.id]));
+  }
+  async function loadSnaps(){
+    try { snapList = (await snapCol().orderBy("at", "desc").limit(10).get()).docs.map(d => Object.assign({id: d.id}, d.data())); }
+    catch(e){ snapList = []; }
+    return snapList;
+  }
+  async function deleteSnap(sn){
+    const parts = await snapCol().doc(sn.id).collection("parts").get();
+    const b = db.batch(); parts.docs.forEach(d => b.delete(d.ref)); b.delete(snapCol().doc(sn.id)); await b.commit();
+  }
+  async function makeSnap(){
+    const text = backupText();
+    const parts = []; for (let i = 0; i < text.length; i += SNAP_CHUNK) parts.push(text.slice(i, i + SNAP_CHUNK));
+    if (!parts.length || parts.length > 20) return false;
+    const id = String(Date.now()), ref = snapCol().doc(id), b = db.batch();
+    parts.forEach((t, i) => b.set(ref.collection("parts").doc(String(i)), {t}));
+    b.set(ref, {at: Date.now(), parts: parts.length, size: text.length,
+      groups: groups.filter(canEdit).length, plays: allPlays().length});
+    await b.commit();
+    return true;
+  }
+  async function autoSnap(){
+    if (!me || !navigator.onLine) return;
+    const list = await loadSnaps();
+    if (list.length && dayStr(list[0].at) === dayStr(Date.now())) return;   // dziś już jest
+    if (!groups.some(canEdit) && !allPlays().length) return;                  // nic do zapisania
+    try {
+      if (!(await makeSnap())) return;
+      const all = await loadSnaps();
+      for (const old of all.slice(SNAP_KEEP)) await deleteSnap(old);
+      await loadSnaps();
+      if (!$("bkov").hidden) renderSnaps();
+    } catch(e){}
+  }
+  function scheduleAutoSnap(){
+    clearTimeout(snapTimer);
+    const started = Date.now();
+    const tick = () => {
+      if (!me) return;
+      if (dataReady()) { autoSnap(); return; }
+      if (Date.now() - started < 120000) snapTimer = setTimeout(tick, 3000);
+    };
+    snapTimer = setTimeout(tick, 5000);
+  }
+  function renderSnaps(){
+    const ul = $("snapList"); ul.innerHTML = "";
+    $("snapEmpty").hidden = snapList.length > 0;
+    snapList.slice(0, SNAP_KEEP).forEach(sn => {
+      const li = document.createElement("li"); li.className = "trashit";
+      li.innerHTML = '<div class="ti"><b></b><span></span></div><div class="gebtns"><button type="button" class="gebtn srest">↺ Przywróć</button></div>';
+      li.querySelector("b").textContent = fmtDT(sn.at);
+      li.querySelector("span").textContent = plural(sn.groups || 0, "grupa", "grupy", "grup") + " · " + plural(sn.plays || 0, "wynik", "wyniki", "wyników");
+      li.querySelector(".srest").onclick = async () => {
+        bkMsg("Wczytuję kopię…");
+        try {
+          const ps = await snapCol().doc(sn.id).collection("parts").get();
+          const txt = ps.docs.sort((a, b) => Number(a.id) - Number(b.id)).map(d => d.data().t).join("");
+          if (ps.size !== sn.parts) throw new Error("niepełna kopia");
+          bkMsg(""); importArmed = false; bkRaw = txt; runImport();
+        } catch(e){ bkMsg("Nie udało się wczytać kopii: " + errMsg(e), true); }
+      };
+      ul.appendChild(li);
+    });
+  }
+  async function deleteAllSnaps(){
+    const list = await loadSnaps();
+    for (const sn of list) { try { await deleteSnap(sn); } catch(e){} }
+  }
 
   // ================= AKTUALIZACJE =================
   // Numer kompilacji (rośnie z każdym wydaniem) służy do wykrywania aktualizacji,

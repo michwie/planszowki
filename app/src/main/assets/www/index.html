@@ -249,6 +249,31 @@
   </div>
 </div>
 
+<!-- ================= NOWA GRUPA ================= -->
+<div class="ov" id="ngOv" hidden role="dialog" aria-modal="true" aria-label="Nowa grupa">
+  <div class="ovin">
+    <div class="ovhead"><h2>Nowa grupa</h2><button class="ovclose" data-close="ngOv" aria-label="Zamknij">✕</button></div>
+    <div class="ovscroll" style="border-top:0">
+      <form id="ngForm">
+        <div class="nginfo">
+          <p><b>Grupa</b> to wspólna kolekcja gier dla osób, które grają razem, np. rodziny, paczki znajomych albo klubu. Ma własną listę gier, wyniki, ranking i członków zapraszanych kodem.</p>
+          <p>Nową grupę utwórz tylko wtedy, gdy chcesz prowadzić osobną kolekcję z innymi osobami. Jeśli chcesz dołączyć do istniejącej grupy, zamknij to okno i użyj przycisku <b>⇥ kod</b>.</p>
+        </div>
+        <label class="fl" for="ngName">Nazwa grupy</label>
+        <input type="text" id="ngName" maxlength="40" autocomplete="off" placeholder="np. Dom, Klub, Wyjazd">
+        <p class="rolenote" style="margin-top:8px">Zostaniesz właścicielem grupy. Gry i członków dodasz po jej utworzeniu.</p>
+        <div class="ferr" id="ngErr"></div>
+        <div class="row2"><button type="button" class="ghost" id="ngCancel">Anuluj</button><button type="submit" class="ok" id="ngBtn">Utwórz grupę</button></div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ================= OKŁADKA ================= -->
+<div class="ov imgov" id="imgOv" hidden role="dialog" aria-modal="true" aria-label="Okładka">
+  <figure class="imgbox"><img id="imgBig" alt=""><figcaption id="imgCap"></figcaption></figure>
+</div>
+
 <!-- ================= POJEDYNKI ================= -->
 <div class="ov" id="h2hOv" hidden role="dialog" aria-modal="true" aria-label="Pojedynki">
   <div class="ovin">
@@ -325,6 +350,10 @@
       <p style="margin-top:6px">Kopia obejmuje wszystko z Twoich grup: listy gier ze stanem rozegranych, wyniki, historię rozegranych gier, listę graczy i aktualności. Zapisuje się w pliku tekstowym.</p>
       <p>Import tworzy z pliku kopii nowe grupy na Twoim koncie. Istniejące grupy zostają bez zmian.</p>
       <div class="row2"><button class="ok" id="bkSave">💾 Zapisz plik</button><button class="ghost" id="bkImport">📂 Importuj plik</button></div>
+      <span class="fl" style="margin-top:18px">Kopie na serwerze</span>
+      <p class="rolenote" style="margin-top:2px">Aplikacja raz dziennie, przy uruchomieniu, sama zapisuje kopię na serwerze. Przechowywane są 3 ostatnie kopie. „Przywróć” tworzy z kopii nowe grupy, tak jak import z pliku.</p>
+      <p class="h2hnone" id="snapEmpty">Brak kopii na serwerze.</p>
+      <ul class="trashl" id="snapList"></ul>
       <div class="msg" id="bkMsg"></div>
     </div>
   </div>
@@ -559,9 +588,9 @@
       <h4>5.1. Zarządzanie grupą</h4>
       <p>Karty na górze bloku odpowiadają Twoim grupom. Liczba w nawiasie to liczba gier w grupie; w grupach, w których masz rolę gracza, zamiast liczby jest dopisek <b>· gracz</b>. Naciśnięcie karty wybiera grupę.</p>
       <ul>
-        <li><b>+ grupa</b>: tworzy nową grupę. Wpisz jej nazwę w polu <b>nazwa</b>.</li>
+        <li><b>+ grupa</b>: otwiera okno <b>Nowa grupa</b>. Wpisz nazwę i naciśnij <b>Utwórz grupę</b>. Nazwa musi mieć co najmniej 2 znaki i nie może powtarzać nazwy innej Twojej grupy (także w koszu).</li>
         <li><b>⇥ kod</b>: dołączenie do grupy za pomocą kodu (punkt 5.3).</li>
-        <li><b>nazwa</b>: nazwa wybranej grupy. Zmiana zapisuje się automatycznie.</li>
+        <li><b>nazwa</b>: nazwa wybranej grupy. Zmiana zapisuje się automatycznie, jeśli nazwa nie powtarza nazwy innej Twojej grupy.</li>
         <li><b>⚙</b>: ustawienia grupy (punkt 5.2).</li>
       </ul>
       <h4>5.2. Ustawienia grupy</h4>
@@ -606,6 +635,7 @@
         <tr><td>wyszarzony tytuł</td><td>gra rozegrana w bieżącym cyklu</td></tr>
         <tr><td><b>⊘</b></td><td>gra lub wersja wykluczona z losowania</td></tr>
       </table>
+      <p>Naciśnięcie miniatury okładki (w bloku <b>Moje gry</b> i na liście gier) otwiera jej powiększenie. Naciśnij w dowolnym miejscu, aby je zamknąć.</p>
       <p>Gra jest oznaczana jako rozegrana automatycznie, po zapisaniu wyniku. Każda osoba ma własny stan rozegranych gier. Przycisk <b>Wyzeruj moje rozegrane</b> pod listą rozpoczyna nowy cykl w wybranej grupie, tylko dla Ciebie.</p>
       <h4>5.6. Lista gier</h4>
       <p>Przycisk <b>☰ Lista gier · dodaj i edytuj</b> otwiera okno <b>Wszystkie gry</b> z grami ze wszystkich grup. Listę można zawęzić do jednej grupy i przeszukiwać, także po nazwie rozszerzenia.</p>
@@ -749,6 +779,7 @@
         <li>Sprawdź liczbę grup, gier i wyników w oknie potwierdzenia i naciśnij <b>Importuj</b>.</li>
       </ol>
       <p>Kopia zawiera gry ze stanem rozegranych, wyniki, historię rozgrywek, listę graczy i aktualności. Import tworzy nowe grupy; istniejące grupy pozostają bez zmian.</p>
+      <p><b>Kopie na serwerze.</b> Aplikacja raz dziennie, przy pierwszym uruchomieniu danego dnia, sama zapisuje kopię na serwerze. Przechowywane są 3 ostatnie kopie; starsze są usuwane automatycznie. Lista kopii z datą, liczbą grup i wyników znajduje się w oknie <b>Kopia zapasowa</b>. Przycisk <b>↺ Przywróć</b> tworzy z wybranej kopii nowe grupy, tak jak import z pliku. Kopie na serwerze widzi tylko właściciel konta.</p>
 
       <h4>8.5. Kosz</h4>
       <p>Usunięta grupa nie znika od razu. Trafia do kosza, a dla wszystkich członków przestaje być widoczna. Kosz widzi tylko właściciel grupy. Liczba w nawiasie przy pozycji <b>Kosz</b> to liczba grup w koszu.</p>
@@ -765,7 +796,7 @@
         <li>Wpisz hasło.</li>
         <li>Naciśnij <b>Usuń moje konto</b> i potwierdź.</li>
       </ol>
-      <p class="note">Uwaga: usunięcie konta jest nieodwracalne. Usuwane są konto, adres e-mail, Twoje wpisy w wynikach, członkostwo w grupach, stan rozegranych gier i ustawienia. Grupy, których jesteś właścicielem, także te w koszu, są usuwane razem z grami i wynikami.</p>
+      <p class="note">Uwaga: usunięcie konta jest nieodwracalne. Usuwane są konto, adres e-mail, Twoje wpisy w wynikach, członkostwo w grupach, stan rozegranych gier i ustawienia. Grupy, których jesteś właścicielem, także te w koszu, są usuwane razem z grami i wynikami, podobnie jak kopie na serwerze.</p>
 
       <h3>9. Aktualizacje</h3>
       <p>Gdy dostępna jest nowa wersja, na górze ekranu wyświetla się pasek <b>Dostępna nowa wersja</b>.</p>

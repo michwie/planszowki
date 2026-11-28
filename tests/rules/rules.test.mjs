@@ -118,3 +118,17 @@ test("rejestracja: każdy zapisuje tylko swoją", async () => {
   await assertSucceeds(setDoc(doc(as(PLAYER), "registrations/" + PLAYER), { name: "Gracz", at: 1 }));
   await assertFails(setDoc(doc(as(PLAYER), "registrations/" + OWNER), { name: "Ktoś", at: 1 }));
 });
+
+test("kopie na serwerze: tylko właściciel konta", async () => {
+  const meta = { at: 1, parts: 1, size: 10, groups: 1, plays: 0 };
+  await assertSucceeds(setDoc(doc(as(OWNER), `backups/${OWNER}/snaps/s1/parts/0`), { t: "PLANSZOWKI-KOPIA" }));
+  await assertSucceeds(setDoc(doc(as(OWNER), `backups/${OWNER}/snaps/s1`), meta));
+  await assertSucceeds(getDoc(doc(as(OWNER), `backups/${OWNER}/snaps/s1`)));
+  await assertFails(getDoc(doc(as(MG), `backups/${OWNER}/snaps/s1`)));
+  await assertFails(getDoc(doc(as(MG), `backups/${OWNER}/snaps/s1/parts/0`)));
+  await assertFails(setDoc(doc(as(MG), `backups/${OWNER}/snaps/s2`), meta));
+  await assertFails(updateDoc(doc(as(OWNER), `backups/${OWNER}/snaps/s1`), { size: 5 }));
+  await assertFails(setDoc(doc(as(OWNER), `backups/${OWNER}/snaps/s3`), { ...meta, extra: 1 }));
+  await assertFails(setDoc(doc(as(OWNER), `backups/${OWNER}/snaps/s1/parts/1`), { t: "A".repeat(300001) }));
+  await assertSucceeds(deleteDoc(doc(as(OWNER), `backups/${OWNER}/snaps/s1`)));
+});
