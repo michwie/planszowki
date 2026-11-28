@@ -330,18 +330,23 @@ def kosz_usun_na_zawsze_i_po_30_dniach(c):
     return pg
 
 @test
-def kopia_do_pliku_i_z_pliku(c):
+def kopia_do_pliku_i_import_z_pliku(c):
     pg = c.open(seed())
     pg.click("#tabbar .tb[data-view=more]"); pg.click("#openBk"); pg.wait_for_timeout(300)
+    assert not pg.query_selector("#bkText") and not pg.query_selector("#bkCopy"), "zostało kopiowanie przez schowek"
     with pg.expect_download() as dl:
         pg.click("#bkSave")
     path = dl.value.path(); text = open(path, encoding="utf-8").read()
     assert dl.value.suggested_filename.startswith("Planszomat-kopia-") and dl.value.suggested_filename.endswith(".txt"), dl.value.suggested_filename
     assert text.startswith("PLANSZOWKI-KOPIA") and "Wiedźmin" in text, "zła treść kopii"
+    before = len([k for k in docs(pg) if k.startswith("groups/") and k.count("/") == 1])
     with pg.expect_file_chooser() as fc:
-        pg.click("#bkLoad")
+        pg.click("#bkImport")
     fc.value.set_files(path); pg.wait_for_timeout(400)
-    assert pg.input_value("#bkText").startswith("PLANSZOWKI-KOPIA"), "plik nie został wczytany"
+    assert visible(pg, "#cf") and "Zaimportować" in pg.inner_text("#cf"), "brak potwierdzenia importu"
+    pg.click("#cfYes"); pg.wait_for_timeout(1500)
+    after = len([k for k in docs(pg) if k.startswith("groups/") and k.count("/") == 1])
+    assert after == before + 1, "import nie utworzył grupy (%d -> %d)" % (before, after)
     return pg
 
 @test

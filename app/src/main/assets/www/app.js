@@ -2353,28 +2353,21 @@
     document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
     bkMsg("Zapisano plik " + name + ".");
   };
-  $("bkLoad").onclick = () => {
-    const done = t => {
-      if (t == null) { bkMsg("Nie wczytano pliku.", true); return; }
-      $("bkText").value = String(t).trim(); importArmed = false;
-      bkMsg("Wczytano plik. Sprawdź i naciśnij „Importuj”.");
-    };
+  let importArmed = false, bkRaw = "";
+  // wybór pliku kopii: w aplikacji systemowe okno wyboru pliku, w przeglądarce pole pliku
+  function pickBackupFile(done){
     if (Android && Android.openTextFile) { window.onTextFile = t => { window.onTextFile = null; done(t); }; Android.openTextFile(); return; }
     const inp = document.createElement("input"); inp.type = "file"; inp.accept = ".txt,text/plain";
     inp.onchange = () => { const f = inp.files && inp.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => done(r.result); r.onerror = () => done(null); r.readAsText(f, "utf-8"); };
     inp.click();
+  }
+  $("bkImport").onclick = () => {
+    importArmed = false;
+    pickBackupFile(t => { if (t == null) { bkMsg("Nie wczytano pliku.", true); return; } bkRaw = String(t).trim(); runImport(); });
   };
-  $("bkCopy").onclick = async () => {
-    const text = backupText();
-    $("bkText").value = text;
-    if (Android && Android.copy) { Android.copy(text); bkMsg("Skopiowano do schowka. Wklej to w bezpieczne miejsce."); return; }
-    try { await navigator.clipboard.writeText(text); bkMsg("Skopiowano do schowka. Wklej to w bezpieczne miejsce."); }
-    catch(e){ $("bkText").select(); bkMsg("Zaznaczyłem tekst – skopiuj go ręcznie."); }
-  };
-  let importArmed = false;
-  $("bkImport").onclick = async () => {
-    const raw = $("bkText").value.trim();
-    if (!raw) { bkMsg("Najpierw wklej tekst kopii w pole powyżej.", true); return; }
+  async function runImport(){
+    const raw = bkRaw;
+    if (!raw) { bkMsg("Wybrany plik jest pusty.", true); return; }
     let data;
     try { data = JSON.parse(raw.slice(raw.indexOf("{"))); } catch(e){ bkMsg("To nie wygląda na kopię z tej aplikacji.", true); return; }
     if (!data || !Array.isArray(data.groups) || !data.groups.length) { bkMsg("To nie wygląda na kopię z tej aplikacji.", true); return; }
@@ -2383,7 +2376,7 @@
     const btn = $("bkImport");
     if (!importArmed) {
       confirmDialog({title: "Zaimportować kopię?", text: "Powstanie " + plural(data.groups.length, "nowa grupa", "nowe grupy", "nowych grup") + " (" + plural(nGames, "gra", "gry", "gier") + ", " + plural(nPlays, "wynik", "wyniki", "wyników") + "). Istniejące grupy zostaną bez zmian.", icon: "⛁", yes: "Importuj",
-        onYes: () => { importArmed = true; btn.click(); }});
+        onYes: () => { importArmed = true; runImport(); }});
       return;
     }
     importArmed = false; btn.disabled = true;
@@ -2444,7 +2437,7 @@
         });
         await b.commit();
       }
-      $("bkText").value = "";
+      bkRaw = "";
       bkMsg("Zaimportowano: " + plural(data.groups.length, "grupa", "grupy", "grup") + ", " + plural(nGames, "gra", "gry", "gier") + ", " + plural(plays.length, "wynik", "wyniki", "wyników") + ".");
     } catch(e){ bkMsg("Import przerwany: " + errMsg(e), true); }
     finally { btn.disabled = false; }

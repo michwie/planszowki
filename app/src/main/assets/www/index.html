@@ -322,14 +322,9 @@
   <div class="ovin">
     <div class="ovhead"><h2>Kopia zapasowa</h2><button class="ovclose" data-close="bkov" aria-label="Zamknij">✕</button></div>
     <div class="ovscroll bk" style="border-top:0">
-      <p style="margin-top:6px">Kopia obejmuje wszystko z Twoich grup: listy gier ze stanem rozegranych, wyniki, historię rozegranych gier, listę graczy i aktualności.</p>
-      <div class="row2"><button class="ok" id="bkSave">💾 Zapisz plik</button><button class="ghost" id="bkLoad">📂 Wczytaj plik</button></div>
-      <p style="margin-top:12px">„Importuj” tworzy z kopii (wczytanej z pliku albo wklejonej poniżej) nowe grupy na Twoim koncie – istniejące grupy zostają bez zmian.</p>
-      <textarea id="bkText" spellcheck="false" placeholder="tu wklej tekst kopii zapasowej…"></textarea>
-      <div class="row2">
-        <button class="ok" id="bkCopy">Kopiuj</button>
-        <button class="ghost" id="bkImport">Importuj</button>
-      </div>
+      <p style="margin-top:6px">Kopia obejmuje wszystko z Twoich grup: listy gier ze stanem rozegranych, wyniki, historię rozegranych gier, listę graczy i aktualności. Zapisuje się w pliku tekstowym.</p>
+      <p>Import tworzy z pliku kopii nowe grupy na Twoim koncie. Istniejące grupy zostają bez zmian.</p>
+      <div class="row2"><button class="ok" id="bkSave">💾 Zapisz do pliku</button><button class="ghost" id="bkImport">📂 Importuj z pliku</button></div>
       <div class="msg" id="bkMsg"></div>
     </div>
   </div>
@@ -741,19 +736,20 @@
         <li>Motyw i ustawienie animacji są zapisywane na koncie i włączają się automatycznie na innym urządzeniu po zalogowaniu.</li>
       </ul>
       <h4>8.4. Kopia zapasowa</h4>
-      <p>Tworzenie kopii w pliku:</p>
+      <p>Tworzenie kopii:</p>
       <ol>
         <li>Naciśnij <b>Kopia zapasowa</b>.</li>
-        <li>Naciśnij <b>💾 Zapisz plik</b>.</li>
+        <li>Naciśnij <b>💾 Zapisz do pliku</b>.</li>
         <li>Wybierz miejsce zapisu i zatwierdź. Plik ma nazwę <b>Planszomat-kopia-RRRR-MM-DD.txt</b>.</li>
       </ol>
-      <p>Przywracanie danych z pliku:</p>
+      <p>Przywracanie danych:</p>
       <ol>
-        <li>W oknie <b>Kopia zapasowa</b> naciśnij <b>📂 Wczytaj plik</b> i wybierz plik kopii.</li>
-        <li>Naciśnij <b>Importuj</b> i potwierdź.</li>
+        <li>W oknie <b>Kopia zapasowa</b> naciśnij <b>📂 Importuj z pliku</b>.</li>
+        <li>Wybierz plik kopii.</li>
+        <li>Sprawdź liczbę grup, gier i wyników w oknie potwierdzenia i naciśnij <b>Importuj</b>.</li>
       </ol>
-      <p>Kopię można też przenieść przez schowek: przycisk <b>Kopiuj</b> kopiuje jej tekst, a tekst wklejony w pole okna importuje się przyciskiem <b>Importuj</b>.</p>
       <p>Kopia zawiera gry ze stanem rozegranych, wyniki, historię rozgrywek, listę graczy i aktualności. Import tworzy nowe grupy; istniejące grupy pozostają bez zmian.</p>
+
       <h4>8.5. Kosz</h4>
       <p>Usunięta grupa nie znika od razu. Trafia do kosza, a dla wszystkich członków przestaje być widoczna. Kosz widzi tylko właściciel grupy. Liczba w nawiasie przy pozycji <b>Kosz</b> to liczba grup w koszu.</p>
       <ul>
